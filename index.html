@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Jax Bite">
+<meta name="theme-color" content="#0b1a24">
+<title>Jax Bite Forecast</title><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" href="icon-192.png">
+<style>:root{--bg:#0b1a24;--panel:#11263a;--panel2:#16304a;--line:#24435f;--text:#e8f0f6;--muted:#93a9bb;--accent:#3fd0b5;--accent2:#f2b84b;--tide:#3b8fd9;--bad:#e86a5c;--good:#66d17a;--r:14px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,Segoe UI,Roboto,sans-serif}
+body{padding:env(safe-area-inset-top) 0 calc(72px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;z-index:5;background:rgba(11,26,36,.94);backdrop-filter:blur(10px);padding:10px 14px 8px;border-bottom:1px solid var(--line)}
+.hrow{display:flex;align-items:center;gap:10px}
+h1{font-size:18px;margin:0;flex:1;letter-spacing:.2px}
+h1 small{display:block;font-size:11.5px;color:var(--muted);font-weight:500}
+h2{font-size:15px;margin:0 0 8px}
+h3{font-size:14px;margin:12px 0 6px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.seg{display:inline-flex;background:var(--panel2);border-radius:999px;padding:3px;border:1px solid var(--line)}
+.seg button{border:0;background:none;color:var(--muted);padding:6px 11px;border-radius:999px;font:600 13px inherit;font-family:inherit}
+.seg button.on{background:var(--accent);color:#06221c}
+select,input,textarea{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:9px 10px;font:15px inherit;font-family:inherit;width:100%}
+textarea{min-height:64px}
+label{font-size:12.5px;color:var(--muted);display:block;margin:8px 0 4px}
+main{padding:12px 12px 20px;max-width:720px;margin:0 auto}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:13px;margin:0 0 12px}
+.days{display:flex;gap:6px;overflow-x:auto;padding:8px 0 2px;scrollbar-width:none}
+.days::-webkit-scrollbar{display:none}
+.day{flex:0 0 auto;min-width:58px;text-align:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px 6px;color:var(--text);font-family:inherit}
+.day b{display:block;font-size:12px;color:var(--muted);font-weight:600}
+.day span{display:block;font-size:17px;font-weight:700}
+.day i{display:block;height:4px;border-radius:3px;margin-top:4px;background:var(--line)}
+.day.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.score{display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:30px;padding:0 8px;border-radius:9px;font-weight:800;font-size:15px;color:#06221c}
+.s0{background:#5c6e7c;color:#dfe7ee}.s1{background:#8aa0b2}.s2{background:var(--accent2)}.s3{background:#7fd88e}.s4{background:var(--accent)}
+.muted{color:var(--muted)}.small{font-size:12.5px}
+.pick{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.pick:first-of-type{border-top:0}
+.pick .nm{flex:1;min-width:0}
+.pick .nm b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chartwrap{position:relative;touch-action:pan-y}
+svg text{font-family:inherit}
+.readout{min-height:38px;font-size:13px;color:var(--muted);margin-top:4px}
+.readout b{color:var(--text)}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:11.5px;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:12px;height:8px;border-radius:2px;margin-right:4px;vertical-align:middle}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}
+.kv b{display:block;font-size:16px}.kv span{font-size:12px;color:var(--muted)}
+.tides{display:flex;flex-wrap:wrap;gap:8px}
+.tide{background:var(--panel2);border-radius:10px;padding:6px 10px;font-size:13px}
+.tide b{font-size:14px}
+.win{border-left:3px solid var(--accent);padding:4px 0 4px 10px;margin:8px 0}
+.win b{font-size:15px}
+.tag{display:inline-block;font-size:11.5px;padding:2px 8px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);color:var(--muted);margin:2px 4px 2px 0}
+.tag.hot{color:#06221c;background:var(--accent2);border-color:var(--accent2);font-weight:700}
+.alert{background:rgba(242,184,75,.12);border:1px solid rgba(242,184,75,.45);border-radius:12px;padding:10px 12px;margin:0 0 12px;font-size:14px}
+.sp{cursor:pointer}
+.sp .det{display:none;margin-top:10px}
+.sp.open .det{display:block}
+.mbar{display:flex;gap:2px;margin:6px 0 2px}
+.mbar i{flex:1;height:14px;border-radius:2px;background:var(--accent);opacity:.15}
+.mbar i.cur{outline:1.5px solid var(--text)}
+.mlab{display:flex;gap:2px;font-size:9.5px;color:var(--muted)}.mlab span{flex:1;text-align:center}
+ul.ls{margin:4px 0 0;padding-left:18px}ul.ls li{margin:2px 0}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:rgba(17,38,58,.97);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;border:0;background:none;color:var(--muted);padding:9px 0 8px;font:600 11.5px inherit;font-family:inherit}
+nav button svg{display:block;margin:0 auto 2px;width:23px;height:23px}
+nav button.on{color:var(--accent)}
+.btn{border:0;border-radius:11px;padding:11px 14px;font:700 15px inherit;font-family:inherit;background:var(--accent);color:#06221c;width:100%}
+.btn.ghost{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+.btn.danger{background:transparent;color:var(--bad);border:1px solid var(--bad)}
+.btn.sm{width:auto;padding:7px 12px;font-size:13px}
+.sheet{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center}
+.sheet.on{display:flex}
+.sheet .in{background:var(--panel);width:100%;max-width:720px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:14px 14px calc(18px + env(safe-area-inset-bottom));border:1px solid var(--line)}
+.catch{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line);cursor:pointer}
+.catch:first-child{border-top:0}
+.catch .ic{width:38px;height:38px;border-radius:10px;background:var(--panel2);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--accent)}
+.catch .tx{flex:1;min-width:0}
+.bars .b{display:flex;align-items:center;gap:8px;font-size:12.5px;margin:3px 0}
+.bars .b span{width:92px;color:var(--muted)}
+.bars .b i{height:10px;border-radius:3px;background:var(--accent)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:90px;background:#e8f0f6;color:#0b1a24;padding:8px 14px;border-radius:999px;font-weight:600;font-size:13px;z-index:30;display:none}
+a{color:var(--accent)}
+.note{font-size:12px;color:var(--muted);margin-top:8px}
+.chip{display:inline-block;padding:6px 10px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);margin:3px 4px 3px 0;font-size:13px;color:var(--text);font-family:inherit}
+.chip.on{background:var(--accent);color:#06221c;border-color:var(--accent);font-weight:700}
+.spotrow{border-top:1px solid var(--line);padding:10px 0}
+.spotrow .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.hide{display:none!important}
+</style></head>
+<body>
+<header><div class="hrow"><h1>Jax Bite Forecast<small>Jacksonville fresh · inshore · surf · offshore</small></h1><div class="seg" id="flyseg"></div></div></header>
+<main></main>
+<nav>
+<button data-tab="forecast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 15c2.5-3 5-3 7.5 0s5 3 7.5 0 2.5-1.5 3-2"/><path d="M3 19c2.5-3 5-3 7.5 0s5 3 7.5 0"/><circle cx="17" cy="6" r="2.5"/></svg>Forecast</button>
+<button data-tab="species"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M2 12c3-5 9-7 14-3l4-3v12l-4-3c-5 4-11 2-14-3z"/><circle cx="8" cy="11" r="1" fill="currentColor"/></svg>Species</button>
+<button data-tab="log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Catch log</button>
+<button data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>Settings</button>
+</nav>
+<div class="sheet" id="sheet"></div><div class="toast" id="toast"></div>
+<script>const WEB_BUILD=true;
+// Shared tide engine: astronomical arguments + nodal factors (Schureman), harmonic sum.
+(function (root) {
+  const D = Math.PI / 180;
+  function astro(ms) {
+    const jd = ms / 86400000 + 2440587.5;
+    const Tc = (jd - 2451545.0) / 36525;
+    const s = 218.3165 + 481267.8813 * Tc;
+    const h = 280.4661 + 36000.7698 * Tc;
+    const p = 83.3535 + 4069.0137 * Tc;
+    const N = 125.0445 - 1934.1363 * Tc;
+    const T = 180 + 360 * (((jd + 0.5) % 1 + 1) % 1);
+    return { s, h, p, N, T };
+  }
+  function nodal(N) {
+    const n = N * D, c = Math.cos, sn = Math.sin;
+    return {
+      M2: [1.0004 - 0.0373 * c(n) + 0.0002 * c(2 * n), -2.14 * sn(n)],
+      O1: [1.0089 + 0.1871 * c(n) - 0.0147 * c(2 * n), 10.80 * sn(n) - 1.34 * sn(2 * n)],
+      K1: [1.0060 + 0.1150 * c(n) - 0.0088 * c(2 * n), -8.86 * sn(n) + 0.68 * sn(2 * n)],
+      K2: [1.0241 + 0.2863 * c(n) + 0.0083 * c(2 * n), -17.74 * sn(n) + 0.68 * sn(2 * n)],
+      ONE: [1, 0],
+    };
+  }
+  // Each constituent: speed (deg/hr), V(a) and nodal [f,u]
+  const CONS = {
+    M2: { w: 28.9841042, V: a => 2 * a.T - 2 * a.s + 2 * a.h, n: f => f.M2 },
+    S2: { w: 30.0, V: a => 2 * a.T, n: f => f.ONE },
+    N2: { w: 28.4397295, V: a => 2 * a.T - 3 * a.s + 2 * a.h + a.p, n: f => f.M2 },
+    K2: { w: 30.0821373, V: a => 2 * a.T + 2 * a.h, n: f => f.K2 },
+    K1: { w: 15.0410686, V: a => a.T + a.h - 90, n: f => f.K1 },
+    O1: { w: 13.9430356, V: a => a.T - 2 * a.s + a.h + 90, n: f => f.O1 },
+    P1: { w: 14.9589314, V: a => a.T - a.h + 90, n: f => f.ONE },
+    Q1: { w: 13.3986609, V: a => a.T - 3 * a.s + a.h + a.p + 90, n: f => f.O1 },
+    N2b: null,
+    '2N2': { w: 27.8953548, V: a => 2 * a.T - 4 * a.s + 2 * a.h + 2 * a.p, n: f => f.M2 },
+    NU2: { w: 28.5125831, V: a => 2 * a.T - 3 * a.s + 4 * a.h - a.p, n: f => f.M2 },
+    L2: { w: 29.5284789, V: a => 2 * a.T - a.s + 2 * a.h - a.p + 180, n: f => f.M2 },
+    M4: { w: 57.9682084, V: a => 2 * (2 * a.T - 2 * a.s + 2 * a.h), n: f => [f.M2[0] ** 2, 2 * f.M2[1]] },
+    MS4: { w: 58.9841042, V: a => 4 * a.T - 2 * a.s + 2 * a.h, n: f => f.M2 },
+    MN4: { w: 57.4238337, V: a => 4 * a.T - 5 * a.s + 4 * a.h + a.p, n: f => [f.M2[0] ** 2, 2 * f.M2[1]] },
+    M6: { w: 86.9523127, V: a => 3 * (2 * a.T - 2 * a.s + 2 * a.h), n: f => [f.M2[0] ** 3, 3 * f.M2[1]] },
+    MK3: { w: 44.0251729, V: a => 3 * a.T - 2 * a.s + 3 * a.h - 90, n: f => [f.M2[0] * f.K1[0], f.M2[1] + f.K1[1]] },
+    SA: { w: 0.0410686, V: a => a.h, n: f => f.ONE },
+    SSA: { w: 0.0821373, V: a => 2 * a.h, n: f => f.ONE },
+  };
+  delete CONS.N2b;
+  // Fitted constituents and the minor ones inferred from them (equilibrium ratios, same phase lag)
+  const INFER = { S2: [['K2', 0.272]], K1: [['P1', 0.331]], O1: [['Q1', 0.192]], N2: [['2N2', 0.133], ['NU2', 0.190]], M2: [['L2', 0.028]] };
+  const FIT = ['M2', 'S2', 'N2', 'K1', 'O1', 'M4', 'MS4', 'MN4', 'M6', 'MK3'];
+
+  // Basis value and time-derivative (ft per hour) for a fitted constituent incl. its inferred partners
+  function basis(name, ms) {
+    const a = astro(ms), f = nodal(a.N);
+    let c = 0, s = 0, dc = 0, ds = 0;
+    const list = [[name, 1]].concat(INFER[name] || []);
+    for (const [nm, r] of list) {
+      const k = CONS[nm], [fa, u] = k.n(f);
+      const arg = (k.V(a) + u) * D, w = k.w * D;
+      c += r * fa * Math.cos(arg); s += r * fa * Math.sin(arg);
+      dc += -r * fa * w * Math.sin(arg); ds += r * fa * w * Math.cos(arg);
+    }
+    return [c, s, dc, ds];
+  }
+  // model = {Z0, H:{M2:[A,B],...}, sa:[amp, phaseDeg]}
+  function height(model, ms) {
+    let z = model.Z0, dz = 0;
+    for (const nm of FIT) {
+      const [A, B] = model.H[nm]; const [c, s, dc, ds] = basis(nm, ms);
+      z += A * c + B * s; dz += A * dc + B * ds;
+    }
+    if (model.sa) { // seasonal mean sea level
+      const a = astro(ms);
+      z += model.sa[0] * Math.cos((a.h - model.sa[1]) * D) + (model.sa[2] || 0) * Math.cos((2 * a.h - (model.sa[3] || 0)) * D);
+    }
+    return [z, dz];
+  }
+  function extremes(model, startMs, endMs, offsets) {
+    const step = 6 * 60000, out = [];
+    let [, dPrev] = height(model, startMs - step);
+    for (let t = startMs; t <= endMs + step; t += step) {
+      const [, d] = height(model, t);
+      if ((dPrev > 0 && d <= 0) || (dPrev < 0 && d >= 0)) {
+        // refine by bisection on derivative
+        let lo = t - step, hi = t;
+        for (let i = 0; i < 20; i++) { const m = (lo + hi) / 2; const dm = height(model, m)[1]; if ((dPrev > 0) === (dm > 0)) lo = m; else hi = m; }
+        const tm = (lo + hi) / 2; const z = height(model, tm)[0];
+        out.push({ t: tm, h: z, type: dPrev > 0 ? 'H' : 'L' });
+      }
+      dPrev = d;
+    }
+    return out.filter(e => e.t >= startMs && e.t <= endMs);
+  }
+  root.Tide = { astro, nodal, CONS, FIT, basis, height, extremes };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+const TIDE_MODEL={"Z0":2.3504453346816065,"H":{"M2":[1.9902985725609086,0.9721617047873988],"S2":[0.20022394355234094,0.2557132470191282],"N2":[0.46213327292992007,0.09324900034960484],"K1":[-0.22224259211381964,-0.12421672264450391],"O1":[-0.1395292078840742,-0.04585447249172942],"M4":[-0.09090950914533202,-0.000651436578012743],"MS4":[-0.03212396513587878,-0.0024937610884458285],"MN4":[-0.03184403123391746,0.007492376573224797],"M6":[-0.0405375014822162,-0.04573358999406497],"MK3":[0.03313730026972302,0.002898948097288137]},"sa":[0.5802896991612664,203.48198389552059,0,0]};
+// Low-precision sun & moon (after Meeus / suncalc). Good to a couple of minutes for rise/set/transit.
+const Astro = (() => {
+  const PI = Math.PI, rad = PI / 180, dayMs = 864e5, J1970 = 2440588, J2000 = 2451545, e = rad * 23.4397;
+  const toDays = ms => ms / dayMs - 0.5 + J1970 - J2000;
+  const ra = (l, b) => Math.atan2(Math.sin(l) * Math.cos(e) - Math.tan(b) * Math.sin(e), Math.cos(l));
+  const dec = (l, b) => Math.asin(Math.sin(b) * Math.cos(e) + Math.cos(b) * Math.sin(e) * Math.sin(l));
+  const sidereal = (d, lw) => rad * (280.16 + 360.9856235 * d) - lw;
+  const alt = (H, phi, dc) => Math.asin(Math.sin(phi) * Math.sin(dc) + Math.cos(phi) * Math.cos(dc) * Math.cos(H));
+  function sunCoords(d) {
+    const M = rad * (357.5291 + 0.98560028 * d);
+    const C = rad * (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M));
+    const L = M + C + rad * 102.9372 + PI;
+    return { dec: dec(L, 0), ra: ra(L, 0) };
+  }
+  function moonCoords(d) {
+    const L = rad * (218.316 + 13.176396 * d), M = rad * (134.963 + 13.064993 * d), F = rad * (93.272 + 13.229350 * d);
+    const l = L + rad * 6.289 * Math.sin(M), b = rad * 5.128 * Math.sin(F), dist = 385001 - 20905 * Math.cos(M);
+    return { ra: ra(l, b), dec: dec(l, b), dist };
+  }
+  function sunAlt(ms, lat, lng) {
+    const d = toDays(ms), c = sunCoords(d), H = sidereal(d, rad * -lng) - c.ra;
+    return alt(H, rad * lat, c.dec) / rad;
+  }
+  function moonPos(ms, lat, lng) {
+    const d = toDays(ms), c = moonCoords(d), H = sidereal(d, rad * -lng) - c.ra;
+    let h = alt(H, rad * lat, c.dec);
+    h = h - Math.asin(6378.14 / c.dist) * Math.cos(h); // parallax
+    let Hn = ((H % (2 * PI)) + 3 * PI) % (2 * PI) - PI; // -PI..PI, 0 = overhead
+    return { alt: h / rad, H: Hn };
+  }
+  function moonIllum(ms) {
+    const d = toDays(ms), s = sunCoords(d), m = moonCoords(d), sdist = 149598000;
+    const phi = Math.acos(Math.sin(s.dec) * Math.sin(m.dec) + Math.cos(s.dec) * Math.cos(m.dec) * Math.cos(s.ra - m.ra));
+    const inc = Math.atan2(sdist * Math.sin(phi), m.dist - sdist * Math.cos(phi));
+    const ang = Math.atan2(Math.cos(s.dec) * Math.sin(s.ra - m.ra), Math.sin(s.dec) * Math.cos(m.dec) - Math.cos(s.dec) * Math.sin(m.dec) * Math.cos(s.ra - m.ra));
+    return { frac: (1 + Math.cos(inc)) / 2, phase: 0.5 + 0.5 * inc * (ang < 0 ? -1 : 1) / PI };
+  }
+  function phaseName(p) {
+    const n = ['New moon', 'Waxing crescent', 'First quarter', 'Waxing gibbous', 'Full moon', 'Waning gibbous', 'Last quarter', 'Waning crescent'];
+    return n[Math.floor(((p + 1 / 16) % 1) * 8)];
+  }
+  // Scan a window for events (step 4 min, refined by bisection)
+  function crossings(fn, t0, t1, level) {
+    const out = [], step = 4 * 60000; let prev = fn(t0) - level;
+    for (let t = t0 + step; t <= t1; t += step) {
+      const v = fn(t) - level;
+      if ((prev < 0) !== (v < 0)) {
+        let a = t - step, b = t;
+        for (let i = 0; i < 14; i++) { const m = (a + b) / 2; if ((fn(m) - level < 0) === (prev < 0)) a = m; else b = m; }
+        out.push({ t: (a + b) / 2, up: prev < 0 });
+      }
+      prev = v;
+    }
+    return out;
+  }
+  function day(t0, lat, lng) {
+    const t1 = t0 + dayMs;
+    const sun = crossings(t => sunAlt(t, lat, lng), t0, t1, -0.833);
+    const civ = crossings(t => sunAlt(t, lat, lng), t0, t1, -6);
+    const moon = crossings(t => moonPos(t, lat, lng).alt, t0, t1, 0.133);
+    // transits: hour angle sin crossing; overhead when H crosses 0 upward, underfoot when it wraps ±PI
+    const tr = [], step = 4 * 60000; let pH = moonPos(t0, lat, lng).H;
+    for (let t = t0 + step; t <= t1; t += step) {
+      const H = moonPos(t, lat, lng).H;
+      if (pH < 0 && H >= 0) tr.push({ t: refineH(t - step, t, lat, lng, 0), type: 'over' });
+      else if (pH > 2 && H < -2) tr.push({ t: refineH(t - step, t, lat, lng, PI), type: 'under' });
+      pH = H;
+    }
+    const il = moonIllum(t0 + dayMs / 2);
+    return {
+      sunrise: (sun.find(x => x.up) || {}).t, sunset: (sun.find(x => !x.up) || {}).t,
+      dawn: (civ.find(x => x.up) || {}).t, dusk: (civ.find(x => !x.up) || {}).t,
+      moonrise: (moon.find(x => x.up) || {}).t, moonset: (moon.find(x => !x.up) || {}).t,
+      transits: tr, illum: il.frac, phase: il.phase, phaseName: phaseName(il.phase),
+    };
+  }
+  function refineH(a, b, lat, lng, target) {
+    const f = t => { let H = moonPos(t, lat, lng).H; if (target === PI) H = H < 0 ? H + 2 * PI : H; return H - target; };
+    for (let i = 0; i < 14; i++) { const m = (a + b) / 2; if (f(m) < 0) a = m; else b = m; }
+    return (a + b) / 2;
+  }
+  return { sunAlt, moonPos, moonIllum, phaseName, day };
+})();
+
+// Species profiles for NE Florida (Jacksonville). season: Jan..Dec 0-10 (typical seasonality; your log refines it)
+// temp: [min, optLo, optHi, max] °F. tide: {m: weight on moving water 0-1, fb: -1 ebb .. +1 flood, hw: -1 low .. +1 high water}
+// light: [dawn, day, dusk, night] 0-1. ps: pressure sensitivity. wt: wind tolerance mph. sight: relies on sight/visibility 0-1
+// fly.r: fly-fishing suitability 0-3
+const SPECIES = [
+  { id: 'bass', name: 'Largemouth bass', grp: 'Freshwater', waters: ['fresh'],
+    season: [7, 9, 10, 9, 7, 5, 4, 4, 5, 7, 8, 7], temp: [48, 62, 78, 90], tide: null, light: [1, .55, 1, .35], ps: 1, wt: 15, sight: .3,
+    where: 'St. Johns tributaries (Julington & Black Creek), Rodman Reservoir, Lake George, local ponds. Spawn on beds Feb–Apr.',
+    bait: ['Wild shiners', 'Texas-rigged plastic worm', 'Swim jig', 'Topwater frog in pads', 'Spinnerbait in stained water'],
+    tips: 'Falling barometer ahead of a front is prime. In summer, fish first light and dusk; mid-day go deep or into heavy cover.',
+    fly: { r: 3, kit: '7–8 wt, floating line, 0X–2X leader', flies: ['Deer-hair bug', 'Foam popper', 'Clouser minnow', 'Bunny leech', 'Worm fly'], tips: 'Pop bugs along pad edges at low light; switch to a weighted leech on a slow strip when fish are deep.' } },
+  { id: 'bream', name: 'Bluegill / bream', grp: 'Panfish', waters: ['fresh'],
+    season: [3, 4, 6, 8, 10, 10, 9, 8, 7, 6, 4, 3], temp: [55, 70, 84, 92], tide: null, light: [.9, .7, .9, .2], ps: .5, wt: 15, sight: .3, moonBed: true,
+    where: 'Creeks, canals and ponds; St. Johns backwaters and Black Creek. Bedding colonies around the full moon May–Aug.',
+    bait: ['Crickets', 'Red worms', 'Small beetle spin', 'Tiny jig under a float'],
+    tips: 'Find beds (pock-marked sandy bottom) in 2–4 ft of water a few days either side of the full moon.',
+    fly: { r: 3, kit: '3–5 wt, floating line, 4X–5X tippet', flies: ['Foam spider', 'Small popper (#10)', 'Bead-head nymph', 'Soft hackle'], tips: 'A rubber-legged spider dropped by cover and left still is deadly. Add a nymph dropper when they won’t rise.' } },
+  { id: 'redear', name: 'Redear (shellcracker)', grp: 'Panfish', waters: ['fresh'],
+    season: [3, 4, 7, 9, 9, 7, 6, 5, 5, 5, 4, 3], temp: [55, 68, 80, 90], tide: null, light: [.85, .7, .85, .25], ps: .5, wt: 15, sight: .2, moonBed: true,
+    where: 'Shell and sand bottoms in Lake George and the St. Johns; ponds with snails. Spawn around the spring full moons.',
+    bait: ['Red wigglers', 'Grass shrimp', 'Small bottom rig'],
+    tips: 'Fish on the bottom near beds; they rarely take baits high in the water column.',
+    fly: { r: 2, kit: '4–5 wt, floating or sink-tip', flies: ['Bead-head nymph', 'Small woolly bugger', 'San Juan worm'], tips: 'Get the fly on the bottom and crawl it slowly.' } },
+  { id: 'crappie', name: 'Crappie (speckled perch)', grp: 'Panfish', waters: ['fresh'],
+    season: [9, 10, 9, 6, 4, 3, 2, 2, 3, 5, 7, 8], temp: [45, 55, 68, 82], tide: null, light: [.9, .6, 1, .7], ps: .7, wt: 15, sight: .2,
+    where: 'Lake George, Crescent Lake, Rodman and the St. Johns south of Palatka. Best in the cold months.',
+    bait: ['Live minnows', '1/16 oz jig (chartreuse, black/chartreuse)', 'Spider-rigging / slow drift'],
+    tips: 'Drift or troll minnows and jigs over open-water schools in winter; around brush and docks in the spring.',
+    fly: { r: 2, kit: '4–6 wt, intermediate line', flies: ['Marabou jig fly', 'Small Clouser', 'Crappie candy'], tips: 'Count the fly down to the school’s depth and strip slowly with pauses.' } },
+  { id: 'panfish-other', name: 'Warmouth & stumpknocker', grp: 'Panfish', waters: ['fresh'],
+    season: [3, 4, 6, 8, 9, 9, 8, 8, 7, 6, 4, 3], temp: [55, 70, 84, 92], tide: null, light: [.9, .6, .9, .3], ps: .5, wt: 15, sight: .2,
+    where: 'Cypress knees, stumps and wood in blackwater creeks (Black Creek, Julington, upper St. Johns).',
+    bait: ['Crickets', 'Worms', 'Small spinner'],
+    tips: 'Tight to wood. Short accurate casts beat long ones.',
+    fly: { r: 3, kit: '3–5 wt', flies: ['Rubber-leg spider', 'Small popper', 'Woolly bugger'], tips: 'Roll-cast tight to stumps and let it sit.' } },
+  { id: 'catfish', name: 'Catfish (channel, blue, white)', grp: 'Freshwater', waters: ['fresh', 'inshore'],
+    season: [5, 5, 6, 7, 8, 9, 9, 9, 8, 7, 6, 5], temp: [45, 70, 88, 95], tide: { m: .7, fb: 0, hw: 0 }, light: [.7, .45, .85, 1], ps: .4, wt: 20, sight: 0,
+    where: 'St. Johns River channel edges, bridges (Shands, Buckman), Doctors Lake, Black Creek, Rodman spillway.',
+    bait: ['Cut shad or mullet', 'Chicken liver', 'Shrimp', 'Nightcrawlers'],
+    tips: 'Best at night and on moving water in the tidal river. Fish channel drop-offs on the bottom.',
+    fly: { r: 0, kit: '—', flies: [], tips: 'Not a fly target — use bait.' } },
+  { id: 'shad', name: 'American shad', grp: 'Freshwater', waters: ['fresh'],
+    season: [7, 9, 8, 3, 0, 0, 0, 0, 0, 0, 0, 4], temp: [55, 60, 68, 75], tide: null, light: [.9, .7, .9, .2], ps: .5, wt: 15, sight: .2,
+    where: 'Upper St. Johns (Lake Harney / Puzzle Lake area, ~2 hrs south) during the winter run.',
+    bait: ['Shad darts', 'Small spoons', 'Tiny jigs'],
+    tips: 'Find bends and channel edges where fish stack up; troll or cast darts across the current.',
+    fly: { r: 3, kit: '5–6 wt, intermediate or sink-tip', flies: ['Shad fly (bright, #6–#8)', 'Small Clouser', 'Flash fly'], tips: 'Swing the fly across the current like a steelhead swing.' } },
+
+  { id: 'trout', name: 'Spotted seatrout', grp: 'Inshore', waters: ['inshore'],
+    season: [6, 6, 8, 9, 8, 6, 5, 5, 6, 8, 9, 8], temp: [50, 62, 78, 88], tide: { m: .8, fb: -.1, hw: .2 }, light: [1, .55, .95, .5], ps: .8, wt: 15, sight: .3,
+    where: 'ICW & creek mouths (Pablo, Sisters Creek), grass edges in Nassau Sound and Fort George River; deep creek holes in winter.',
+    bait: ['Live shrimp under a popping cork', 'Paddle-tail soft plastic', 'Topwater walk-the-dog at dawn', 'Suspending twitchbait'],
+    tips: 'Moving water over grass edges and creek mouths. Early falling tide pulls bait out of the marsh.',
+    fly: { r: 3, kit: '6–8 wt, floating or intermediate, 20 lb bite tippet', flies: ['Clouser minnow', 'Seaducer', 'EP shrimp', 'Gurgler (dawn)'], tips: 'Blind-cast potholes and grass edges with a Clouser; switch to a gurgler at first light.' } },
+  { id: 'flounder', name: 'Southern flounder', grp: 'Inshore', waters: ['inshore', 'surf'],
+    season: [3, 3, 5, 6, 6, 5, 5, 5, 7, 9, 10, 6], temp: [55, 64, 80, 88], tide: { m: .7, fb: -.4, hw: -.2 }, light: [.8, .75, .8, .4], ps: .5, wt: 18, sight: .1,
+    where: 'Mayport jetty rocks, ICW docks, creek mouths and sand/rock transitions. Fall run Oct–Nov as fish move to the inlet.',
+    bait: ['Live mud minnow', 'Finger mullet', 'Bucktail tipped with Gulp', 'Carolina rig'],
+    tips: 'Outgoing tide at creek mouths and drains. Slow and on the bottom; give them a second before setting the hook.',
+    fly: { r: 2, kit: '7 wt, sink-tip or intermediate', flies: ['Weighted Clouser', 'Bend-back', 'Mud minnow pattern'], tips: 'Hop a weighted fly along the bottom near structure on the ebb.' } },
+  { id: 'redfish', name: 'Redfish (red drum)', grp: 'Inshore', waters: ['inshore', 'surf'],
+    season: [8, 8, 7, 7, 7, 7, 7, 8, 10, 10, 9, 8], temp: [52, 65, 85, 92], tide: { m: .6, fb: .1, hw: 0 }, light: [.9, .75, .9, .5], ps: .6, wt: 15, sight: .8, tailing: true,
+    where: 'Oyster bars & spartina flats along the ICW, Fort George River, Nassau Sound; bull reds at the Mayport jetties Aug–Oct.',
+    bait: ['Cut mullet or menhaden', 'Blue crab (bull reds)', 'Live shrimp', 'Gold spoon', 'Jig & soft plastic'],
+    tips: 'Moving water around oyster bars. Big flood tides push fish into the grass to tail; winter low tides bunch them in clear creeks.',
+    fly: { r: 3, kit: '8 wt, floating line, 16–20 lb fluoro', flies: ['Merkin crab', 'Kwan', 'Spoon fly', 'EP shrimp', 'Redfish toad'], tips: 'Lead tailing fish by a couple of feet and twitch slowly. Weedless flies for the grass.' } },
+  { id: 'blackdrum', name: 'Black drum', grp: 'Inshore', waters: ['inshore', 'surf'],
+    season: [7, 9, 10, 8, 5, 4, 4, 4, 5, 6, 7, 7], temp: [50, 58, 75, 88], tide: { m: .5, fb: 0, hw: 0 }, light: [.8, .7, .8, .6], ps: .4, wt: 20, sight: .1,
+    where: 'Jetties, bridges (Mathews, Dames Point, Heckscher Dr.), docks and Nassau Sound. Big spawners in late winter.',
+    bait: ['Blue crab (halved)', 'Clams', 'Fresh shrimp'],
+    tips: 'Fish structure on the bottom. Bigger fish group up Feb–Apr.',
+    fly: { r: 1, kit: '8 wt', flies: ['Crab pattern', 'Shrimp pattern'], tips: 'Occasional sight shots on flats; mostly a bait fish here.' } },
+  { id: 'sheepshead', name: 'Sheepshead', grp: 'Inshore', waters: ['inshore'],
+    season: [9, 10, 10, 7, 4, 3, 3, 3, 4, 5, 7, 8], temp: [50, 55, 72, 85], tide: { m: .35, fb: 0, hw: 0 }, light: [.8, .8, .75, .3], ps: .4, wt: 18, sight: .1,
+    where: 'Jetties, bridge pilings and docks — Mayport, Fort George, ICW. Spawning aggregations Feb–Mar.',
+    bait: ['Fiddler crabs', 'Sand fleas', 'Oysters / barnacles'],
+    tips: 'Drop straight down next to pilings; slower current (around slack) makes it easier to hold bottom.',
+    fly: { r: 1, kit: '7–8 wt', flies: ['Small crab', 'Barnacle fly'], tips: 'Tough on fly; possible on shallow flats.' } },
+
+  { id: 'pompano', name: 'Pompano', grp: 'Surf', waters: ['surf'],
+    season: [3, 4, 8, 9, 8, 5, 4, 4, 5, 8, 9, 6], temp: [62, 68, 78, 85], tide: { m: .6, fb: .5, hw: .2 }, light: [.9, .85, .85, .3], ps: .5, wt: 18, sight: .3,
+    where: 'Jax, Atlantic & Neptune Beach, Hanna Park, Little Talbot Island. First trough and sand bar edges.',
+    bait: ['Sand fleas (mole crabs)', 'Fishbites', 'Pompano jig', 'Double-drop pompano rig'],
+    tips: 'Incoming tide into the first trough. Water in the high 60s to 70s; spring and fall runs follow temperature.',
+    fly: { r: 2, kit: '7–8 wt, sinking line, stripping basket', flies: ['Sand flea fly', 'Pink/chartreuse Clouser', 'Pompano jig fly'], tips: 'Cast into the trough and strip short and fast along the bottom.' } },
+  { id: 'whiting', name: 'Whiting (southern kingfish)', grp: 'Surf', waters: ['surf'],
+    season: [8, 8, 9, 8, 6, 5, 5, 5, 6, 8, 9, 9], temp: [52, 58, 75, 86], tide: { m: .6, fb: .5, hw: .1 }, light: [.8, .75, .8, .5], ps: .4, wt: 18, sight: .1,
+    where: 'All the area beaches, close in the first trough; also the pier and Nassau Sound beaches.',
+    bait: ['Fresh shrimp', 'Sand fleas', 'Fishbites', 'Small hooks (#4–#2)'],
+    tips: 'Often within 30 yards of the beach. Incoming tide and a little surf stir up food.',
+    fly: { r: 1, kit: '7 wt, sinking line', flies: ['Small shrimp fly'], tips: 'Incidental on fly while chasing pompano.' } },
+  { id: 'bluefish', name: 'Bluefish', grp: 'Surf', waters: ['surf', 'inshore'],
+    season: [6, 6, 7, 6, 3, 2, 2, 2, 3, 5, 7, 7], temp: [52, 60, 72, 82], tide: { m: .7, fb: .2, hw: 0 }, light: [1, .6, 1, .4], ps: .5, wt: 20, sight: .2,
+    where: 'Beaches, jetties and the inlet during cooler months.',
+    bait: ['Cut mullet', 'Spoons', 'Gotcha plug'], tips: 'Look for bird activity and bait being pushed. Use a short wire leader.',
+    fly: { r: 2, kit: '8 wt, intermediate, wire bite tippet', flies: ['Deceiver', 'Clouser', 'Popper'], tips: 'Fast strips into blitzes.' } },
+
+  { id: 'cobia', name: 'Cobia', grp: 'Nearshore', waters: ['nearshore', 'surf'],
+    season: [0, 1, 4, 9, 8, 6, 5, 4, 3, 2, 1, 0], temp: [68, 70, 82, 88], tide: { m: .3, fb: 0, hw: 0 }, light: [.5, 1, .6, .1], ps: .4, wt: 12, sight: 1,
+    where: 'Spring run along the beaches (sight-cast to fish near the surface, around rays and turtles); summer on nearshore buoys and wrecks.',
+    bait: ['Live eels', 'Live pogies / crabs', '2–4 oz bucktail', 'Large soft-plastic eel'],
+    tips: 'Calm, sunny days with the sun high for spotting. Run the beach slowly from a tower or the bow.',
+    fly: { r: 2, kit: '10–11 wt, intermediate, 50–60 lb bite', flies: ['Large bunny / eel fly', '3/0 Clouser', 'Crab fly'], tips: 'Lead the fish and strip as soon as it turns toward the fly.' } },
+  { id: 'tarpon', name: 'Tarpon', grp: 'Nearshore', waters: ['nearshore', 'inshore', 'surf'],
+    season: [0, 0, 0, 1, 3, 6, 9, 10, 9, 6, 2, 0], temp: [74, 80, 88, 93], tide: { m: .6, fb: 0, hw: 0 }, light: [1, .6, 1, .75], ps: .5, wt: 12, sight: .7,
+    where: 'Beaches following pogy (menhaden) pods, St. Johns mouth and jetties, Nassau Sound; night bites around lights and bridges.',
+    bait: ['Live pogy or mullet', 'Large swimbait', 'Cut mullet on bottom (night)'],
+    tips: 'Find the bait pods and you find the fish — rolling tarpon at first light. Bow to the fish when it jumps.',
+    fly: { r: 3, kit: '11–12 wt, floating or intermediate, 60–80 lb shock', flies: ['Tarpon toad', 'Black Death', 'Cockroach', 'Pogy / menhaden fly'], tips: 'Strip slowly across the fish’s path; strip-set hard, then bow.' } },
+  { id: 'spanish', name: 'Spanish mackerel', grp: 'Nearshore', waters: ['surf', 'nearshore'],
+    season: [1, 1, 3, 8, 9, 8, 7, 7, 8, 8, 5, 2], temp: [68, 72, 84, 88], tide: { m: .5, fb: .2, hw: 0 }, light: [1, .75, .9, .2], ps: .4, wt: 18, sight: .4,
+    where: 'Beaches, jetties and the inlet when bait is near shore.',
+    bait: ['Gotcha plug', 'Small spoon', 'Live shrimp / glass minnows'], tips: 'Fast retrieves near diving birds. Clear water helps.',
+    fly: { r: 2, kit: '8 wt, intermediate, short wire or 40 lb fluoro', flies: ['Small Clouser', 'Glass minnow', 'Surf candy'], tips: 'Very fast strips.' } },
+  { id: 'jack', name: 'Jack crevalle', grp: 'Nearshore', waters: ['inshore', 'surf', 'nearshore'],
+    season: [2, 2, 3, 5, 7, 8, 8, 9, 9, 8, 5, 3], temp: [68, 74, 86, 92], tide: { m: .7, fb: 0, hw: 0 }, light: [1, .7, .9, .5], ps: .3, wt: 20, sight: .4,
+    where: 'St. Johns River, jetties and the ICW, busting bait.', bait: ['Topwater popper', 'Spoon', 'Live mullet'],
+    tips: 'Look for surface blitzes on moving tide.',
+    fly: { r: 2, kit: '9–10 wt', flies: ['Popper', 'Deceiver'], tips: 'Strip as fast as you can.' } },
+  { id: 'tripletail', name: 'Tripletail', grp: 'Nearshore', waters: ['nearshore', 'inshore'],
+    season: [0, 0, 1, 4, 6, 8, 8, 8, 6, 3, 1, 0], temp: [70, 76, 86, 90], tide: { m: .3, fb: 0, hw: 0 }, light: [.6, 1, .6, .1], ps: .3, wt: 12, sight: 1,
+    where: 'Floating crab-trap buoys and debris along the beaches and Nassau Sound in summer.',
+    bait: ['Live shrimp', 'Shrimp-imitation jig'], tips: 'Idle trap lines on calm sunny days and look for fish lying on their side.',
+    fly: { r: 2, kit: '9 wt, floating', flies: ['Shrimp pattern', 'Small crab'], tips: 'Drop the fly just upcurrent of the buoy.' } },
+  { id: 'king', name: 'King mackerel', grp: 'Offshore', waters: ['nearshore', 'offshore'],
+    season: [1, 1, 2, 5, 8, 6, 5, 5, 7, 8, 6, 3], temp: [68, 72, 80, 86], tide: { m: .3, fb: 0, hw: 0 }, light: [1, .7, .8, .2], ps: .4, wt: 18, sight: .2,
+    where: 'Nearshore reefs, the shipping channel and bait pods.', bait: ['Slow-trolled live pogies', 'Dead cigar minnows on a stinger rig'],
+    tips: 'Spring and fall runs. Slow-troll live bait on stinger rigs around bait schools.',
+    fly: { r: 1, kit: '10–12 wt', flies: ['Large Deceiver'], tips: 'Possible with chum; mostly a trolling fish.' } },
+  { id: 'mahi', name: 'Mahi-mahi', grp: 'Offshore', waters: ['offshore'],
+    season: [0, 0, 1, 4, 8, 9, 7, 6, 4, 2, 0, 0], temp: [72, 76, 84, 88], tide: null, light: [1, .8, .8, .1], ps: .3, wt: 18, sight: .5,
+    where: 'Gulf Stream edge, weed lines and floating debris.', bait: ['Ballyhoo trolling', 'Cut bait for schoolies'],
+    tips: 'Find weed lines and temperature breaks.',
+    fly: { r: 1, kit: '9–10 wt', flies: ['Popper', 'Deceiver'], tips: 'Keep one hooked fish in the water to hold the school.' } },
+  { id: 'reef', name: 'Reef bottom fish (sea bass, snapper, grouper)', grp: 'Offshore', waters: ['nearshore', 'offshore'],
+    season: [5, 5, 6, 6, 7, 7, 7, 7, 7, 6, 5, 5], temp: [60, 68, 82, 88], tide: { m: .4, fb: 0, hw: 0 }, light: [.85, .8, .85, .3], ps: .3, wt: 18, sight: 0,
+    where: 'Nearshore and offshore reefs and wrecks.', bait: ['Cut squid', 'Live pinfish / sardines', 'Vertical jigs'],
+    tips: 'Seasons and size limits change often — check FWC before keeping anything.',
+    fly: { r: 0, kit: '—', flies: [], tips: 'Not a practical fly target.' } },
+];
+
+const WATER_LABEL = { fresh: 'Freshwater', inshore: 'Inshore / river', surf: 'Surf', nearshore: 'Nearshore', offshore: 'Offshore' };
+
+// Spots. ref = tide reference (Mayport Bar Pilots Dock, NOAA 8720218). offsets from NOAA subordinate stations.
+const DEFAULT_SPOTS = [
+  { id: 'mayport', name: 'Mayport / St. Johns jetties', water: 'inshore', tide: { hi: 0, lo: 0, hr: 1, lr: 1 }, src: 'NOAA 8720218' },
+  { id: 'pablo', name: 'Pablo Creek / ICW', water: 'inshore', tide: { hi: 74, lo: 80, hr: .84, lr: 1 }, src: 'NOAA 8720267' },
+  { id: 'fuel', name: 'Blount Island / Navy Fuel Depot', water: 'inshore', tide: { hi: 74, lo: 108, hr: .56, lr: .53 }, src: 'NOAA 8720215' },
+  { id: 'pottsburg', name: 'Little Pottsburg Creek (Arlington)', water: 'inshore', tide: { hi: 91, lo: 129, hr: .44, lr: .53 }, src: 'NOAA 8720274' },
+  { id: 'beach', name: 'Jax / Atlantic beaches (surf)', water: 'surf', tide: { hi: 0, lo: 0, hr: 1, lr: 1 }, src: 'Mayport reference — set an offset in Settings if your beach runs earlier' },
+  { id: 'near', name: 'Nearshore reefs, buoys & beaches by boat', water: 'nearshore', tide: { hi: 0, lo: 0, hr: 1, lr: 1 }, src: 'Mayport reference' },
+  { id: 'off', name: 'Offshore / Gulf Stream', water: 'offshore', tide: null },
+  { id: 'river', name: 'St. Johns River freshwater (Palatka & south)', water: 'fresh', tide: null },
+  { id: 'lakes', name: 'Lakes, ponds & blackwater creeks', water: 'fresh', tide: null },
+];
+
+// Typical NE Florida water temperatures (°F) by month — defaults only; enter the real reading in Conditions.
+const WATER_TEMP = { salt: [57, 58, 63, 69, 75, 80, 83, 84, 82, 76, 68, 61], fresh: [56, 59, 65, 72, 79, 84, 86, 86, 83, 75, 66, 59] };
+
+// Florida recreational regulations relevant to NE Florida (Nassau–St. Johns). Checked against FWC sources on 2026-11-19.
+// closed: [[startMonth, startDay, endMonth, endDay]] (1-based, inclusive). Always confirm at MyFWC.com before keeping fish.
+const REGS_CHECKED = '2026-11-19';
+const REGS = {
+  redfish: { size: '18–27" total length (slot)', bag: '1 per person, 4 per vessel', season: 'Open year-round', notes: 'Northeast management region. Hook-and-line only; no gigging, spearing or snatching.', url: 'https://myfwc.com/fishing/saltwater/recreational/red-drum/' },
+  trout: { size: '15–19" total length (slot)', bag: '3 per person', season: 'Open year-round', notes: 'Northeast region rules in effect since Apr 1, 2026 — no over-slot fish allowed in this region.', url: 'https://myfwc.com/fishing/saltwater/recreational/spotted-seatrout/' },
+  flounder: { size: '14" total length minimum', bag: '5 per person', season: 'Closed Oct 15 – Nov 30', closed: [[10, 15, 11, 30]], notes: 'Applies in state and federal waters off Florida (all flounder species).', url: 'https://myfwc.com/fishing/saltwater/recreational/flounder/' },
+  blackdrum: { size: '14–24" total length (slot)', bag: '5 per person, may include one over 24"', season: 'Open year-round', notes: 'Snatching prohibited.', url: 'https://myfwc.com/fishing/saltwater/recreational/black-drum/' },
+  sheepshead: { size: '12" total length minimum', bag: '8 per person; 50 per vessel in March & April', season: 'Open year-round', notes: 'State rules extend into federal waters.', url: 'https://myfwc.com/fishing/saltwater/recreational/sheepshead/' },
+  pompano: { size: '11" fork length minimum', bag: '6 per person', season: 'Open year-round', notes: 'Hook and line, cast net, and beach or haul seine only.', url: 'https://myfwc.com/fishing/saltwater/recreational/' },
+  whiting: { size: 'None', bag: 'Not individually regulated — up to 100 lb per person with a recreational license', season: 'Open year-round', notes: 'Southern kingfish is not individually regulated in Florida state waters.', url: 'https://myfwc.com/fishing/saltwater/recreational/' },
+  bluefish: { size: '12" fork length minimum', bag: 'Check FWC — Atlantic limits were reduced', season: 'Open year-round', notes: 'Bag limit not confirmed in this app; verify before keeping.', url: 'https://myfwc.com/fishing/saltwater/recreational/' , verify: true },
+  cobia: { size: '36" fork length minimum', bag: '1 per person or 2 per vessel, whichever is less', season: 'Open year-round', notes: 'Gulf and Atlantic state waters.', url: 'https://myfwc.com/fishing/saltwater/recreational/cobia/' },
+  tarpon: { size: '—', bag: 'Catch and release only (one $50 harvest tag per year, only for a potential IGFA record)', season: 'Open year-round', notes: 'Tarpon over 40" must stay in the water during release.', url: 'https://myfwc.com/fishing/saltwater/recreational/' },
+  spanish: { size: '12" fork length minimum', bag: '15 per person', season: 'Open year-round', notes: '', url: 'https://myfwc.com/fishing/saltwater/recreational/' },
+  king: { size: '24" fork length minimum', bag: 'Atlantic: 2 per person (per FWC 2024 summary) — verify', season: 'Open year-round', notes: 'Federal rules apply beyond 3 nm.', url: 'https://myfwc.com/fishing/saltwater/recreational/', verify: true },
+  tripletail: { size: '18" total length minimum', bag: '2 per person', season: 'Open year-round', notes: 'Hook and line only; no snatch hooks.', url: 'https://myfwc.com/fishing/saltwater/recreational/' },
+  mahi: { size: '20" fork length minimum (Atlantic)', bag: '5 per person, 30 per private vessel (Atlantic)', season: 'Open year-round', notes: '', url: 'https://myfwc.com/fishing/saltwater/recreational/' },
+  jack: { size: 'None', bag: 'Unregulated species', season: 'Open year-round', notes: '', url: 'https://myfwc.com/fishing/saltwater/recreational/' },
+  reef: { size: 'Varies by species', bag: 'Varies — snapper/grouper aggregates', season: 'Several species have closed or very short seasons (e.g., red snapper, gag/black grouper)', notes: 'Too many species and changes to list here — check FWC/federal rules before every trip.', url: 'https://myfwc.com/fishing/saltwater/recreational/', verify: true },
+  bass: { size: 'No minimum; only 1 may be 16" or longer', bag: '5 black bass per day', season: 'Open year-round', notes: 'Some lakes and Fish Management Areas have special rules.', url: 'https://myfwc.com/fishing/freshwater/regulations/general/' },
+  bream: { size: 'None', bag: '50 panfish per day (combined: bluegill, redear, warmouth, stumpknocker, etc.)', season: 'Open year-round', notes: '', url: 'https://myfwc.com/fishing/freshwater/regulations/general/' },
+  redear: { size: 'None', bag: '50 panfish per day (combined)', season: 'Open year-round', notes: '', url: 'https://myfwc.com/fishing/freshwater/regulations/general/' },
+  'panfish-other': { size: 'None', bag: '50 panfish per day (combined)', season: 'Open year-round', notes: '', url: 'https://myfwc.com/fishing/freshwater/regulations/general/' },
+  crappie: { size: 'None statewide', bag: '25 per day', season: 'Open year-round', notes: 'Some waters have special size limits.', url: 'https://myfwc.com/fishing/freshwater/regulations/general/' },
+  shad: { size: 'None', bag: '10 per day (American, hickory, Alabama shad & blueback herring combined)', season: 'Open year-round', notes: 'Hook and line only.', url: 'https://myfwc.com/fishing/freshwater/regulations/general/' },
+  catfish: { size: 'None statewide', bag: 'Nongame fish — no statewide bag limit in fresh water', season: 'Open year-round', notes: 'Special rules on some Fish Management Areas; verify.', url: 'https://myfwc.com/fishing/freshwater/regulations/general/', verify: true },
+};
+function regStatus(id, t) {
+  const r = REGS[id]; if (!r || !r.closed) return { open: true };
+  const d = new Date(t), md = (d.getMonth() + 1) * 100 + d.getDate();
+  for (const [sm, sd, em, ed] of r.closed) {
+    const a = sm * 100 + sd, b = em * 100 + ed;
+    if (a <= b ? (md >= a && md <= b) : (md >= a || md <= b)) return { open: false, until: `${['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][em]} ${ed}` };
+  }
+  return { open: true };
+}
+function regJurisdiction(spot) {
+  if (spot.water === 'fresh') return 'Florida freshwater rules (statewide)';
+  if (spot.water === 'offshore') return 'Federal waters (beyond 3 nm in the Atlantic) — FWC rules shown where they extend; federal rules may be stricter';
+  return 'Florida Atlantic state waters, Northeast Florida management regions';
+}
+
+// Forecast engine: spot tides, per-sample features, species scoring, catch-log patterns.
+const Engine = (() => {
+  const MIN = 60000, HR = 3600000, DAY = 864e5, STEP = 15 * MIN;
+  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+
+  function spotExtremes(spot, t0, t1) {
+    if (!spot.tide) return [];
+    const o = spot.tide;
+    return Tide.extremes(TIDE_MODEL, t0 - 8 * HR, t1 + 8 * HR)
+      .map(e => e.type === 'H' ? { t: e.t + o.hi * MIN, h: e.h * o.hr, ref: e.h, type: 'H' } : { t: e.t + o.lo * MIN, h: e.h * o.lr, ref: e.h, type: 'L' })
+      .sort((a, b) => a.t - b.t);
+  }
+  function tideAt(ext, t) {
+    for (let i = 0; i < ext.length - 1; i++) {
+      const a = ext[i], b = ext[i + 1];
+      if (t >= a.t && t < b.t) {
+        const dur = b.t - a.t, fr = (t - a.t) / dur;
+        const h = a.h + (b.h - a.h) * (1 - Math.cos(Math.PI * fr)) / 2;
+        const dh = (b.h - a.h) * Math.PI / 2 * Math.sin(Math.PI * fr) / (dur / HR);
+        const lowH = Math.min(a.h, b.h), highH = Math.max(a.h, b.h);
+        return { h, dh, flood: b.type === 'H', fr, prev: a, next: b, hRel: highH > lowH ? (h - lowH) / (highH - lowH) : .5 };
+      }
+    }
+    return null;
+  }
+  function stageLabel(ts) {
+    if (!ts) return '—';
+    if (ts.fr < 0.08) return ts.flood ? 'Slack low, turning in' : 'Slack high, turning out';
+    if (ts.fr > 0.92) return ts.flood ? 'Top of the flood' : 'Bottom of the ebb';
+    const part = ts.fr < 0.34 ? 'Early' : ts.fr < 0.67 ? 'Mid' : 'Late';
+    return part + (ts.flood ? ' incoming' : ' outgoing');
+  }
+  function stageBin(ts) { if (!ts) return null; return (ts.flood ? 'In-' : 'Out-') + (ts.fr < 0.34 ? 'early' : ts.fr < 0.67 ? 'mid' : 'late'); }
+
+  function lightBin(alt, morning) {
+    if (alt < -6) return 'Night';
+    if (alt < 10) return morning ? 'Dawn' : 'Dusk';
+    if (alt < 35) return morning ? 'Morning' : 'Afternoon';
+    return 'Midday';
+  }
+
+  // Build features for one local day at a spot
+  function buildDay(t0, spot, loc) {
+    const days = [-1, 0, 1].map(k => Astro.day(t0 + k * DAY, loc.lat, loc.lng));
+    const ast = days[1];
+    const majors = days.flatMap(d => d.transits.map(x => x.t));
+    const minors = days.flatMap(d => [d.moonrise, d.moonset].filter(Boolean));
+    const ext = spotExtremes(spot, t0, t0 + DAY);
+    let maxRate = 0.01;
+    const samples = [];
+    for (let t = t0; t < t0 + DAY; t += STEP) {
+      const ts = ext.length ? tideAt(ext, t) : null;
+      if (ts) maxRate = Math.max(maxRate, Math.abs(ts.dh));
+      const alt = Astro.sunAlt(t, loc.lat, loc.lng);
+      const noon = ast.sunrise && ast.sunset ? (ast.sunrise + ast.sunset) / 2 : t0 + 12 * HR;
+      const dMaj = Math.min(...majors.map(m => Math.abs(t - m))) / MIN;
+      const dMin = minors.length ? Math.min(...minors.map(m => Math.abs(t - m))) / MIN : 999;
+      samples.push({ t, ts, alt, morning: t < noon, dMaj, dMin });
+    }
+    const phaseBoost = 0.82 + 0.18 * Math.abs(Math.cos(2 * Math.PI * ast.phase));
+    for (const s of samples) {
+      const sMaj = Math.max(0, 1 - Math.max(0, s.dMaj - 45) / 90);
+      const sMin = 0.72 * Math.max(0, 1 - Math.max(0, s.dMin - 30) / 60);
+      s.sol = Math.max(0.25, sMaj, sMin) * phaseBoost;
+      s.solTag = s.dMaj <= 60 ? 'Major solunar' : s.dMin <= 45 ? 'Minor solunar' : '';
+      s.cs = s.ts ? Math.abs(s.ts.dh) / maxRate : 0;
+      s.lbin = lightBin(s.alt, s.morning);
+    }
+    // full-moon proximity in days
+    const ph = ast.phase, dFull = Math.abs(ph - 0.5) * 29.53, dNew = Math.min(ph, 1 - ph) * 29.53;
+    return { t0, spot, ast, ext: ext.filter(e => e.t >= t0 && e.t < t0 + DAY), extAll: ext, samples, majors, minors, dFull, dNew };
+  }
+
+  function lightScore(sp, s) {
+    const [dawn, day, dusk, night] = sp.light, a = s.alt, edge = s.morning ? dawn : dusk;
+    if (a < -12) return night;
+    if (a < -6) return night + (edge - night) * (a + 12) / 6;
+    if (a < 10) return edge;
+    if (a < 25) return edge + (day - edge) * (a - 10) / 15;
+    return day;
+  }
+
+  function weatherFactor(sp, c, fly) {
+    let w = 1;
+    const p = { ff: .15, f: .08, s: 0, r: -.04, pf: -.2 }[c.pressure || 's'] || 0;
+    w += p * sp.ps;
+    const tol = sp.wt * (fly ? 0.65 : 1), wind = +c.wind || 0;
+    if (wind > tol) w -= Math.min(0.5, (wind - tol) * 0.03);
+    if (c.clarity === 'clear') w += 0.05 * sp.sight * (fly ? 2 : 1);
+    if (c.clarity === 'muddy') w -= 0.25 * sp.sight + (fly ? 0.1 : 0);
+    if (c.sky === 'overcast') w += 0.05 * (1 - sp.sight) - 0.1 * sp.sight * (fly ? 1 : .5);
+    if (c.sky === 'sun') w += 0.05 * sp.sight;
+    if (c.sky === 'rain') w -= 0.03;
+    return clamp(w, 0.4, 1.25);
+  }
+  function tempFactor(sp, wt) {
+    const [mn, lo, hi, mx] = sp.temp;
+    if (wt == null || isNaN(wt)) return 1;
+    if (wt <= mn || wt >= mx) return 0.12;
+    if (wt < lo) return 0.12 + 0.88 * (wt - mn) / (lo - mn);
+    if (wt > hi) return 0.12 + 0.88 * (mx - wt) / (mx - hi);
+    return 1;
+  }
+
+  // personal multipliers from catch log
+  function patterns(catches, spId) {
+    const list = catches.filter(c => c.species === spId && c.cond);
+    if (list.length < 5) return null;
+    const cnt = (key, bins) => { const m = {}; bins.forEach(b => m[b] = 1); list.forEach(c => { const v = c.cond[key]; if (v in m) m[v] += 1; }); const tot = Object.values(m).reduce((a, b) => a + b, 0); for (const k in m) m[k] = m[k] / tot * bins.length; return m; };
+    return { n: list.length, tide: cnt('stageBin', ['In-early', 'In-mid', 'In-late', 'Out-early', 'Out-mid', 'Out-late']), light: cnt('lbin', ['Dawn', 'Morning', 'Midday', 'Afternoon', 'Dusk', 'Night']) };
+  }
+
+  function scoreSpecies(day, sp, cond, opts) {
+    const month = new Date(day.t0 + 12 * HR).getMonth();
+    const salt = day.spot.water !== 'fresh';
+    const wt = cond.wtemp !== '' && cond.wtemp != null ? +cond.wtemp : WATER_TEMP[salt ? 'salt' : 'fresh'][month];
+    const season = sp.season[month] / 10;
+    const tf = tempFactor(sp, wt), wf = weatherFactor(sp, cond, opts.fly);
+    const ff = opts.fly ? 0.3 + 0.7 * sp.fly.r / 3 : 1;
+    let bed = 1;
+    if (sp.moonBed && month >= 3 && month <= 7 && day.dFull <= 4) bed = 1.2;
+    const pat = opts.usePatterns ? patterns(opts.catches || [], sp.id) : null;
+    const useTide = sp.tide && day.ext.length;
+    const out = []; let tailFlag = null;
+    for (const s of day.samples) {
+      const ls = lightScore(sp, s);
+      let tsc = 0.6;
+      if (useTide && s.ts) {
+        const T = sp.tide;
+        tsc = T.m * s.cs + (1 - T.m) * 0.55;
+        tsc *= 1 + 0.3 * T.fb * (s.ts.flood ? 1 : -1);
+        tsc *= 1 + 0.25 * T.hw * (2 * s.ts.hRel - 1);
+        // tailing redfish on big flood tides into the spartina (Apr–Nov)
+        if (sp.tailing && s.ts.flood && s.ts.hRel > 0.65 && month >= 3 && month <= 10) {
+          const refHigh = s.ts.next.ref;
+          if (refHigh >= 5.3) { tsc = Math.max(tsc, opts.fly ? 1.1 : 0.95); tailFlag = tailFlag || { t: s.ts.next.t, h: s.ts.next.h }; }
+        }
+        tsc = clamp(tsc, 0.05, 1.1);
+      }
+      let raw = useTide ? 0.12 + 0.36 * tsc + 0.24 * s.sol + 0.28 * ls : 0.12 + 0.4 * s.sol + 0.48 * ls;
+      let pf = 1;
+      if (pat) {
+        const tb = s.ts ? stageBin(s.ts) : null;
+        const a = tb && pat.tide[tb] ? Math.pow(pat.tide[tb], 0.35) : 1, b = pat.light[s.lbin] ? Math.pow(pat.light[s.lbin], 0.35) : 1;
+        pf = clamp(a * b, 0.8, 1.25);
+      }
+      const v = clamp(100 * season * tf * wf * ff * bed * raw * pf, 0, 100);
+      out.push({ t: s.t, v, tsc, ls, sol: s.sol });
+    }
+    // best 2-hour window
+    let best = 0, bestI = 0; const W = 8;
+    for (let i = 0; i + W <= out.length; i++) { let m = 0; for (let j = i; j < i + W; j++) m += out[j].v; m /= W; if (m > best) { best = m; bestI = i; } }
+    return { sp, series: out, day: best, bestStart: out[bestI].t, bestEnd: out[bestI].t + W * STEP, season, tf, wf, wt, tail: tailFlag, pat, bed: bed > 1 };
+  }
+
+  function windows(res, day, n = 3) {
+    const s = res.series, max = Math.max(...s.map(x => x.v)); if (max <= 0) return [];
+    const thr = max * 0.82, wins = [];
+    let i = 0;
+    while (i < s.length) {
+      if (s[i].v >= thr) { let j = i, pk = i; while (j < s.length && s[j].v >= thr) { if (s[j].v > s[pk].v) pk = j; j++; } wins.push({ a: s[i].t, b: s[j - 1].t + STEP, peak: s[pk].v, pk: s[pk].t, idx: pk }); i = j; } else i++;
+    }
+    wins.sort((a, b) => b.peak - a.peak);
+    return wins.slice(0, n).map(w => {
+      const smp = day.samples[w.idx], why = [];
+      if (smp.ts && res.sp.tide) why.push(stageLabel(smp.ts).toLowerCase() + ' tide');
+      if (smp.solTag) why.push(smp.solTag.toLowerCase());
+      if (smp.lbin === 'Dawn' || smp.lbin === 'Dusk') why.push(smp.lbin === 'Dawn' ? 'first light' : 'last light');
+      if (smp.lbin === 'Night' && res.sp.light[3] > .6) why.push('night bite');
+      if (smp.lbin === 'Midday' && res.sp.sight > .7) why.push('high sun for spotting');
+      return { ...w, why };
+    }).sort((a, b) => a.a - b.a);
+  }
+
+  function rating(v) { return v >= 70 ? ['Great', 4] : v >= 50 ? ['Good', 3] : v >= 30 ? ['Fair', 2] : v >= 12 ? ['Slow', 1] : ['Poor', 0]; }
+
+  return { buildDay, scoreSpecies, windows, tideAt, stageLabel, stageBin, rating, patterns, spotExtremes, DAY, HR, STEP };
+})();
+
+// ===== Standalone website extras (floridafishing.com): live NWS marine forecast, GPS =====
+const NWS = (() => {
+  const DAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+  const cap = s => s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  const ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  // Expand a UGC line like "AMZ450-452-454-191500-" or "AMZ450>454-" into zone ids
+  function ugcZones(line) {
+    const out = []; let pre = '';
+    for (const tok of line.split('-')) {
+      const m = tok.match(/^([A-Z]{2}Z)?(\d{3})(?:>(\d{3}))?$/);
+      if (!m) continue;
+      if (m[1]) pre = m[1];
+      if (!pre) continue;
+      const a = +m[2], b = m[3] ? +m[3] : a;
+      for (let i = a; i <= b; i++) out.push(pre + String(i).padStart(3, '0'));
+    }
+    return out;
+  }
+  function nums(s) { return (s.match(/\d+/g) || []).map(Number); }
+  function parsePeriod(name, text) {
+    const sent = text.split(/(?<=\.)\s+/).map(x => x.trim()).filter(Boolean);
+    const wind = sent.find(x => /\bwinds?\b/i.test(x) && /knots|variable|calm/i.test(x)) || '';
+    const seas = sent.find(x => /^seas\b/i.test(x)) || '';
+    const icw = sent.find(x => /^(intracoastal|inland) waters/i.test(x)) || '';
+    const kn = nums(wind.replace(/gusts?[^.,]*/gi, ''));
+    const sn = nums(seas.replace(/occasionally to \d+ feet/gi, ''));
+    const p = { rawName: name, wind, seas, icw };
+    if (kn.length) { p.ktLo = Math.min(...kn); p.ktHi = Math.max(...kn); }
+    if (sn.length) { p.seasLo = Math.min(...sn); p.seasHi = Math.max(...sn); }
+    return p;
+  }
+  // Assign local dates to NWS period names, walking forward from the issuance date
+  function datePeriods(periods, issued) {
+    const out = []; let cursor = new Date(issued); cursor.setHours(0, 0, 0, 0);
+    const iss = new Date(issued);
+    const onOrAfter = (dayIdx) => { const d = new Date(cursor); while (d.getDay() !== dayIdx) d.setDate(d.getDate() + 1); return d; };
+    for (const p of periods) {
+      const n = p.rawName.toUpperCase().replace(/\s+/g, ' ').trim();
+      const add = (d, night, label) => { out.push({ ...p, name: label, date: ymd(d), night }); cursor = new Date(d); };
+      if (/^(TODAY|REST OF TODAY|THIS AFTERNOON|THIS MORNING)$/.test(n)) { add(new Date(iss.getFullYear(), iss.getMonth(), iss.getDate()), false, cap(n)); continue; }
+      if (/^(TONIGHT|REST OF TONIGHT|THIS EVENING|OVERNIGHT)$/.test(n)) {
+        const d = new Date(iss.getFullYear(), iss.getMonth(), iss.getDate());
+        add(d, true, iss.getHours() < 6 ? 'Early ' + cap(DAYS[d.getDay()]) : cap(n)); continue;
+      }
+      let m = n.match(/^([A-Z]+DAY)( NIGHT)?(?: AND ([A-Z]+DAY)( NIGHT)?)?$/);
+      if (m && DAYS.includes(m[1])) {
+        const d1 = onOrAfter(DAYS.indexOf(m[1]));
+        add(d1, !!m[2], cap(m[1]) + (m[2] ? ' night' : ''));
+        if (m[3] && DAYS.includes(m[3])) { const d2 = onOrAfter(DAYS.indexOf(m[3])); add(d2, !!m[4], cap(m[3]) + (m[4] ? ' night' : '')); }
+        continue;
+      }
+      m = n.match(/^([A-Z]+DAY)( NIGHT)? THROUGH ([A-Z]+DAY)( NIGHT)?$/);
+      if (m && DAYS.includes(m[1]) && DAYS.includes(m[3])) {
+        let d = onOrAfter(DAYS.indexOf(m[1])); const end = DAYS.indexOf(m[3]);
+        for (let i = 0; i < 7; i++) { add(d, i === 0 && !!m[2], cap(DAYS[d.getDay()])); if (d.getDay() === end) break; d = new Date(d); d.setDate(d.getDate() + 1); }
+        continue;
+      }
+      out.push({ ...p, name: cap(n), date: ymd(cursor), night: /NIGHT/.test(n) });
+    }
+    return out;
+  }
+  function parseCWF(text, issuedISO) {
+    const t = text.replace(/\r/g, '');
+    const issued = issuedISO ? Date.parse(issuedISO) : Date.now();
+    const issuedText = (t.match(/^\s*(\d{3,4} [AP]M E[SD]T \w{3} \w{3} \d{1,2} \d{4})\s*$/m) || [])[1] || '';
+    const gs = t.match(/(\d+) nautical miles (east[a-z ]*?) of Jacksonville Beach/i);
+    const zones = {};
+    for (const seg of t.split(/\n\$\$/)) {
+      const ugc = (seg.match(/^\s*(AMZ[\d>\-]+-\d{6}-)\s*$/m) || [])[1];
+      if (!ugc) continue;
+      const ids = ugcZones(ugc);
+      const want = ['AMZ452', 'AMZ472'].filter(z => ids.includes(z));
+      if (!want.length) continue;
+      const headlines = Array.from(seg.matchAll(/^\.\.\.(.+?)\.\.\.\s*$/gms)).map(x => x[1].replace(/\s+/g, ' ').trim()).filter(h => !/^\./.test(h));
+      const per = [];
+      const re = /^\.([A-Z][A-Z ]+?)\.\.\.([\s\S]*?)(?=^\.[A-Z][A-Z ]+?\.\.\.|$(?![\s\S]))/gm;
+      let m; while ((m = re.exec(seg))) per.push(parsePeriod(m[1], m[2].replace(/\s+/g, ' ').trim()));
+      const hasSCA = headlines.some(h => /SMALL CRAFT ADVISORY/i.test(h)), hasGale = headlines.some(h => /GALE|STORM WARNING/i.test(h));
+      const dated = datePeriods(per, issued).map(p => ({ ...p,
+        sca: (p.ktHi >= 20 || p.seasHi >= 7) && (hasSCA || hasGale || p.ktHi >= 20 || p.seasHi >= 7),
+        gale: (p.ktHi || 0) >= 34 || (hasGale && (p.ktHi || 0) >= 30) }));
+      for (const z of want) zones[z] = { name: z === 'AMZ452' ? 'Fernandina Beach to St. Augustine out 20 nm' : 'Fernandina Beach to St. Augustine 20 to 60 nm', headlines, periods: dated };
+    }
+    return { issued: new Date(issued).toISOString(), issuedText, fetched: new Date().toISOString(), source: 'NWS Jacksonville Coastal Waters Forecast (live)', gulfStream: gs ? `${gs[1]} nm ${gs[2].replace(/east/i, 'E').replace(/ southeast/i, 'SE').replace(/ northeast/i, 'NE').replace(/\s/g, '')} of Jacksonville Beach` : '', zones };
+  }
+  async function load() {
+    const list = await (await fetch('https://api.weather.gov/products/types/CWF/locations/JAX', { headers: { Accept: 'application/ld+json' } })).json();
+    const latest = (list['@graph'] || [])[0]; if (!latest) throw new Error('no product');
+    const prod = await (await fetch(latest['@id'] || ('https://api.weather.gov/products/' + latest.id), { headers: { Accept: 'application/ld+json' } })).json();
+    return parseCWF(prod.productText || '', prod.issuanceTime || latest.issuanceTime);
+  }
+  return { load, parseCWF, ugcZones };
+})();
+
+// spot coordinates for "near me"
+const SPOT_LOC = { mayport: [30.398, -81.428], pablo: [30.32, -81.44], fuel: [30.41, -81.53], pottsburg: [30.31, -81.60], beach: [30.29, -81.39], near: [30.33, -81.30], off: [30.30, -80.40], river: [29.65, -81.63], lakes: [29.28, -81.60] };
+function distKm(a, b) { const R = 6371, d = Math.PI / 180, dl = (b[0] - a[0]) * d, dn = (b[1] - a[1]) * d; const x = Math.sin(dl / 2) ** 2 + Math.cos(a[0] * d) * Math.cos(b[0] * d) * Math.sin(dn / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); }
+
+async function webInit() {
+  // live marine forecast
+  const loadMarine = async () => {
+    try { state.marine = await NWS.load(); state.marineState = 'ok'; try { localStorage.setItem('jaxbite.marine', JSON.stringify(state.marine)); } catch (e) { } }
+    catch (e) { try { const c = JSON.parse(localStorage.getItem('jaxbite.marine') || 'null'); if (c) { state.marine = c; state.marineState = 'ok'; } else state.marineState = 'error'; } catch (er) { state.marineState = 'error'; } }
+    dayCache.clear(); render();
+  };
+  loadMarine(); setInterval(loadMarine, 30 * 60000);
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { });
+}
+function locateMe() {
+  if (!navigator.geolocation) { toast('Location isn’t available on this device'); return; }
+  toast('Finding you…');
+  navigator.geolocation.getCurrentPosition(pos => {
+    const me = [pos.coords.latitude, pos.coords.longitude];
+    state.geo = { lat: me[0], lng: me[1], acc: pos.coords.accuracy, t: Date.now() };
+    let best = null;
+    for (const s of spots()) { const ll = s.loc || SPOT_LOC[s.id]; if (!ll) continue; const d = distKm(me, ll); if (!best || d < best.d) best = { s, d }; }
+    if (best && best.d < 80) { state.spotId = best.s.id; state.settings.spotId = best.s.id; Store.saveSettings(); toast(`Nearest spot: ${best.s.name} (${best.d.toFixed(1)} km)`); }
+    else toast('You’re outside the Jacksonville area — showing NE Florida spots');
+    state.settings.loc = { lat: +me[0].toFixed(3), lng: +me[1].toFixed(3) }; dayCache.clear(); render();
+  }, err => toast(err.code === 1 ? 'Location permission was denied' : 'Couldn’t get your location'), { enableHighAccuracy: true, timeout: 15000, maximumAge: 120000 });
+}
+function geoRegsNote() {
+  const g = state.geo; if (!g) return '';
+  const inFL = g.lat > 24.4 && g.lat < 31.1 && g.lng > -87.7 && g.lng < -79.8;
+  if (!inFL) return 'Your GPS shows you outside Florida — these are Florida rules; check the rules where you are.';
+  const ne = g.lat >= 29.2 && g.lng > -82.2;
+  // rough Atlantic 3-nm line near NE Florida: coastline ~ -81.39° at Jax; 3 nm ≈ 0.058° of longitude
+  const fed = g.lng > -81.33 && g.lat > 29.5 && g.lat < 30.75;
+  return (ne ? 'GPS: you’re in Northeast Florida' : 'GPS: you’re outside the Northeast region — some saltwater limits (redfish, trout) differ by region') + (fed ? '; you appear to be more than ~3 nm offshore (federal waters), where federal rules may apply.' : '.');
+}
+
+// ===== UI =====
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmtT = t => t ? new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '—';
+const fmtD = t => new Date(t).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+const dkey = t => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const midnight = t => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+const MONTHS = 'JFMAMJJASOND'.split('');
+const SPMAP = Object.fromEntries(SPECIES.map(s => [s.id, s]));
+const WEB = typeof WEB_BUILD !== 'undefined';
+
+const state = {
+  tab: 'forecast', day0: midnight(Date.now()), spotId: 'mayport', spId: 'auto', fly: false, allWaters: false,
+  settings: { spots: {}, custom: [], cond: {}, loc: { lat: 30.33, lng: -81.56 }, usePatterns: true, spotId: 'mayport', fly: false },
+  catches: [], storage: 'loading', logFilter: 'all', patSp: null, marine: null, marineState: 'loading', sample: null,
+};
+const dayCache = new Map();
+
+function spots() {
+  const base = DEFAULT_SPOTS.map(s => { const o = state.settings.spots[s.id]; return o && s.tide ? { ...s, tide: { ...s.tide, ...o } } : s; });
+  return base.concat(state.settings.custom || []);
+}
+function spot() { return spots().find(s => s.id === state.spotId) || spots()[0]; }
+function cond(t0 = state.day0) {
+  const c = { ...(state.settings.cond[dkey(t0)] || {}) };
+  let windSrc = 'manual';
+  if (c.wind === undefined || c.wind === null || c.wind === '') {
+    const mw = marineWind(t0);
+    if (mw != null) { c.wind = mw; windSrc = 'nws'; } else { c.wind = 10; windSrc = 'default'; }
+  }
+  return { pressure: 's', sky: 'partly', clarity: 'stained', wtemp: '', ...c, windSrc };
+}
+// ===== Marine forecast (NWS Jacksonville, refreshed into this page's database by a scheduled task) =====
+function marineFor(t0) {
+  const m = state.marine; if (!m || !m.zones) return null;
+  const k = dkey(t0), z = id => ((m.zones[id] || {}).periods || []).filter(p => p.date === k);
+  const inner = z('AMZ452'), outer = z('AMZ472');
+  const all = inner.concat(outer);
+  const issued = Date.parse(m.issued || m.fetched || 0), age = (Date.now() - issued) / 3600e3;
+  return { inner, outer, sca: inner.some(p => p.sca), scaOuter: outer.some(p => p.sca), gale: all.some(p => p.gale),
+    seasIn: Math.max(0, ...inner.map(p => +p.seasHi || 0)), seasOut: Math.max(0, ...outer.map(p => +p.seasHi || 0)),
+    headlines: ((m.zones.AMZ452 || {}).headlines || []), headlinesOut: ((m.zones.AMZ472 || {}).headlines || []), issued, stale: age > 18, gulf: m.gulfStream, has: all.length > 0 };
+}
+function marineWind(t0) {
+  const mf = marineFor(t0); if (!mf || !mf.inner.length) return null;
+  const day = mf.inner.find(p => !p.night) || mf.inner[0];
+  if (day.ktLo == null || day.ktHi == null) return null;
+  return Math.round((+day.ktLo + +day.ktHi) / 2 * 1.15);
+}
+function safety(sp, t0) {
+  const mf = marineFor(t0);
+  if (!mf || !mf.has) return { f: 1, why: '' };
+  if (sp.water === 'offshore') { if (mf.gale || mf.scaOuter) return { f: 0, why: mf.gale ? 'Gale conditions offshore' : 'Small Craft Advisory offshore' }; if (mf.seasOut >= 6) return { f: .4, why: `Seas to ${mf.seasOut} ft offshore` }; }
+  if (sp.water === 'nearshore') { if (mf.gale || mf.sca) return { f: 0, why: mf.gale ? 'Gale conditions' : 'Small Craft Advisory' }; if (mf.seasIn >= 5) return { f: .4, why: `Seas to ${mf.seasIn} ft` }; }
+  if (sp.water === 'surf' && mf.seasIn >= 7) return { f: .6, why: `Big surf — seas to ${mf.seasIn} ft` };
+  if (sp.water === 'inshore' && mf.inner.some(p => /very rough/i.test(p.icw || ''))) return { f: .85, why: 'Intracoastal very rough' };
+  return { f: 1, why: '' };
+}
+function getDay(t0, sp = spot()) {
+  const k = t0 + '|' + sp.id + '|' + JSON.stringify(sp.tide) + '|' + state.settings.loc.lat + ',' + state.settings.loc.lng;
+  if (!dayCache.has(k)) dayCache.set(k, Engine.buildDay(t0, sp, state.settings.loc));
+  return dayCache.get(k);
+}
+function eligible(sp) { return SPECIES.filter(s => state.allWaters || s.waters.includes(sp.water)); }
+function scoreAll(t0) {
+  const sp = spot(), day = getDay(t0, sp), c = cond(t0);
+  const opts = { fly: state.fly, usePatterns: state.settings.usePatterns, catches: state.catches };
+  return { day, res: eligible(sp).map(s => Engine.scoreSpecies(day, s, c, opts)).sort((a, b) => b.day - a.day) };
+}
+function chosen(res) { return state.spId !== 'auto' ? res.find(r => r.sp.id === state.spId) || res[0] : res[0]; }
+const badge = v => { const [, n] = Engine.rating(v); return `<span class="score s${n}">${Math.round(v)}</span>`; };
+
+// ===== Storage (Claude db per-person, fallback localStorage) =====
+const Store = {
+  db: null, uid: null, col: null, saveTimer: null, localLog: false,
+  async init() {
+    try {
+      if (window.claude && claude.use) {
+        const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]);
+        const uid = user ? await user.id() : null;
+        if (db && uid) {
+          this.db = db; this.uid = uid; this.col = db.collection('data/users/' + uid);
+          let loaded = false;
+          const timer = setTimeout(() => { if (!loaded) { state.storage = 'slow'; render(); } }, 10000);
+          let mLoaded = false; const mTimer = setTimeout(() => { if (!mLoaded) { state.marineState = 'slow'; render(); } }, 10000);
+          db.doc('public/marine').onSnapshot(d => { mLoaded = true; clearTimeout(mTimer); state.marine = d.exists ? d.data() : null; state.marineState = d.exists ? 'ok' : 'none'; dayCache.clear(); render(); }, () => { clearTimeout(mTimer); state.marineState = 'error'; render(); });
+          this.col.onSnapshot(snap => {
+            loaded = true; clearTimeout(timer);
+            if (this.localLog) return;
+            const cs = [];
+            snap.docs.forEach(d => { if (d.id === 'settings') mergeSettings(d.data()); else if (d.id.startsWith('c_')) cs.push({ id: d.id, ...d.data() }); });
+            state.catches = cs.sort((a, b) => b.ts - a.ts); state.storage = 'cloud'; dayCache.clear(); render();
+          }, err => { clearTimeout(timer); state.storage = 'error'; toast('Couldn’t reach your saved log'); this.fallback(); render(); });
+          return;
+        }
+      }
+    } catch (e) { }
+    this.fallback(); if (!WEB) state.marineState = 'none'; render();
+  },
+  fallback() {
+    this.db = null; state.storage = 'local';
+    try { const s = JSON.parse(localStorage.getItem('jaxbite.settings') || 'null'); if (s) mergeSettings(s); state.catches = JSON.parse(localStorage.getItem('jaxbite.catches') || '[]'); } catch (e) { }
+  },
+  saveSettings() {
+    clearTimeout(this.saveTimer);
+    this.saveTimer = setTimeout(async () => {
+      const body = JSON.parse(JSON.stringify(state.settings));
+      if (this.db && !this.localLog) { try { await this.col.doc('settings').set(body); } catch (e) { if (e && e.code === 'invalid_argument') { this.goLocal(); try { localStorage.setItem('jaxbite.settings', JSON.stringify(body)); } catch (er) { } } else toast('Settings not saved'); } }
+      else try { localStorage.setItem('jaxbite.settings', JSON.stringify(body)); } catch (e) { }
+    }, 700);
+  },
+  async saveCatch(c) {
+    if (this.db && !this.localLog) { try { const { id, ...body } = c; await this.col.doc(id).set(body); return true; } catch (e) {
+      if (e && e.code === 'invalid_argument') { this.goLocal(); } else { toast(e && e.code === 'quota_exceeded' ? 'Log storage is full' : 'Catch not saved — try again'); return false; } } }
+    const i = state.catches.findIndex(x => x.id === c.id); if (i >= 0) state.catches[i] = c; else state.catches.unshift(c);
+    state.catches.sort((a, b) => b.ts - a.ts);
+    try { localStorage.setItem('jaxbite.catches', JSON.stringify(state.catches)); } catch (e) { }
+    return true;
+  },
+  goLocal() { // viewer can't write to the shared store (e.g. a friend on a view-only link): keep their log in this browser
+    this.localLog = true; state.storage = 'local';
+    try { state.catches = JSON.parse(localStorage.getItem('jaxbite.catches') || '[]'); } catch (e) { state.catches = []; }
+  },
+  async deleteCatch(id) {
+    if (this.db && !this.localLog) { try { await this.col.doc(id).delete(); } catch (e) { toast('Delete failed'); } return; }
+    state.catches = state.catches.filter(c => c.id !== id);
+    try { localStorage.setItem('jaxbite.catches', JSON.stringify(state.catches)); } catch (e) { }
+  },
+};
+let settingsLoaded = false;
+function mergeSettings(s) {
+  state.settings = { ...state.settings, ...s, loc: { ...state.settings.loc, ...(s.loc || {}) } };
+  if (!settingsLoaded) { settingsLoaded = true; if (s.spotId) state.spotId = s.spotId; if (typeof s.fly === 'boolean') state.fly = s.fly; }
+}
+function toast(m) { const el = $('#toast'); el.textContent = m; el.style.display = 'block'; clearTimeout(el._t); el._t = setTimeout(() => el.style.display = 'none', 2200); }
+
+// ===== Render =====
+function render() {
+  $('#flyseg').innerHTML = `<button class="${!state.fly ? 'on' : ''}" data-fly="0">Conventional</button><button class="${state.fly ? 'on' : ''}" data-fly="1">Fly</button>`;
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === state.tab));
+  const m = $('main');
+  if (state.tab === 'forecast') m.innerHTML = viewForecast();
+  else if (state.tab === 'species') m.innerHTML = viewSpecies();
+  else if (state.tab === 'log') m.innerHTML = viewLog();
+  else m.innerHTML = viewSettings();
+  if (state.tab === 'forecast') bindChart();
+}
+
+function topControls() {
+  const sps = spots();
+  const groups = {};
+  sps.forEach(s => (groups[WATER_LABEL[s.water]] = groups[WATER_LABEL[s.water]] || []).push(s));
+  const spotSel = `<select id="spotSel">${Object.entries(groups).map(([g, l]) => `<optgroup label="${esc(g)}">${l.map(s => `<option value="${esc(s.id)}" ${s.id === state.spotId ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</optgroup>`).join('')}</select>`;
+  const el = eligible(spot());
+  const spSel = `<select id="spSel"><option value="auto">Best bet (all species here)</option>${el.map(s => `<option value="${s.id}" ${s.id === state.spId ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select>`;
+  // day strip
+  const today = midnight(Date.now());
+  let strip = '';
+  for (let i = -1; i < 7; i++) {
+    const t0 = midnight(today + i * 864e5 + 3 * 3600e3);
+    const { res } = scoreAll(t0); const r = chosen(res); const v = r ? r.day : 0; const [, n] = Engine.rating(v);
+    const col = ['#5c6e7c', '#8aa0b2', 'var(--accent2)', '#7fd88e', 'var(--accent)'][n];
+    strip += `<button class="day ${t0 === state.day0 ? 'on' : ''}" data-day="${t0}"><b>${i === 0 ? 'Today' : new Date(t0).toLocaleDateString([], { weekday: 'short' })}</b><span>${new Date(t0).getDate()}</span><i style="background:${col}"></i></button>`;
+  }
+  return `<div class="row">${spotSel}${WEB ? '<button class="btn sm ghost" data-locate="1" style="flex:0 0 auto">📍 Near me</button>' : ''}</div><div class="row" style="margin-top:8px">${spSel}<input type="date" id="datePick" value="${dkey(state.day0)}" style="flex:0 0 140px"></div><div class="days">${strip}</div>`;
+}
+
+function viewForecast() {
+  const { day, res } = scoreAll(state.day0);
+  const sp = spot(), c = cond(), a = day.ast;
+  if (!res.length) return topControls() + `<div class="card">No species profiles for this water type.</div>`;
+  const r = chosen(res), [rt] = Engine.rating(r.day);
+  const wins = Engine.windows(r, day);
+  let html = topControls();
+  // alerts
+  const alerts = [];
+  const tailR = res.find(x => x.sp.id === 'redfish' && x.tail);
+  if (tailR) alerts.push(`<b>Flood-tide tailing window.</b> High tide of ${tailR.tail.h.toFixed(1)} ft at ${fmtT(tailR.tail.t)} is big enough to push redfish up into the spartina. Be on the flats about 1½ hrs before high.${state.fly ? ' Weedless crab or shrimp fly.' : ''}`);
+  const bedR = res.find(x => x.bed);
+  if (bedR) alerts.push(`<b>Bream beds:</b> within a few days of the full moon — check shallow sandy flats for bedding bluegill and shellcracker.`);
+  const rs = regStatus(r.sp.id, state.day0 + 43200e3);
+  if (!rs.open) alerts.push(`<b>${esc(r.sp.name)} harvest is closed</b> through ${rs.until} — catch and release only.`);
+  const sf = safety(sp, state.day0);
+  if (sf.f === 0) alerts.push(`<b>Not a boating day for this spot:</b> ${esc(sf.why)} from NWS Jacksonville. See the marine forecast below, or let “Pick a spot” find an inshore option.`);
+  if (c.pressure === 'pf') alerts.push(`<b>Post-front:</b> bluebird skies after a front usually slow the bite. Fish slower, deeper, and target the warmest part of the day.`);
+  html += alerts.map(x => `<div class="alert">${x}</div>`).join('');
+  // hero
+  html += `<div class="card"><div class="hrow"><div style="flex:1"><div class="muted small">${fmtD(state.day0)} · ${esc(sp.name)}</div><h2 style="margin:2px 0 0">${esc(r.sp.name)}${state.fly ? ' on fly' : ''}</h2></div>${badge(r.day)}</div>
+  <div class="small muted" style="margin-top:4px">${rt} · season ${Math.round(r.season * 10)}/10 · water ~${Math.round(r.wt)}°F${r.pat ? ` · tuned by your ${r.pat.n} logged catches` : ''}</div>
+  ${wins.map(w => `<div class="win"><b>${fmtT(w.a)} – ${fmtT(w.b)}</b> ${badge(w.peak)}<div class="small muted">${esc(w.why.join(' · ') || 'best overlap of factors')}</div></div>`).join('')}
+  <div class="chartwrap" id="chartwrap">${chartSVG(day, r)}</div><div class="readout" id="readout">Tap or drag on the chart for details.</div>
+  <div class="legend"><span><i style="background:var(--accent)"></i>Bite score</span>${day.ext.length ? '<span><i style="background:var(--tide);opacity:.5"></i>Tide</span>' : ''}<span><i style="background:var(--accent2);opacity:.35"></i>Major solunar</span><span><i style="background:var(--accent2);opacity:.15"></i>Minor</span><span><i style="background:#000;opacity:.35"></i>Night</span></div></div>`;
+  html += viewPickSpot();
+  // other species
+  if (state.spId === 'auto') {
+    html += `<div class="card"><h2>Other good bets</h2>${res.slice(1, 6).map(x => `<div class="pick" data-sp="${x.sp.id}"><div class="nm"><b>${esc(x.sp.name)}</b><span class="small muted">best ${fmtT(x.bestStart)} – ${fmtT(x.bestEnd)}</span></div>${badge(x.day)}</div>`).join('')}<div class="note">Tap a species to forecast it.</div></div>`;
+  }
+  // tides
+  if (day.ext.length) {
+    html += `<div class="card"><h2>Tides <span class="small muted">· ${esc(sp.src || '')}</span></h2><div class="tides">${day.ext.map(e => `<div class="tide">${e.type === 'H' ? '▲ High' : '▼ Low'} <b>${fmtT(e.t)}</b> · ${e.h.toFixed(1)} ft</div>`).join('')}</div><div class="note">Predicted from NOAA Mayport (8720218) tide harmonics; times are usually within ~15 min, heights within ~0.5 ft. Wind and river flow can shift real water levels.</div></div>`;
+  }
+  // sun & moon
+  const maj = day.majors.filter(t => t >= state.day0 && t < state.day0 + 864e5).sort((x, y) => x - y);
+  const mins = day.minors.filter(t => t >= state.day0 && t < state.day0 + 864e5).sort((x, y) => x - y);
+  html += `<div class="card"><h2>Sun, moon & solunar</h2><div class="grid2">
+   <div class="kv"><b>${fmtT(a.sunrise)}</b><span>Sunrise (first light ${fmtT(a.dawn)})</span></div><div class="kv"><b>${fmtT(a.sunset)}</b><span>Sunset (last light ${fmtT(a.dusk)})</span></div>
+   <div class="kv"><b>${esc(a.phaseName)}</b><span>${Math.round(a.illum * 100)}% illuminated</span></div><div class="kv"><b>${fmtT(a.moonrise)} / ${fmtT(a.moonset)}</b><span>Moonrise / moonset</span></div></div>
+   <div style="margin-top:8px">${maj.map(t => `<span class="tag hot">Major ${fmtT(t - 3600e3)}–${fmtT(t + 3600e3)}</span>`).join('')}${mins.map(t => `<span class="tag">Minor ${fmtT(t - 2700e3)}–${fmtT(t + 2700e3)}</span>`).join('')}</div>
+   <div class="note">Majors are when the moon is overhead or underfoot; minors are moonrise and moonset. ${Math.min(day.dFull, day.dNew) < 3 ? 'Near a new or full moon these periods tend to be stronger.' : ''}</div></div>`;
+  html += viewMarine();
+  html += regsCard(r.sp, sp);
+  // conditions
+  html += viewConditions(c);
+  return html;
+}
+
+function viewMarine() {
+  const mf = marineFor(state.day0);
+  const link = '<a href="https://www.weather.gov/marine/jaxmz" target="_blank" rel="noopener">NWS Jacksonville marine zones</a>';
+  if (!state.marine) {
+    const msg = WEB ? ({ loading: 'Loading the live NWS forecast…', error: 'Couldn’t reach the National Weather Service right now.' }[state.marineState] || '') : { loading: 'Loading the marine forecast…', slow: 'Still reaching the saved marine forecast — it may be out of date.', none: 'The marine forecast loads when this page is opened in Claude (it’s refreshed there a few times a day).', error: 'Couldn’t reach the saved marine forecast.' }[state.marineState] || '';
+    return `<div class="card"><h2>Small craft advisory & seas</h2><div class="small muted">${msg} Live: ${link}.</div></div>`;
+  }
+  const hl = Array.from(new Set(mf ? mf.headlines.concat(mf.headlinesOut) : (state.marine.zones.AMZ452 || {}).headlines || []));
+  const pr = p => `<div class="win" style="border-color:${p.gale ? 'var(--bad)' : p.sca ? 'var(--accent2)' : 'var(--accent)'}"><b>${esc(p.name)}</b> ${p.gale ? '<span class="tag" style="background:var(--bad);color:#fff;border-color:var(--bad)">Gale</span>' : p.sca ? '<span class="tag hot">SCA</span>' : ''}<div class="small">${esc(p.wind)}${p.ktLo != null ? ` (${Math.round(p.ktLo * 1.15)}–${Math.round(p.ktHi * 1.15)} mph)` : ''}</div><div class="small">${esc(p.seas || '')}</div>${p.icw ? `<div class="small muted">${esc(p.icw)}</div>` : ''}</div>`;
+  let body = '';
+  if (mf && mf.has) {
+    body += `<h3>Out to 20 nm (AMZ452)</h3>${mf.inner.map(pr).join('') || '<div class="small muted">No period for this day.</div>'}`;
+    body += `<h3>20–60 nm (AMZ472)</h3>${mf.outer.map(pr).join('') || '<div class="small muted">No period for this day.</div>'}`;
+  } else body = `<div class="small muted">The current NWS forecast doesn’t reach ${fmtD(state.day0)}.</div>`;
+  const sca = mf && (mf.sca || mf.scaOuter);
+  return `<div class="card"><div class="hrow"><h2 style="flex:1;margin:0">Small craft advisory & seas</h2>${mf && mf.gale ? '<span class="score" style="background:var(--bad);color:#fff">GALE</span>' : sca ? '<span class="score s2">SCA</span>' : mf && mf.has ? '<span class="score s4">OK</span>' : ''}</div>
+   ${hl.length ? `<div class="alert" style="margin-top:8px">${hl.map(h => esc(h)).join('<br>')}</div>` : '<div class="small muted" style="margin-top:6px">No advisories in the latest forecast.</div>'}
+   ${body}
+   <div class="note">NWS Jacksonville coastal waters forecast, issued ${state.marine.issuedText ? esc(state.marine.issuedText) : fmtD(Date.parse(state.marine.issued)) + ' ' + fmtT(Date.parse(state.marine.issued))}${mf && mf.stale ? ' — <b>this is more than 18 hours old</b>' : ''}.${state.marine.gulfStream ? ' Gulf Stream west wall: ' + esc(state.marine.gulfStream) + '.' : ''} Wind on this card fills in the bite forecast unless you enter your own. Always check ${link} before running the inlet.</div></div>`;
+}
+
+function viewPickSpot() {
+  const c0 = state.day0, opts = { fly: state.fly, usePatterns: state.settings.usePatterns, catches: state.catches };
+  const rows = spots().map(sp => {
+    const day = getDay(c0, sp), c = cond(c0);
+    const res = SPECIES.filter(s => s.waters.includes(sp.water)).map(s => Engine.scoreSpecies(day, s, c, opts));
+    const target = state.spId !== 'auto' ? res.find(r => r.sp.id === state.spId) : null;
+    const best = target || res.sort((a, b) => b.day - a.day)[0];
+    if (!best) return null;
+    const sf = safety(sp, c0);
+    return { sp, best, sf, v: best.day * sf.f };
+  }).filter(Boolean).filter(x => state.spId === 'auto' || x.best.sp.id === state.spId).sort((a, b) => b.v - a.v).slice(0, 4);
+  if (!rows.length) return '';
+  const blocked = spots().map(sp => ({ sp, sf: safety(sp, c0) })).filter(x => x.sf.f === 0);
+  return `<div class="card"><h2>Pick a spot${state.spId !== 'auto' ? ' for ' + esc(SPMAP[state.spId].name) : ''}</h2>
+   ${rows.map((x, i) => `<div class="pick" data-gospot="${esc(x.sp.id)}"><div class="nm"><b>${i === 0 ? '★ ' : ''}${esc(x.sp.name)}</b><span class="small muted">${esc(x.best.sp.name)} · ${fmtT(x.best.bestStart)} – ${fmtT(x.best.bestEnd)}${x.sf.why ? ' · ' + esc(x.sf.why) : ''}</span></div>${badge(x.v)}</div>`).join('')}
+   ${blocked.length ? `<div class="note">Left out for boating safety: ${blocked.map(b => esc(b.sp.name)).join(', ')} (${esc(blocked[0].sf.why)}).</div>` : ''}
+   <div class="note">Ranks every spot by its best bite window, then discounts spots the marine forecast makes unsafe or rough. Tap a spot to switch to it.</div></div>`;
+}
+
+function regsCard(spc, sp) {
+  const r = REGS[spc.id]; if (!r) return '';
+  const st = regStatus(spc.id, state.day0 + 43200e3);
+  return `<div class="card"><div class="hrow"><h2 style="flex:1;margin:0">Rules: ${esc(spc.name)}</h2>${st.open ? '<span class="score s4" style="font-size:12px">OPEN</span>' : '<span class="score" style="background:var(--bad);color:#fff;font-size:12px">CLOSED</span>'}</div>${regsBody(spc.id, sp)}</div>`;
+}
+function regsBody(id, sp) {
+  const r = REGS[id]; if (!r) return '<div class="small muted">No regulation summary for this species — check MyFWC.com.</div>';
+  return `<div class="grid2" style="margin-top:8px"><div class="kv"><b style="font-size:14px">${esc(r.size)}</b><span>Size</span></div><div class="kv"><b style="font-size:14px">${esc(r.bag)}</b><span>Bag limit</span></div></div>
+   <div class="small" style="margin-top:6px"><b>Season:</b> ${esc(r.season)}${r.notes ? ' · ' + esc(r.notes) : ''}</div>
+   ${WEB && state.geo ? `<div class="note">${esc(geoRegsNote())}</div>` : ''}<div class="note">${esc(regJurisdiction(sp || spot()))}. Summary checked ${REGS_CHECKED}${r.verify ? ' — <b>not fully confirmed, verify</b>' : ''}. Rules change; confirm at <a href="${esc(r.url)}" target="_blank" rel="noopener">MyFWC.com</a> before keeping fish.</div>`;
+}
+
+function viewConditions(c) {
+  const opt = (id, v, list) => `<select id="${id}">${list.map(([k, l]) => `<option value="${k}" ${String(v) === k ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+  const month = new Date(state.day0 + 43200e3).getMonth(), salt = spot().water !== 'fresh';
+  return `<div class="card"><h2>Conditions for ${fmtD(state.day0)}</h2><div class="small muted">${WEB ? 'Wind fills in from the NWS marine forecast. Enter the barometer trend, sky, clarity and water temp from your weather app' : 'Live weather can’t load inside this page, so enter what the forecast says'} — the scores update right away.</div>
+   <div class="row"><div><label>Barometer</label>${opt('cPress', c.pressure, [['ff', 'Falling fast (front coming)'], ['f', 'Falling'], ['s', 'Steady'], ['r', 'Rising'], ['pf', 'Rising, post-front bluebird']])}</div></div>
+   <div class="row"><div><label>Wind (mph)${c.windSrc === 'nws' ? ' · from NWS' : ''}</label><input id="cWind" type="number" inputmode="numeric" min="0" max="60" value="${c.windSrc === 'manual' ? esc(c.wind) : ''}" placeholder="${c.windSrc === 'nws' ? esc(c.wind) + ' (NWS forecast)' : '10'}"></div><div><label>Water temp °F</label><input id="cTemp" type="number" inputmode="numeric" placeholder="~${WATER_TEMP[salt ? 'salt' : 'fresh'][month]} typical" value="${esc(c.wtemp)}"></div></div>
+   <div class="row"><div><label>Sky</label>${opt('cSky', c.sky, [['sun', 'Sunny'], ['partly', 'Partly cloudy'], ['overcast', 'Overcast'], ['rain', 'Rain / storms']])}</div><div><label>Water clarity</label>${opt('cClar', c.clarity, [['clear', 'Clear'], ['stained', 'Stained'], ['muddy', 'Muddy']])}</div></div>
+   <h3>Check live</h3><div class="small">
+   <a href="https://www.weather.gov/jax/" target="_blank" rel="noopener">NWS Jacksonville forecast &amp; marine</a> ·
+   <a href="https://www.ndbc.noaa.gov/station_page.php?station=mypf1" target="_blank" rel="noopener">Mayport gauge (pressure, water temp)</a> ·
+   <a href="https://www.ndbc.noaa.gov/station_page.php?station=41112" target="_blank" rel="noopener">Offshore buoy 41112</a> ·
+   <a href="https://tidesandcurrents.noaa.gov/noaatidepredictions.html?id=8720218" target="_blank" rel="noopener">NOAA Mayport tides</a> ·
+   <a href="https://myfwc.com/fishing/saltwater/recreational/" target="_blank" rel="noopener">FWC saltwater regs</a> ·
+   <a href="https://myfwc.com/fishing/freshwater/regulations/" target="_blank" rel="noopener">FWC freshwater regs</a></div></div>`;
+}
+
+function chartSVG(day, r) {
+  const W = 360, H = 170, L = 26, R = 8, T = 8, B = 22, cw = W - L - R, ch = H - T - B;
+  const x = t => L + (t - day.t0) / 864e5 * cw;
+  const ys = v => T + ch - v / 100 * ch;
+  let g = '';
+  // night shading
+  const a = day.ast;
+  if (a.dawn) g += `<rect x="${L}" y="${T}" width="${x(a.dawn) - L}" height="${ch}" fill="#000" opacity=".3"/>`;
+  if (a.dusk) g += `<rect x="${x(a.dusk)}" y="${T}" width="${L + cw - x(a.dusk)}" height="${ch}" fill="#000" opacity=".3"/>`;
+  // solunar
+  day.majors.forEach(t => { const a1 = Math.max(day.t0, t - 3600e3), b1 = Math.min(day.t0 + 864e5, t + 3600e3); if (b1 > a1) g += `<rect x="${x(a1)}" y="${T}" width="${x(b1) - x(a1)}" height="${ch}" fill="var(--accent2)" opacity=".22"/>`; });
+  day.minors.forEach(t => { const a1 = Math.max(day.t0, t - 2700e3), b1 = Math.min(day.t0 + 864e5, t + 2700e3); if (b1 > a1) g += `<rect x="${x(a1)}" y="${T}" width="${x(b1) - x(a1)}" height="${ch}" fill="var(--accent2)" opacity=".1"/>`; });
+  // tide
+  if (day.ext.length) {
+    const pts = []; let mn = Infinity, mx = -Infinity;
+    for (let t = day.t0; t <= day.t0 + 864e5; t += 10 * 60000) { const ts = Engine.tideAt(day.extAll, t); if (ts) { pts.push([t, ts.h]); mn = Math.min(mn, ts.h); mx = Math.max(mx, ts.h); } }
+    mn = Math.min(mn, 0) - .3; mx = mx + .3;
+    const yt = h => T + ch - (h - mn) / (mx - mn) * ch;
+    const d = pts.map((p, i) => (i ? 'L' : 'M') + x(p[0]).toFixed(1) + ' ' + yt(p[1]).toFixed(1)).join('');
+    g += `<path d="${d} L${x(pts[pts.length - 1][0])} ${T + ch} L${x(pts[0][0])} ${T + ch}Z" fill="var(--tide)" opacity=".22"/><path d="${d}" fill="none" stroke="var(--tide)" stroke-width="1.5" opacity=".8"/>`;
+    for (let f = Math.ceil(mn); f <= mx; f += 2) g += `<text x="${W - 2}" y="${yt(f) + 3}" font-size="8.5" fill="var(--tide)" text-anchor="end">${f}ft</text>`;
+  }
+  // score
+  const sd = r.series.map((p, i) => (i ? 'L' : 'M') + x(p.t).toFixed(1) + ' ' + ys(p.v).toFixed(1)).join('');
+  g += `<path d="${sd}" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linejoin="round"/>`;
+  // axes
+  for (let v = 0; v <= 100; v += 50) g += `<line x1="${L}" x2="${L + cw}" y1="${ys(v)}" y2="${ys(v)}" stroke="var(--line)" stroke-dasharray="2 3"/><text x="${L - 4}" y="${ys(v) + 3}" font-size="9" fill="var(--muted)" text-anchor="end">${v}</text>`;
+  for (let h = 0; h <= 24; h += 3) { const t = day.t0 + h * 3600e3; g += `<text x="${x(t)}" y="${H - 6}" font-size="9" fill="var(--muted)" text-anchor="middle">${h === 0 || h === 24 ? '12a' : h === 12 ? '12p' : h > 12 ? (h - 12) + 'p' : h + 'a'}</text>`; }
+  const now = Date.now();
+  if (now >= day.t0 && now < day.t0 + 864e5) g += `<line x1="${x(now)}" x2="${x(now)}" y1="${T}" y2="${T + ch}" stroke="var(--text)" stroke-width="1" opacity=".6"/>`;
+  g += `<line id="cursor" x1="0" x2="0" y1="${T}" y2="${T + ch}" stroke="var(--text)" stroke-width="1" opacity="0"/>`;
+  return `<svg id="chart" viewBox="0 0 ${W} ${H}" width="100%" style="display:block">${g}</svg>`;
+}
+function bindChart() {
+  const svg = $('#chart'); if (!svg) return;
+  const handler = ev => {
+    const rect = svg.getBoundingClientRect(), px = (ev.clientX - rect.left) / rect.width * 360;
+    const fr = Math.max(0, Math.min(1, (px - 26) / (360 - 34)));
+    const { day, res } = scoreAll(state.day0), r = chosen(res);
+    const i = Math.min(r.series.length - 1, Math.round(fr * (r.series.length - 1))), p = r.series[i], s = day.samples[i];
+    const c = $('#cursor'); c.setAttribute('x1', 26 + fr * 326); c.setAttribute('x2', 26 + fr * 326); c.setAttribute('opacity', '.7');
+    $('#readout').innerHTML = `<b>${fmtT(p.t)}</b> · score <b>${Math.round(p.v)}</b>${s.ts ? ` · ${s.ts.h.toFixed(1)} ft, ${Engine.stageLabel(s.ts).toLowerCase()}` : ''}${s.solTag ? ' · ' + s.solTag.toLowerCase() : ''} · ${s.lbin.toLowerCase()}`;
+  };
+  svg.addEventListener('pointerdown', handler); svg.addEventListener('pointermove', e => { if (e.buttons || e.pointerType === 'touch') handler(e); });
+}
+
+function viewSpecies() {
+  const { day, res } = scoreAll(state.day0);
+  let html = topControls().replace(/<select id="spSel">[\s\S]*?<\/select>/, '');
+  html += `<div style="margin:2px 0 10px"><button class="chip ${!state.allWaters ? 'on' : ''}" data-aw="0">${esc(WATER_LABEL[spot().water])} species</button><button class="chip ${state.allWaters ? 'on' : ''}" data-aw="1">All species</button></div>`;
+  html += res.map(r => {
+    const s = r.sp, m = new Date(state.day0 + 43200e3).getMonth();
+    const fly = s.fly;
+    return `<div class="card sp" data-open="${s.id}"><div class="hrow"><div style="flex:1;min-width:0"><b>${esc(s.name)}</b><div class="small muted">${esc(s.grp)}${regStatus(s.id, state.day0 + 43200e3).open ? '' : ' · <span style="color:var(--bad)">harvest closed</span>'} · best ${fmtT(r.bestStart)} – ${fmtT(r.bestEnd)}${state.fly ? ` · fly ${'●'.repeat(fly.r)}${'○'.repeat(3 - fly.r)}` : ''}</div></div>${badge(r.day)}</div>
+     <div class="mbar">${s.season.map((v, i) => `<i style="opacity:${.12 + v / 10 * .88}" class="${i === m ? 'cur' : ''}"></i>`).join('')}</div><div class="mlab">${MONTHS.map(x => `<span>${x}</span>`).join('')}</div>
+     <div class="det"><h3>Where around Jax</h3><div>${esc(s.where)}</div>
+     ${state.fly ? `<h3>Fly kit</h3><div>${esc(fly.kit)}</div>${fly.flies.length ? `<ul class="ls">${fly.flies.map(f => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}<div class="small" style="margin-top:6px">${esc(fly.tips)}</div>`
+        : `<h3>Baits & lures</h3><ul class="ls">${s.bait.map(f => `<li>${esc(f)}</li>`).join('')}</ul>`}
+     <h3>How to fish it</h3><div class="small">${esc(s.tips)}</div>
+     <h3>Rules ${regStatus(s.id, state.day0 + 43200e3).open ? '' : '<span class="tag" style="background:var(--bad);color:#fff;border-color:var(--bad)">Closed now</span>'}</h3>${regsBody(s.id)}
+     <div class="note">Ideal water ${s.temp[1]}–${s.temp[2]}°F.</div>
+     <div style="margin-top:10px"><button class="btn sm ghost" data-goto="${s.id}">Forecast this species</button> <button class="btn sm ghost" data-logsp="${s.id}">Log a catch</button></div></div></div>`;
+  }).join('');
+  return html;
+}
+
+// ===== Log =====
+function catchCond(ts, spotId) {
+  const sp = spots().find(s => s.id === spotId) || spot();
+  const t0 = midnight(ts), day = getDay(t0, sp);
+  const i = Math.min(day.samples.length - 1, Math.max(0, Math.round((ts - t0) / Engine.STEP)));
+  const s = day.samples[i], c = state.settings.cond[dkey(t0)] || {};
+  return {
+    stage: s.ts ? Engine.stageLabel(s.ts) : null, stageBin: s.ts ? Engine.stageBin(s.ts) : null, tideFt: s.ts ? +s.ts.h.toFixed(2) : null,
+    sol: s.solTag || 'none', lbin: s.lbin, moon: day.ast.phaseName, illum: Math.round(day.ast.illum * 100),
+    pressure: c.pressure || null, wind: c.wind ?? null, sky: c.sky || null, clarity: c.clarity || null, wtemp: c.wtemp || null,
+  };
+}
+function viewLog() {
+  const cs = state.catches.filter(c => state.logFilter === 'all' || c.species === state.logFilter);
+  const fish = cs.reduce((a, c) => a + (+c.count || 1), 0);
+  const bySp = {}; state.catches.forEach(c => bySp[c.species] = (bySp[c.species] || 0) + (+c.count || 1));
+  const stor = WEB ? 'Saved on this phone (this browser). Use “Copy log as CSV” to back it up.' : { cloud: 'Saved to your Claude account — syncs across your devices.', local: 'Saved in this browser only (sign in to claude.ai to sync).', loading: 'Loading your log…', slow: 'Still reaching your saved log — it may be out of date.', error: 'Couldn’t reach your saved log; using this browser for now.' }[state.storage];
+  let html = `<div class="card"><div class="row"><button class="btn" data-newcatch="1">+ Log a catch</button>${state.sample ? '<button class="btn ghost" data-fishid="1">📷 Identify a fish</button>' : ''}</div><div class="note">${stor}${state.sample || WEB ? '' : ' Fish ID by photo works when this page is opened in Claude.'}</div></div>`;
+  html += `<div class="card"><h2>Your numbers</h2><div class="grid2"><div class="kv"><b>${state.catches.reduce((a, c) => a + (+c.count || 1), 0)}</b><span>Fish logged</span></div><div class="kv"><b>${Object.keys(bySp).length}</b><span>Species</span></div></div>
+   <div style="margin-top:8px"><button class="chip ${state.logFilter === 'all' ? 'on' : ''}" data-lf="all">All</button>${Object.entries(bySp).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<button class="chip ${state.logFilter === k ? 'on' : ''}" data-lf="${esc(k)}">${esc(SPMAP[k] ? SPMAP[k].name : k)} · ${n}</button>`).join('')}</div>
+   ${state.logFilter !== 'all' ? patternView(state.logFilter) : '<div class="note">Pick a species to see when and how you catch it. With 5+ catches of a species, its forecast is tuned to your own pattern (turn off in Settings).</div>'}
+   ${state.catches.length ? '<div style="margin-top:10px"><button class="btn sm ghost" data-csv="1">Copy log as CSV</button></div>' : ''}</div>`;
+  html += `<div class="card">${cs.length ? cs.map(c => `<div class="catch" data-edit="${esc(c.id)}"><div class="ic">${c.count > 1 ? '×' + c.count : (c.method === 'fly' ? 'F' : '•')}</div><div class="tx"><b>${esc(SPMAP[c.species] ? SPMAP[c.species].name : c.species)}</b>${c.length ? ` · ${esc(c.length)}"` : ''}${c.weight ? ` · ${esc(c.weight)} lb` : ''}
+     <div class="small muted">${fmtD(c.ts)} ${fmtT(c.ts)} · ${esc((spots().find(s => s.id === c.spot) || {}).name || c.spotName || '')}</div>
+     <div class="small">${[c.bait, c.method === 'fly' ? 'on fly' : '', c.kept ? 'kept' : 'released'].filter(Boolean).map(esc).join(' · ')}</div>
+     <div class="small muted">${c.cond ? [c.cond.stage, c.cond.sol !== 'none' ? c.cond.sol : '', c.cond.moon].filter(Boolean).map(esc).join(' · ') : ''}</div></div></div>`).join('') : '<div class="muted">No catches yet. Each entry records the tide stage, solunar period and moon automatically.</div>'}</div>`;
+  return html;
+}
+function patternView(spId) {
+  const list = state.catches.filter(c => c.species === spId && c.cond);
+  if (!list.length) return '';
+  const bars = (title, key, bins) => {
+    const m = {}; bins.forEach(b => m[b] = 0); list.forEach(c => { const v = c.cond[key]; if (v in m) m[v] += (+c.count || 1); });
+    const mx = Math.max(1, ...Object.values(m));
+    return `<h3>${title}</h3><div class="bars">${bins.map(b => `<div class="b"><span>${b}</span><i style="width:${(m[b] / mx * 60).toFixed(0)}%"></i><em class="small muted">${m[b]}</em></div>`).join('')}</div>`;
+  };
+  return bars('Tide stage', 'stageBin', ['In-early', 'In-mid', 'In-late', 'Out-early', 'Out-mid', 'Out-late']) + bars('Time of day', 'lbin', ['Dawn', 'Morning', 'Midday', 'Afternoon', 'Dusk', 'Night']) +
+    bars('Solunar', 'sol', ['Major solunar', 'Minor solunar', 'none']) + `<div class="note">${list.length >= 5 ? 'Forecast for this species is tuned to these patterns.' : `${5 - list.length} more catch${5 - list.length === 1 ? '' : 'es'} to start tuning the forecast.`}</div>`;
+}
+function openCatch(c, fresh) {
+  const isNew = !c || !!fresh; c = c || { id: 'c_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ts: Date.now(), species: state.spId !== 'auto' ? state.spId : '', spot: state.spotId, method: state.fly ? 'fly' : 'conv', count: 1, kept: false };
+  const dt = new Date(c.ts - new Date(c.ts).getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  const sps = spots();
+  const sugg = new Set(); SPECIES.forEach(s => { s.bait.forEach(b => sugg.add(b)); s.fly.flies.forEach(f => sugg.add(f)); });
+  $('#sheet').innerHTML = `<div class="in"><div class="hrow"><h2 style="flex:1;margin:0">${isNew ? 'Log a catch' : 'Edit catch'}</h2><button class="btn sm ghost" data-close="1">Close</button></div>
+   <label>Species</label><select id="fSp"><option value="">Choose…</option>${['Freshwater', 'Panfish', 'Inshore', 'Surf', 'Nearshore', 'Offshore'].map(g => `<optgroup label="${g}">${SPECIES.filter(s => s.grp === g).map(s => `<option value="${s.id}" ${s.id === c.species ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</optgroup>`).join('')}<option value="other" ${c.species === 'other' ? 'selected' : ''}>Other</option></select>
+   <div class="row"><div><label>When</label><input id="fTs" type="datetime-local" value="${dt}"></div></div>
+   <label>Where</label><select id="fSpot">${sps.map(s => `<option value="${esc(s.id)}" ${s.id === c.spot ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select>
+   <label>Spot details (optional)</label><input id="fWhere" value="${esc(c.where || '')}" placeholder="e.g., east jetty tip, oyster bar by marker 34">
+   <div class="row"><div><label>Method</label><select id="fMeth"><option value="conv" ${c.method !== 'fly' ? 'selected' : ''}>Conventional</option><option value="fly" ${c.method === 'fly' ? 'selected' : ''}>Fly</option></select></div><div><label>How many</label><input id="fCnt" type="number" inputmode="numeric" min="1" value="${esc(c.count || 1)}"></div></div>
+   <label>Bait / lure / fly</label><input id="fBait" list="baitList" value="${esc(c.bait || '')}"><datalist id="baitList">${[...sugg].map(s => `<option value="${esc(s)}">`).join('')}</datalist>
+   <div class="row"><div><label>Length (in)</label><input id="fLen" type="number" inputmode="decimal" step="0.25" value="${esc(c.length || '')}"></div><div><label>Weight (lb)</label><input id="fWt" type="number" inputmode="decimal" step="0.1" value="${esc(c.weight || '')}"></div></div>
+   <label>Kept or released</label><div><button class="chip ${!c.kept ? 'on' : ''}" data-kept="0">Released</button><button class="chip ${c.kept ? 'on' : ''}" data-kept="1">Kept</button></div>
+   <label>Notes</label><textarea id="fNotes">${esc(c.notes || '')}</textarea>
+   <div class="note" id="fCond"></div>
+   <div style="margin-top:12px"><button class="btn" data-savecatch="1">Save catch</button></div>
+   ${isNew ? '' : '<div style="margin-top:10px" id="delWrap"><button class="btn danger" data-del="1">Delete this catch</button></div>'}</div>`;
+  $('#sheet')._c = { ...c }; $('#sheet').classList.add('on'); updCond();
+}
+function updCond() {
+  const ts = new Date($('#fTs').value).getTime(); if (isNaN(ts)) return;
+  const k = catchCond(ts, $('#fSpot').value);
+  $('#fCond').textContent = 'Recorded automatically: ' + [k.stage && k.stage + ' tide' + (k.tideFt != null ? ` (${k.tideFt.toFixed(1)} ft)` : ''), k.sol !== 'none' ? k.sol : 'no solunar period', k.moon + ` (${k.illum}%)`, k.lbin].filter(Boolean).join(' · ') + (k.pressure ? '' : '. Weather from the Conditions card for that day, if you entered it.');
+}
+async function saveCatchForm() {
+  const c = $('#sheet')._c; const sp = $('#fSp').value; if (!sp) { toast('Pick a species'); return; }
+  const ts = new Date($('#fTs').value).getTime(); if (isNaN(ts)) { toast('Check the date and time'); return; }
+  const spotId = $('#fSpot').value;
+  const out = { id: c.id, ts, species: sp, spot: spotId, spotName: (spots().find(s => s.id === spotId) || {}).name || '', where: $('#fWhere').value.trim(), method: $('#fMeth').value, count: Math.max(1, parseInt($('#fCnt').value) || 1), bait: $('#fBait').value.trim(), length: $('#fLen').value, weight: $('#fWt').value, kept: !!c.kept, notes: $('#fNotes').value.trim(), cond: catchCond(ts, spotId), idBy: c.idBy || null, created: c.created || Date.now() };
+  const btn = document.querySelector('[data-savecatch]'); btn.disabled = true; btn.textContent = 'Saving…';
+  const ok = await Store.saveCatch(out);
+  btn.disabled = false; btn.textContent = 'Save catch';
+  if (ok) { $('#sheet').classList.remove('on'); toast('Catch saved'); if (!Store.db || Store.localLog) render(); }
+}
+function csv() {
+  const cols = ['date', 'time', 'species', 'count', 'length_in', 'weight_lb', 'method', 'bait', 'spot', 'spot_detail', 'kept', 'tide_stage', 'tide_ft', 'solunar', 'moon', 'light', 'pressure', 'wind_mph', 'sky', 'clarity', 'water_temp_f', 'notes'];
+  const q = v => { v = v == null ? '' : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  const rows = state.catches.map(c => { const k = c.cond || {}; return [dkey(c.ts), new Date(c.ts).toTimeString().slice(0, 5), SPMAP[c.species] ? SPMAP[c.species].name : c.species, c.count, c.length, c.weight, c.method, c.bait, c.spotName, c.where, c.kept ? 'kept' : 'released', k.stage, k.tideFt, k.sol, k.moon, k.lbin, k.pressure, k.wind, k.sky, k.clarity, k.wtemp, c.notes].map(q).join(','); });
+  return [cols.join(',')].concat(rows).join('\n');
+}
+
+// ===== Fish ID (photo → Claude) =====
+let idFile = null, idCtl = null, idResult = null;
+function openFishId() {
+  idFile = null; idResult = null;
+  $('#sheet').innerHTML = `<div class="in"><div class="hrow"><h2 style="flex:1;margin:0">Identify a fish</h2><button class="btn sm ghost" data-close="1">Close</button></div>
+   <div class="small muted" style="margin:6px 0 10px">Take a photo or pick one from your library. A clear side view, whole fish, with the tail visible, works best. Lay it next to a ruler or bump board if you want a length estimate.</div>
+   <label class="btn ghost" style="display:block;text-align:center">📷 Take or choose photo<input id="idFile" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/*" style="display:none"></label>
+   <img id="idPrev" alt="" style="display:none;width:100%;max-height:300px;object-fit:contain;border-radius:12px;margin-top:10px;background:#000">
+   <div style="margin-top:10px"><button class="btn" id="idGo" data-idgo="1" disabled>Identify</button></div>
+   <div id="idOut" style="margin-top:12px"></div></div>`;
+  $('#sheet').classList.add('on');
+}
+async function runFishId() {
+  if (!idFile || !state.sample) return;
+  const out = $('#idOut'), go = $('#idGo'); go.disabled = true; go.textContent = 'Looking…';
+  out.innerHTML = '<div class="muted">Thinking… (this can take up to a minute)</div>';
+  idCtl = new AbortController();
+  const list = SPECIES.map(s => `${s.id}: ${s.name}`).join('\n');
+  const prompt = `An angler near Jacksonville, Florida photographed this fish (waters: St. Johns River fresh and brackish, Intracoastal Waterway, Atlantic surf, nearshore and offshore). Identify the species from the photo.
+If it matches one of these app species ids, use that id; otherwise use "other":
+${list}
+Reply with only a JSON object:
+{"is_fish": true, "id": "redfish", "common_name": "Red drum", "scientific_name": "Sciaenops ocellatus", "confidence": 0.9, "key_features": ["up to 4 short visible features you used"], "look_alikes": [{"name": "Black drum", "how_to_tell": "short tip"}], "estimated_length_in": null, "photo_note": "short note on photo quality or what would confirm the ID"}
+confidence is 0–1. Only give estimated_length_in when a ruler or measuring board is clearly readable in the photo; otherwise null. If the photo is not a fish, set is_fish false.`;
+  try {
+    const r = await state.sample.json(prompt, { images: [idFile], signal: idCtl.signal });
+    idResult = r || {};
+    if (r && r.is_fish === false) { out.innerHTML = '<div class="alert">That doesn’t look like a fish photo. Try a clearer side view.</div>'; return; }
+    const id = SPMAP[r.id] ? r.id : null, conf = Math.round(Math.max(0, Math.min(1, +r.confidence || 0)) * 100);
+    const st = id ? regStatus(id, Date.now()) : { open: true };
+    out.innerHTML = `<div class="card" style="margin:0"><div class="hrow"><div style="flex:1"><b style="font-size:17px">${esc(r.common_name || (id && SPMAP[id].name) || 'Unknown')}</b><div class="small muted"><i>${esc(r.scientific_name || '')}</i></div></div><span class="score ${conf >= 80 ? 's4' : conf >= 55 ? 's2' : 's1'}">${conf}%</span></div>
+      ${conf < 60 ? '<div class="alert" style="margin-top:8px">Low confidence — check the look-alikes below before you keep it.</div>' : ''}
+      ${Array.isArray(r.key_features) && r.key_features.length ? `<h3>What gave it away</h3><ul class="ls">${r.key_features.slice(0, 4).map(f => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}
+      ${Array.isArray(r.look_alikes) && r.look_alikes.length ? `<h3>Look-alikes</h3><ul class="ls">${r.look_alikes.slice(0, 3).map(l => `<li><b>${esc(l.name)}</b> — ${esc(l.how_to_tell)}</li>`).join('')}</ul>` : ''}
+      ${r.estimated_length_in ? `<div class="small" style="margin-top:6px">Estimated length from the ruler: <b>${esc(r.estimated_length_in)}"</b> — measure it yourself before keeping.</div>` : ''}
+      ${r.photo_note ? `<div class="note">${esc(r.photo_note)}</div>` : ''}
+      ${id ? `<h3>Rules ${st.open ? '' : '<span class="tag" style="background:var(--bad);color:#fff;border-color:var(--bad)">Closed until ' + esc(st.until) + '</span>'}</h3>${regsBody(id)}` : '<div class="note">Not one of the app’s species — check MyFWC.com for its rules.</div>'}
+      <div style="margin-top:10px"><button class="btn" data-idlog="1">Log this catch</button></div>
+      <div class="note">Photo ID is a best guess by Claude, not a legal identification. You are responsible for knowing what you keep.</div></div>`;
+  } catch (e) {
+    const code = e && e.code;
+    const msg = { not_granted: 'Fish ID needs your OK to use Claude — allow it when asked and try again.', rate_limited: 'Too many requests right now — try again in a minute.', image_rejected: 'That photo couldn’t be read — try a JPEG or a smaller photo.', invalid_json: 'Got an unclear answer — tap Identify again.', images_unavailable: 'Photo ID isn’t available in this view.', cancelled: '' }[code] ?? 'Something went wrong — try again.';
+    out.innerHTML = msg ? `<div class="alert">${msg}</div>` : '';
+    if (code === 'not_granted' || code === 'images_unavailable' || code === 'sampling_disabled') { state.sample = null; }
+  } finally { go.disabled = false; go.textContent = 'Identify again'; }
+}
+
+// ===== Settings =====
+function viewSettings() {
+  const sps = spots();
+  return `<div class="card"><h2>Tide offsets by spot</h2><div class="small muted">Times shift the Mayport prediction (minutes, + is later); ratios scale heights. Presets come from NOAA subordinate stations. Adjust any spot to match what you see on the water.</div>
+  ${sps.filter(s => s.tide).map(s => `<div class="spotrow"><b>${esc(s.name)}</b> <span class="small muted">${esc(s.src || 'custom')}</span>
+   <div class="g4" style="margin-top:6px"><div><label>High +min</label><input data-off="${esc(s.id)}" data-k="hi" type="number" inputmode="numeric" value="${s.tide.hi}"></div><div><label>Low +min</label><input data-off="${esc(s.id)}" data-k="lo" type="number" inputmode="numeric" value="${s.tide.lo}"></div><div><label>High ×</label><input data-off="${esc(s.id)}" data-k="hr" type="number" inputmode="decimal" step="0.01" value="${s.tide.hr}"></div><div><label>Low ×</label><input data-off="${esc(s.id)}" data-k="lr" type="number" inputmode="decimal" step="0.01" value="${s.tide.lr}"></div></div>
+   ${s.custom ? `<button class="btn sm danger" style="margin-top:8px" data-rmspot="${esc(s.id)}">Remove spot</button>` : ''}</div>`).join('')}
+  </div>
+  <div class="card"><h2>Add your own spot</h2><label>Name</label><input id="nsName" placeholder="e.g., Sisters Creek boat ramp"><div class="row"><div><label>Water</label><select id="nsWater">${Object.entries(WATER_LABEL).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div><div><label>High / low offset (min)</label><input id="nsOff" placeholder="e.g., 45 / 60"></div></div><div style="margin-top:10px"><button class="btn ghost" data-addspot="1">Add spot</button></div></div>
+  <div class="card"><h2>Forecast</h2><label><input type="checkbox" id="usePat" style="width:auto" ${state.settings.usePatterns ? 'checked' : ''}> Tune forecasts with my catch log (needs 5+ catches of a species)</label></div>
+  <div class="card"><h2>How the forecast works</h2><div class="small">Each 15 minutes of the day gets a score from: the <b>species’ season</b> and water temperature, <b>tidal current</b> and stage at your spot, <b>solunar periods</b> (moon overhead/underfoot and moonrise/set, stronger near new and full moon), <b>light</b> (dawn, day, dusk, night), and the <b>weather you enter</b> (barometer, wind, sky, clarity). Fly mode lowers wind tolerance, rewards clear water and sight-fishing light, and ranks species by how good they are on fly.<br><br>Tides are computed on the page from harmonic constants fitted to NOAA’s published Mayport (8720218) predictions, checked against NOAA tables months away (times within ~15 min, heights ~0.5 ft). Always check NOAA for navigation. Seasons are typical NE Florida patterns — your log is what makes it yours.</div></div>`;
+}
+
+// ===== Events =====
+document.addEventListener('click', async e => {
+  const t = e.target.closest('button,[data-sp],[data-open],[data-edit],[data-gospot]'); if (!t) return;
+  const d = t.dataset;
+  if (d.tab) { state.tab = d.tab; render(); window.scrollTo(0, 0); return; }
+  if (d.fly != null) { state.fly = d.fly === '1'; state.settings.fly = state.fly; Store.saveSettings(); render(); return; }
+  if (d.day) { state.day0 = +d.day; render(); return; }
+  if (d.sp) { state.spId = d.sp; render(); window.scrollTo(0, 0); return; }
+  if (d.aw != null) { state.allWaters = d.aw === '1'; render(); return; }
+  if (d.goto) { state.spId = d.goto; state.tab = 'forecast'; if (!eligible(spot()).find(s => s.id === d.goto)) { const s = spots().find(x => SPMAP[d.goto].waters.includes(x.water)); if (s) state.spotId = s.id; } render(); window.scrollTo(0, 0); return; }
+  if (d.logsp) { state.tab = 'log'; render(); openCatch({ id: 'c_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ts: Date.now(), species: d.logsp, spot: state.spotId, method: state.fly ? 'fly' : 'conv', count: 1, kept: false }, true); return; }
+  if (d.open && !e.target.closest('button')) { t.classList.toggle('open'); return; }
+  if (d.newcatch) { openCatch(null); return; }
+  if (d.fishid) { openFishId(); return; }
+  if (d.locate) { locateMe(); return; }
+  if (d.idgo) { runFishId(); return; }
+  if (d.idlog) { const r = idResult || {}; const id = SPMAP[r.id] ? r.id : 'other'; openCatch({ id: 'c_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ts: Date.now(), species: id, spot: state.spotId, method: state.fly ? 'fly' : 'conv', count: 1, kept: false, length: r.estimated_length_in || '', notes: id === 'other' && r.common_name ? r.common_name : '', idBy: r.common_name ? { name: r.common_name, conf: +r.confidence || 0 } : null }, true); return; }
+  if (d.gospot) { state.spotId = d.gospot; state.settings.spotId = d.gospot; Store.saveSettings(); render(); window.scrollTo(0, 0); return; }
+  if (d.edit) { openCatch(state.catches.find(c => c.id === d.edit)); return; }
+  if (d.close) { if (idCtl) idCtl.abort(); $('#sheet').classList.remove('on'); return; }
+  if (d.kept != null) { $('#sheet')._c.kept = d.kept === '1'; t.parentNode.querySelectorAll('.chip').forEach(b => b.classList.toggle('on', b === t)); return; }
+  if (d.savecatch) { saveCatchForm(); return; }
+  if (d.del) { t.outerHTML = '<div class="row"><button class="btn danger" data-delyes="1">Yes, delete</button><button class="btn ghost" data-close="1">Keep it</button></div>'; return; }
+  if (d.delyes) { await Store.deleteCatch($('#sheet')._c.id); $('#sheet').classList.remove('on'); toast('Deleted'); if (!Store.db || Store.localLog) render(); return; }
+  if (d.lf) { state.logFilter = d.lf; render(); return; }
+  if (d.csv) { try { await navigator.clipboard.writeText(csv()); toast('Copied — paste into a spreadsheet'); } catch (er) { toast('Copy was blocked'); } return; }
+  if (d.addspot) {
+    const name = $('#nsName').value.trim(); if (!name) { toast('Give the spot a name'); return; }
+    const water = $('#nsWater').value, nums = ($('#nsOff').value.match(/-?\d+/g) || []).map(Number);
+    const s = { id: 'u_' + Date.now().toString(36), name, water, custom: true, src: 'custom', tide: ['fresh', 'offshore'].includes(water) ? null : { hi: nums[0] || 0, lo: nums[1] ?? nums[0] ?? 0, hr: 1, lr: 1 } };
+    state.settings.custom = (state.settings.custom || []).concat(s); state.spotId = s.id; state.settings.spotId = s.id; Store.saveSettings(); dayCache.clear(); toast('Spot added'); render(); return;
+  }
+  if (d.rmspot) { state.settings.custom = state.settings.custom.filter(s => s.id !== d.rmspot); if (state.spotId === d.rmspot) state.spotId = 'mayport'; Store.saveSettings(); dayCache.clear(); render(); return; }
+});
+document.addEventListener('change', e => {
+  const id = e.target.id;
+  if (id === 'spotSel') { state.spotId = e.target.value; state.settings.spotId = state.spotId; if (state.spId !== 'auto' && !eligible(spot()).find(s => s.id === state.spId)) state.spId = 'auto'; Store.saveSettings(); render(); }
+  else if (id === 'spSel') { state.spId = e.target.value; render(); }
+  else if (id === 'datePick') { const [y, m, dd] = e.target.value.split('-').map(Number); if (y) { state.day0 = new Date(y, m - 1, dd).getTime(); render(); } }
+  else if (['cPress', 'cWind', 'cTemp', 'cSky', 'cClar'].includes(id)) {
+    const k = dkey(state.day0), c = { ...(state.settings.cond[dkey(state.day0)] || {}) };
+    c.pressure = $('#cPress').value; c.wind = $('#cWind').value === '' ? '' : +$('#cWind').value; c.wtemp = $('#cTemp').value; c.sky = $('#cSky').value; c.clarity = $('#cClar').value;
+    state.settings.cond = { ...state.settings.cond, [k]: c };
+    // keep only the last ~60 days of condition entries
+    const keys = Object.keys(state.settings.cond).sort(); while (keys.length > 60) delete state.settings.cond[keys.shift()];
+    Store.saveSettings(); const y = window.scrollY; render(); window.scrollTo(0, y);
+  }
+  else if (id === 'fTs' || id === 'fSpot') updCond();
+  else if (id === 'idFile') { const f = e.target.files && e.target.files[0]; if (f) { idFile = f; const im = $('#idPrev'); im.src = URL.createObjectURL(f); im.style.display = 'block'; $('#idGo').disabled = false; $('#idOut').innerHTML = ''; } }
+  else if (id === 'usePat') { state.settings.usePatterns = e.target.checked; Store.saveSettings(); }
+  else if (e.target.dataset.off) {
+    const sid = e.target.dataset.off, k = e.target.dataset.k, v = parseFloat(e.target.value); if (isNaN(v)) return;
+    const cu = (state.settings.custom || []).find(s => s.id === sid);
+    if (cu) cu.tide = { ...cu.tide, [k]: v };
+    else state.settings.spots = { ...state.settings.spots, [sid]: { ...(state.settings.spots[sid] || {}), [k]: v } };
+    dayCache.clear(); Store.saveSettings(); toast('Saved');
+  }
+});
+
+render();
+Store.init();
+if (WEB) webInit();
+(async () => { try { if (!window.claude || !claude.use) return; const sm = await claude.use('sample'); if (!sm) return; const lim = await sm.limits().catch(() => null); if (lim && lim.images) { state.sample = sm; render(); } } catch (e) { } })();
+</script>
+</body></html>
