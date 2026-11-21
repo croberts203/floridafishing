@@ -1012,7 +1012,7 @@ function viewMarine() {
   const link = '<a href="https://www.weather.gov/marine/jaxmz" target="_blank" rel="noopener">NWS Jacksonville marine zones</a>';
   if (!state.marine) {
     const msg = WEB ? ({ loading: 'Loading the live NWS forecast…', error: 'Couldn’t reach the National Weather Service right now.' }[state.marineState] || '') : { loading: 'Loading the marine forecast…', slow: 'Still reaching the saved marine forecast — it may be out of date.', none: 'The marine forecast loads when this page is opened in Claude (it’s refreshed there a few times a day).', error: 'Couldn’t reach the saved marine forecast.' }[state.marineState] || '';
-    return `<div class="card"><h2>Small craft advisory & seas</h2><div class="small muted">${msg} Live: ${link}.</div></div>`;
+    return `<div class="card" id="marine"><h2>Small craft advisory & seas</h2><div class="small muted">${msg} Live: ${link}.</div></div>`;
   }
   const hl = Array.from(new Set(mf ? mf.headlines.concat(mf.headlinesOut) : (state.marine.zones.AMZ452 || {}).headlines || []));
   const pr = p => `<div class="win" style="border-color:${p.gale ? 'var(--bad)' : p.sca ? 'var(--accent2)' : 'var(--accent)'}"><b>${esc(p.name)}</b> ${p.gale ? '<span class="tag" style="background:var(--bad);color:#fff;border-color:var(--bad)">Gale</span>' : p.sca ? '<span class="tag hot">SCA</span>' : ''}<div class="small">${esc(p.wind)}${p.ktLo != null ? ` (${Math.round(p.ktLo * 1.15)}–${Math.round(p.ktHi * 1.15)} mph)` : ''}</div><div class="small">${esc(p.seas || '')}</div>${p.icw ? `<div class="small muted">${esc(p.icw)}</div>` : ''}</div>`;
@@ -1022,7 +1022,7 @@ function viewMarine() {
     body += `<h3>20–60 nm (AMZ472)</h3>${mf.outer.map(pr).join('') || '<div class="small muted">No period for this day.</div>'}`;
   } else body = `<div class="small muted">The current NWS forecast doesn’t reach ${fmtD(state.day0)}.</div>`;
   const sca = mf && (mf.sca || mf.scaOuter);
-  return `<div class="card"><div class="hrow"><h2 style="flex:1;margin:0">Small craft advisory & seas</h2>${mf && mf.gale ? '<span class="score" style="background:var(--bad);color:#fff">GALE</span>' : sca ? '<span class="score s2">SCA</span>' : mf && mf.has ? '<span class="score s4">OK</span>' : ''}</div>
+  return `<div class="card" id="marine"><div class="hrow"><h2 style="flex:1;margin:0">Small craft advisory & seas</h2>${mf && mf.gale ? '<span class="score" style="background:var(--bad);color:#fff">GALE</span>' : sca ? '<span class="score s2">SCA</span>' : mf && mf.has ? '<span class="score s4">OK</span>' : ''}</div>
    ${hl.length ? `<div class="alert" style="margin-top:8px">${hl.map(h => esc(h)).join('<br>')}</div>` : '<div class="small muted" style="margin-top:6px">No advisories in the latest forecast.</div>'}
    ${body}
    <div class="note">NWS Jacksonville coastal waters forecast, issued ${state.marine.issuedText ? esc(state.marine.issuedText) : fmtD(Date.parse(state.marine.issued)) + ' ' + fmtT(Date.parse(state.marine.issued))}${mf && mf.stale ? ' — <b>this is more than 18 hours old</b>' : ''}.${state.marine.gulfStream ? ' Gulf Stream west wall: ' + esc(state.marine.gulfStream) + '.' : ''} Wind on this card fills in the bite forecast unless you enter your own. Always check ${link} before running the inlet.</div></div>`;
@@ -1286,7 +1286,7 @@ function viewSettings() {
 document.addEventListener('click', async e => {
   const t = e.target.closest('button,[data-sp],[data-open],[data-edit],[data-gospot]'); if (!t) return;
   const d = t.dataset;
-  if (d.tab) { state.tab = d.tab; render(); window.scrollTo(0, 0); return; }
+  if (d.tab) { state.tab = d.tab; render(); window.scrollTo(0, 0); try { history.replaceState(null, '', '#' + d.tab); } catch (e) { } return; }
   if (d.fly != null) { state.fly = d.fly === '1'; state.settings.fly = state.fly; Store.saveSettings(); render(); return; }
   if (d.day) { state.day0 = +d.day; render(); return; }
   if (d.sp) { state.spId = d.sp; render(); window.scrollTo(0, 0); return; }
@@ -1341,7 +1341,19 @@ document.addEventListener('change', e => {
   }
 });
 
+// Deep links: #forecast, #marine, #species, #regulations, #log, #fishid, #settings
+function applyHash() {
+  const h = (location.hash || '').slice(1).toLowerCase();
+  const map = { forecast: 'forecast', marine: 'forecast', boating: 'forecast', species: 'species', regulations: 'species', rules: 'species', log: 'log', catchlog: 'log', fishid: 'log', settings: 'settings' };
+  if (!map[h]) return;
+  state.tab = map[h]; render();
+  if (h === 'marine' || h === 'boating') setTimeout(() => { const el = document.getElementById('marine'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 300);
+  else window.scrollTo(0, 0);
+  if (h === 'fishid' && state.sample) openFishId();
+}
+window.addEventListener('hashchange', applyHash);
 render();
+applyHash();
 Store.init();
 if (WEB) webInit();
 (async () => { try { if (!window.claude || !claude.use) return; const sm = await claude.use('sample'); if (!sm) return; const lim = await sm.limits().catch(() => null); if (lim && lim.images) { state.sample = sm; render(); } } catch (e) { } })();
