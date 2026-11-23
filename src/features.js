@@ -39,7 +39,7 @@ function viewWeek() {
 // ---------- Fly bench: recipes from Fly Tying Recipes (same Supabase project) ----------
 var FLY_APP = 'https://app.flytyingrecipes.org';
 // forecast species -> Fly Tying Recipes species ids
-var FLY_MAP = { redfish: [1], trout: [2], flounder: [3], fluke: [3], blackdrum: [4], sheepshead: [5], pompano: [6], whiting: [7], snook: [8], tarpon: [9], cobia: [10], jack: [11], spanish: [13], bluefish: [14], bass: [15], bream: [16, 18], redear: [17], crappie: [19], catfish: [20] };
+var FLY_MAP = { redfish: [1], trout: [2], flounder: [3], fluke: [3], blackdrum: [4], sheepshead: [5], pompano: [6], whiting: [7], snook: [8], tarpon: [9], cobia: [10], jack: [11], spanish: [13], bluefish: [14], bass: [15], bream: [16, 18], redear: [17], crappie: [19], catfish: [20], rainbow: [21], brown: [22], brook: [23], pike: [25] };
 var FLYDATA = { st: 'idle', rows: null, inv: null, uid: undefined };
 function loadFlies() {
   const uid = Cloud.user ? Cloud.user.id : null;

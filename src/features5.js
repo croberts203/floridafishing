@@ -65,6 +65,7 @@ function waterSheet() {
    <img id="wcPrev" alt="" style="display:none;width:100%;max-height:260px;object-fit:cover;border-radius:12px;margin-top:10px">
    <div id="wcOut" style="margin-top:10px"></div></div>`;
   $('#sheet').classList.add('on');
+  tourFor('water', { delay: 350 });
 }
 async function runWaterCheck(file) {
   const out = $('#wcOut'), sp = spot(), res = { t: Date.now() };
@@ -98,8 +99,14 @@ async function runWaterCheck(file) {
   }
   if (res.light || res.clarity) {
     state.settings.waterCheck = state.settings.waterCheck || {}; state.settings.waterCheck[sp.id] = res; Store.saveSettings();
-    lines.push(`<div class="note">Saved for ${esc(sp.name)} — the score and color picks now use this. Light counts for about 90 minutes; clarity for the rest of today.</div><div class="row" style="margin-top:8px"><button class="btn" data-close="1">See colors</button></div>`);
     render();
+    // the color picks this photo produced, right here in the result
+    try {
+      const t0 = midnight(Date.now()), { res: rr } = scoreAll(t0), r = chosen(rr), c = cond(t0);
+      const pk = colorPicks(r.sp, sp, Date.now(), c);
+      lines.push(`<div class="colorbox"><div class="small"><b>🎨 ${state.fly ? 'Flies' : 'Lures'} for ${esc(r.sp.name)} right now</b> <span class="muted">(${esc(pk.why)})</span></div><div class="cchips">${pk.list.map(x => `<span class="cchip">${esc(x)}</span>`).join('')}</div>${pk.tip ? `<div class="small muted">${esc(pk.tip.trim())}</div>` : ''}</div>`);
+    } catch (e) { }
+    lines.push(`<div class="note">Saved for ${esc(sp.name)} — the score and color picks use this photo: light for about 90 minutes, clarity for the rest of today.</div><div class="row" style="margin-top:8px"><button class="btn" data-close="1">Done</button></div>`);
   }
   out.innerHTML = lines.join('');
 }

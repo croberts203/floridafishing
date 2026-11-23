@@ -47,6 +47,7 @@ function cond(t0 = state.day0) {
     if (a && a.windDir != null) out.windDir = a.windDir;
     const fl = typeof flowInfo === 'function' && t0 === midnight(Date.now()) ? flowInfo(sp) : null;
     const wc = typeof waterCheck === 'function' && t0 === midnight(Date.now()) ? waterCheck(sp) : null;
+    if (!raw.sky && wc && ['sun', 'partly', 'overcast', 'rain'].includes(wc.sky) && Date.now() - wc.t < 90 * 60e3) { out.sky = wc.sky; out.auto.sky = 'photo'; }
     if (!raw.clarity && wc && wc.clarity) { out.clarity = wc.clarity; out.auto.clarity = 'from your photo at ' + fmtT(wc.t); out.tint = wc.tint; }
     else if (!raw.clarity && typeof estClarity === 'function') { const e = estClarity(sp, a, fl); if (e) { out.clarity = e.v; out.auto.clarity = e.why; } }
     if (fl) { out.flowF = fl.factor; out.flowTxt = fl.text; }
@@ -185,6 +186,7 @@ function render() {
   else m.innerHTML = viewSettings();
   if (state.tab === 'forecast') bindChart();
   if (WEB && state.tab === 'map') mountMap();
+  if (WEB) { toursAfterRender(); if (state.tab === 'forecast') watchConditions(); }
 }
 
 function topControls() {
@@ -538,7 +540,7 @@ confidence is 0–1. Only give estimated_length_in when a ruler or measuring boa
 // ===== Settings =====
 function viewSettings() {
   const sps = spots();
-  return `${WEB ? alertsCard() + mySpotsCard() + offlineCard() : ''}<div class="card"><h2>Tide offsets by spot${WEB ? ' (Jacksonville examples)' : ''}</h2><div class="small muted">Times shift the Mayport prediction (minutes, + is later); ratios scale heights. Presets come from NOAA subordinate stations. Adjust any spot to match what you see on the water.</div>
+  return `${WEB ? alertsCard() + mySpotsCard() + offlineCard() + '<div class="card"><h2>Tips</h2><div class="small">Step-by-step tips show the first time you open each screen.</div><div class="row" style="margin-top:8px"><button class="btn ghost" data-tipsagain="1">💡 Show tips again</button></div></div>' : ''}<div class="card"><h2>Tide offsets by spot${WEB ? ' (Jacksonville examples)' : ''}</h2><div class="small muted">Times shift the Mayport prediction (minutes, + is later); ratios scale heights. Presets come from NOAA subordinate stations. Adjust any spot to match what you see on the water.</div>
   ${sps.filter(s => s.tide).map(s => `<div class="spotrow"><b>${esc(s.name)}</b> <span class="small muted">${esc(s.src || 'custom')}</span>
    <div class="g4" style="margin-top:6px"><div><label>High +min</label><input data-off="${esc(s.id)}" data-k="hi" type="number" inputmode="numeric" value="${s.tide.hi}"></div><div><label>Low +min</label><input data-off="${esc(s.id)}" data-k="lo" type="number" inputmode="numeric" value="${s.tide.lo}"></div><div><label>High ×</label><input data-off="${esc(s.id)}" data-k="hr" type="number" inputmode="decimal" step="0.01" value="${s.tide.hr}"></div><div><label>Low ×</label><input data-off="${esc(s.id)}" data-k="lr" type="number" inputmode="decimal" step="0.01" value="${s.tide.lr}"></div></div>
    ${s.custom ? `<button class="btn sm danger" style="margin-top:8px" data-rmspot="${esc(s.id)}">Remove spot</button>` : ''}</div>`).join('')}
