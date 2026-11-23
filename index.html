@@ -2170,6 +2170,12 @@ document.addEventListener('change', e => {
 // Deep links: #forecast, #marine, #species, #regulations, #log, #fishid, #settings
 function applyHash() {
   const h = (location.hash || '').slice(1).toLowerCase();
+  const bite = h.match(/^bite=([a-z0-9_-]+)$/); // e.g. #bite=redfish, used by links from Fly Bench
+  if (bite && SPMAP[bite[1]]) {
+    const id = bite[1]; state.spId = id; state.tab = 'forecast';
+    if (!eligible(spot()).find(s => s.id === id)) { const sp = spots().find(x => SPMAP[id].waters.includes(x.water)); if (sp) state.spotId = sp.id; }
+    history.replaceState(null, '', location.pathname + location.search); render(); window.scrollTo(0, 0); return;
+  }
   const map = { forecast: 'forecast', marine: 'forecast', boating: 'forecast', species: 'species', regulations: 'species', rules: 'species', log: 'log', catchlog: 'log', fishid: 'log', settings: 'settings' };
   if (!map[h]) return;
   state.tab = map[h]; render();
@@ -2259,7 +2265,7 @@ function flyBench(spId, compact) {
   const note = !Cloud.user ? 'Sign in with your Fly Tying Recipes account to see your own recipes and what you can tie from your stock.'
     : !(FLYDATA.inv && FLYDATA.inv.length) ? 'Add your materials in Fly Tying Recipes to see which of these you can tie right now.' : '✓ = you have every listed material; “need” = items missing from your inventory.';
   return head + fl.map(f => `<div class="flyitem" data-flyopen="${f.id}"><b>${esc(f.name)}</b>${f.author_id && f.author_id === FLYDATA.uid ? ' <span class="tag">yours</span>' : ''}${flyMark(f)}<div class="small muted">${esc([f.fly_type, f.hook_sizes && 'hook ' + f.hook_sizes, f.difficulty].filter(Boolean).join(' · '))}</div></div>`).join('') +
-    `<div class="note">${note} <a href="${FLY_APP}" target="_blank" rel="noopener">Open Fly Tying Recipes</a></div>`;
+    `<div class="note">${note} <a href="${FLY_APP}/#fish=${encodeURIComponent(spId)}" target="_blank" rel="noopener">See every fly for this fish in Fly Bench</a></div>`;
 }
 function openFly(id) {
   const f = (FLYDATA.rows || []).map(r => r.flies).find(x => x && String(x.id) === String(id)); if (!f) return;
@@ -2268,11 +2274,11 @@ function openFly(id) {
   const yt = f.youtube_url && /^https:\/\/(www\.)?(youtube\.com|youtu\.be)\//.test(f.youtube_url) ? f.youtube_url : null;
   const photo = f.photo_url && /^https:\/\//.test(f.photo_url) ? f.photo_url : null;
   $('#sheet').innerHTML = `<div class="in"><div class="hrow"><h2 style="flex:1;margin:0">${esc(f.name)}</h2><button class="btn sm ghost" data-close="1">Close</button></div>
-   ${photo ? `<img src="${esc(photo)}" alt="" style="width:100%;border-radius:12px;margin-top:10px">${f.photo_credit ? `<div class="small muted">Photo: ${esc(f.photo_credit)}</div>` : ''}` : ''}
+   ${photo ? `<img src="${esc(photo)}" alt="" style="width:100%;border-radius:12px;margin-top:10px">${f.photo_credit ? `<div class="small muted">${/^Illustration/i.test(f.photo_credit) ? 'Illustration by Fly Bench' : 'Photo: ' + esc(f.photo_credit)}</div>` : ''}` : ''}
    <div class="small muted" style="margin-top:8px">${esc([f.fly_type, f.hook_sizes && 'hook ' + f.hook_sizes, f.difficulty].filter(Boolean).join(' · '))}</div>
    <h3>Materials</h3><ul class="ls">${mats.map(m => `<li>${need ? (needIds.has(m.material_id) ? '<span class="need">✗</span> ' : m.material_id ? '<span class="ok">✓</span> ' : '') : ''}${m.part ? `<b>${esc(m.part)}:</b> ` : ''}${esc(m.material_text || '')}</li>`).join('')}</ul>
    ${f.fishing_tips ? `<h3>Fishing it</h3><div class="small">${esc(f.fishing_tips)}</div>` : ''}
-   <div class="row" style="margin-top:12px">${yt ? `<a class="btn ghost" href="${esc(yt)}" target="_blank" rel="noopener">▶ Tying video</a>` : ''}<a class="btn" href="${FLY_APP}" target="_blank" rel="noopener">Open in Fly Tying Recipes</a></div></div>`;
+   <div class="row" style="margin-top:12px">${yt ? `<a class="btn ghost" href="${esc(yt)}" target="_blank" rel="noopener">▶ Tying video</a>` : ''}<a class="btn" href="${FLY_APP}/#tie=${encodeURIComponent(f.id)}" target="_blank" rel="noopener">Tie it step by step in Fly Bench</a></div></div>`;
   $('#sheet').classList.add('on');
 }
 
