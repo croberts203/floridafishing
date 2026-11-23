@@ -68,6 +68,7 @@ function viewMap() {
     <label class="chk"><input type="checkbox" data-maplayer="spots"${MAP.show.spots ? ' checked' : ''}> Spots</label>
     <label class="chk"><input type="checkbox" data-maplayer="catches"${MAP.show.catches ? ' checked' : ''}> Catches</label>
     <label class="chk"><input type="checkbox" data-maplayer="heat"${MAP.show.heat ? ' checked' : ''}> Hot spots</label>
+    <label class="chk"><input type="checkbox" data-maplayer="ramps"${MAP.show.ramps ? ' checked' : ''}> Boat ramps</label>
     <select id="mapSp"><option value="all">All species</option>${sps.map(id => `<option value="${id}"${MAP.sp === id ? ' selected' : ''}>${esc(SPMAP[id].name)}</option>`).join('')}</select></div>
    <div id="mapSlot">${MAP.failed ? '<div class="small muted" style="padding:20px">The map couldn’t load — check your connection.</div>' : MAP.loaded ? '' : '<div class="small muted" style="padding:20px">Loading map…</div>'}</div>
    <div class="note">Tap a spot for today’s bite score; tap a catch for details. Long-press (or right-click) anywhere to add a spot there. Imagery: USGS The National Map.</div></div>`;
@@ -83,6 +84,7 @@ function mountMap() {
     const usgs = L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: 'USGS The National Map' });
     const topo = L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: 'USGS The National Map' });
     usgs.addTo(m); L.control.layers({ 'Satellite': usgs, 'Topo': topo }, null, { position: 'topright' }).addTo(m);
+    m.on('moveend', () => { if (MAP.show.ramps) drawRamps(); });
     m.on('contextmenu', e => { openAddSpot(); setTimeout(() => draftSpot(e.latlng.lat, e.latlng.lng, 'My spot'), 50); });
     m.on('popupopen', e => { const b = e.popup.getElement().querySelector('[data-gospot]'); if (b) b.addEventListener('click', () => { state.tab = 'forecast'; state.spotId = b.dataset.gospot; state.settings.spotId = b.dataset.gospot; state.day0 = midnight(Date.now()); Store.saveSettings(); render(); window.scrollTo(0, 0); }); });
   } else slot.appendChild(MAP.el);
@@ -128,6 +130,7 @@ function drawMap() {
     Object.values(cell).forEach(o => L.circle([o.lat / o.n, o.lng / o.n], { radius: 120 + 380 * Math.sqrt(o.n / max), stroke: false, fillColor: '#ff6a3d', fillOpacity: .25 + .45 * o.n / max }).bindTooltip(`${o.n} fish`).addTo(g));
     MAP.layers.heat = g.addTo(m);
   }
+  if (MAP.show.ramps) setTimeout(drawRamps, 0);
   if (!MAP.fitDone) {
     MAP.fitDone = true;
     const sp = spot();

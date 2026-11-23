@@ -163,7 +163,17 @@ viewMarine = function () {
 };
 
 // ---- Rules for whichever state the spot is in ----
-function stateRegsBody(st, sp) {
+function stateRegsBody(st, sp, id) {
+  const se = SE_REGS[st], isSalt = sp && !['fresh', 'greatlakes'].includes(sp.water);
+  if (se && isSalt && id && se.sp[id]) {
+    const r = se.sp[id], until = seClosed(r, state.day0 + 43200e3, sp);
+    return `<div class="kvrows" style="margin-top:6px">
+      <div><span class="muted small">Size</span><b>${esc(r.size)}</b></div><div><span class="muted small">Bag</span><b>${esc(r.bag)}</b></div><div><span class="muted small">Season</span><b>${esc(r.season)}</b></div></div>
+      ${until ? `<div class="alert" style="margin-top:8px">Closed now — reopens after ${esc(until)}.</div>` : ''}
+      ${r.notes ? `<div class="small" style="margin-top:6px">${esc(r.notes)}</div>` : ''}${r.verify ? '<div class="small" style="margin-top:4px;color:var(--accent2)">Changes by proclamation — confirm before keeping fish.</div>' : ''}
+      <div style="margin-top:8px"><a class="btn sm ghost" href="${esc(se.url)}" target="_blank" rel="noopener">${esc(se.agency)} ↗</a></div>
+      <div class="note">${esc(se.note)} State waters; federal rules can differ offshore. Checked ${esc(SE_REGS_CHECKED)} — rules change, so confirm before keeping fish.</div>`;
+  }
   const r = STATE_REGS[st]; const salt = sp && !['fresh', 'greatlakes'].includes(sp.water);
   const url = r ? (salt && r[2] ? r[2] : r[1]) : 'https://www.fisheries.noaa.gov/state-recreational-fishing-websites';
   return `<div class="small" style="margin-top:6px">Size, bag and season limits for this spot are set by <b>${esc(r ? r[0] : st)}</b>${sp && sp.water === 'offshore' ? ' (and by federal rules in federal waters)' : ''}. They change often, so check the official source before keeping fish.</div>
@@ -332,7 +342,7 @@ async function runPhotoLog(file) {
   for (let i = 0; i < 25 && where.lat != null && !natPoint(where); i++) await new Promise(r => setTimeout(r, 200)); // state lookup
   const stCode = where.lat != null ? natState(where) : null;
   if (stCode) lines.push(`📜 Rules: <b>${esc((STATE_REGS[stCode] || [stCode])[0])}</b>`);
-  const rulesHtml = d.species && d.species !== 'other' ? (() => { const st = stCode === 'FL' ? regStatus(d.species, d.ts) : { open: true }; return `<div class="card" style="margin:12px 0 0"><div class="hrow"><b style="flex:1">Local rules: ${esc(SPMAP[d.species].name)}</b>${stCode === 'FL' ? (st.open ? '<span class="score s4" style="font-size:12px">OPEN</span>' : '<span class="score" style="background:var(--bad);color:#fff;font-size:12px">CLOSED</span>') : ''}</div>${!st.open ? `<div class="alert" style="margin-top:8px">Harvest is closed until ${esc(st.until)} — release it.</div>` : ''}${stCode && stCode !== 'FL' ? stateRegsBody(stCode, spx) : stCode === 'FL' ? regsBody(d.species, spx) : '<div class="small muted">Couldn’t work out which state you’re in — check your state’s rules.</div>'}${d.length && REGS[d.species] && stCode === 'FL' ? `<div class="note">Your fish: about ${esc(d.length)}" — compare with the size limit above and measure before keeping.</div>` : ''}</div>`; })() : (d.name ? `<div class="note">Check ${esc((STATE_REGS[stCode] || ['your state'])[0])} rules for ${esc(d.name)} before keeping it.</div>` : '');
+  const rulesHtml = d.species && d.species !== 'other' ? (() => { const st = (stCode === 'FL' || SE_REGS[stCode]) ? regStatus(d.species, d.ts, where) : { open: true }; return `<div class="card" style="margin:12px 0 0"><div class="hrow"><b style="flex:1">Local rules: ${esc(SPMAP[d.species].name)}</b>${(stCode === 'FL' || SE_REGS[stCode]) ? (st.open ? '<span class="score s4" style="font-size:12px">OPEN</span>' : '<span class="score" style="background:var(--bad);color:#fff;font-size:12px">CLOSED</span>') : ''}</div>${!st.open ? `<div class="alert" style="margin-top:8px">Harvest is closed until ${esc(st.until)} — release it.</div>` : ''}${stCode && stCode !== 'FL' ? stateRegsBody(stCode, { ...spx, ...(d.lat != null ? { lat: d.lat, lng: d.lng } : {}) }, d.species) : stCode === 'FL' ? regsBody(d.species, spx) : '<div class="small muted">Couldn’t work out which state you’re in — check your state’s rules.</div>'}${d.length && REGS[d.species] && stCode === 'FL' ? `<div class="note">Your fish: about ${esc(d.length)}" — compare with the size limit above and measure before keeping.</div>` : ''}</div>`; })() : (d.name ? `<div class="note">Check ${esc((STATE_REGS[stCode] || ['your state'])[0])} rules for ${esc(d.name)} before keeping it.</div>` : '');
   show(rulesHtml + `<div style="margin-top:12px"><button class="btn" data-photocontinue="1">Continue to log this catch</button></div><div class="note">Tide, solunar, moon and weather for that time are recorded automatically.</div>`);
 }
 document.addEventListener('change', e => { if (e.target.id === 'plFile' && e.target.files && e.target.files[0]) runPhotoLog(e.target.files[0]); });

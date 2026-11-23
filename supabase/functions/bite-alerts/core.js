@@ -202,6 +202,8 @@ if (c.clarity === 'muddy') w -= 0.25 * sp.sight + (fly ? 0.1 : 0);
 if (c.sky === 'overcast') w += 0.05 * (1 - sp.sight) - 0.1 * sp.sight * (fly ? 1 : .5);
 if (c.sky === 'sun') w += 0.05 * sp.sight;
 if (c.sky === 'rain') w -= 0.03;
+if (c.flowF) w *= c.flowF; // river rising/falling (website)
+if (c.windF) w *= c.windF; // wind onto or off the shore (website)
 return clamp(w, 0.4, 1.25);
 }
 function tempFactor(sp, wt) {

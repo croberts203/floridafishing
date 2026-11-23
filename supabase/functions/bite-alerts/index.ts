@@ -83,8 +83,16 @@ function marineAlerts(lat: number, lng: number) {
 const fmtT = (t: number, off: number) => { const d = new Date(t + off * 1000); let h = d.getUTCHours(); const m = d.getUTCMinutes(), ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return `${h}:${String(m).padStart(2, "0")} ${ap}`; };
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+// the user's own catch log, so alerts follow when and how they actually catch fish (same tuning the app uses)
+const CATCHES: Record<string, any[]> = {};
+async function userCatches(uid: string) {
+  if (CATCHES[uid]) return CATCHES[uid];
+  const { data } = await db.from("forecast_catches").select("data").eq("user_id", uid).order("ts", { ascending: false }).limit(1000);
+  return CATCHES[uid] = (data || []).map((r: any) => r.data || {}).filter((c: any) => c.species && c.cond).map((c: any) => ({ species: c.species, count: c.count, cond: c.cond, spot: c.spot }));
+}
 async function runRule(rule: any) {
   const sp = rule.spot, out: any[] = [];
+  const mine = await userCatches(rule.user_id).catch(() => []);
   if (!sp || sp.lat == null) return out;
   const wx = await weather(sp.lat, sp.lng); if (!wx) return out;
   if (sp.station?.id) await tides(sp.station.id);
@@ -100,11 +108,11 @@ async function runRule(rule: any) {
     const day = Engine.buildDay(t0, spot, { lat: sp.lat, lng: sp.lng });
     const c = cond(wx, sp.water, key, prev, t0);
     const pool = rule.species && rule.species !== "auto" ? [SPMAP[rule.species]].filter(Boolean) : SPECIES.filter((s: any) => speciesFits(s, spot));
-    const res = pool.map((s: any) => Engine.scoreSpecies(day, s, c, { fly: !!rule.fly, region: regionOf(sp.lat, sp.lng, sp.water) })).sort((a: any, b: any) => b.day - a.day);
+    const res = pool.map((s: any) => Engine.scoreSpecies(day, s, c, { fly: !!rule.fly, region: regionOf(sp.lat, sp.lng, sp.water), usePatterns: rule.learn !== false, catches: mine })).sort((a: any, b: any) => b.day - a.day);
     const best = res[0]; if (!best || best.day < rule.min_score) continue;
     const w = Engine.windows(best, day, 1)[0];
     const when = k === 0 ? "today" : k === 1 ? "tomorrow" : DOW[dow];
-    out.push({ kind: "bite", score: best.day, key: "bite:" + key, title: `🎣 ${best.sp.name} ${Math.round(best.day)} ${when} — ${sp.name}`, body: `Best ${fmtT(w ? w.a : best.bestStart, wx.off)}–${fmtT(w ? w.b : best.bestEnd, wx.off)}${w && w.why?.length ? " · " + w.why.slice(0, 2).join(" · ") : ""}`, url: `./#forecast`, spot: sp.id, date: key });
+    out.push({ kind: "bite", score: best.day, key: "bite:" + key, title: `🎣 ${best.sp.name} ${Math.round(best.day)} ${when} — ${sp.name}`, body: `Best ${fmtT(w ? w.a : best.bestStart, wx.off)}–${fmtT(w ? w.b : best.bestEnd, wx.off)}${w && w.why?.length ? " · " + w.why.slice(0, 2).join(" · ") : ""}${best.pat ? ` · tuned by your ${best.pat.n} catches` : ""}`, url: `./#forecast`, spot: sp.id, date: key });
   }
   // one bite alert at a time: the best upcoming day, and not within 20 hours of the last one
   const bites = out.filter(x => x.kind === "bite").sort((a, b) => b.score - a.score);

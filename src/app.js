@@ -44,6 +44,12 @@ function cond(t0 = state.day0) {
       if ((raw.wind === undefined || raw.wind === '' || raw.wind === null) && a.wind != null && windSrc !== 'nws') { out.wind = a.wind; out.windSrc = 'auto'; }
       if ((raw.wtemp === undefined || raw.wtemp === '') && a.wtemp != null) { out.wtemp = a.wtemp; out.auto.wtemp = a.wsrc; }
     }
+    if (a && a.windDir != null) out.windDir = a.windDir;
+    const fl = typeof flowInfo === 'function' && t0 === midnight(Date.now()) ? flowInfo(sp) : null;
+    if (!raw.clarity && typeof estClarity === 'function') { const e = estClarity(sp, a, fl); if (e) { out.clarity = e.v; out.auto.clarity = e.why; } }
+    if (fl) { out.flowF = fl.factor; out.flowTxt = fl.text; }
+    const we = typeof windEffect === 'function' ? windEffect(sp, out) : null;
+    if (we) { out.windF = we.factor; out.windTxt = we.text; }
     const lt = lakeTemp(sp, t0);
     if ((raw.wtemp === undefined || raw.wtemp === '') && lt) { out.wtemp = lt.v; out.auto.wtemp = 'you entered ' + lt.when; }
     else if ((raw.wtemp === undefined || raw.wtemp === '') && t0 === midnight(Date.now())) { const lw = liveWaterTemp(sp); if (lw) { out.wtemp = lw.v; out.auto.wtemp = 'live: ' + lw.src; } }
@@ -204,7 +210,7 @@ function viewForecast() {
   if (!res.length) return topControls() + `<div class="card">No species profiles for this water type.</div>`;
   const r = chosen(res), [rt] = Engine.rating(r.day);
   const wins = Engine.windows(r, day);
-  let html = (WEB ? welcomeCard() : '') + topControls();
+  let html = (WEB ? offlineBanner() + welcomeCard() : '') + topControls();
   // alerts
   const alerts = [];
   const tailR = res.find(x => x.sp.id === 'redfish' && x.tail);
@@ -221,7 +227,9 @@ function viewForecast() {
   html += `<div class="card"><div class="banner">${Art.scene(r.sp.id, sp.water, { night: false })}<div class="cap">${esc(WATER_LABEL[sp.water] || '')}</div></div><div class="hrow"><div style="flex:1"><div class="muted small">${fmtD(state.day0)} · ${esc(sp.name)}</div><h2 style="margin:2px 0 0">${esc(r.sp.name)}${state.fly ? ' on fly' : ''}</h2></div>${WEB ? '<button class="bell" data-albell="1" title="Set a bite alert" aria-label="Set a bite alert">🔔</button>' : ''}${badge(r.day)}</div>
   <div class="small muted" style="margin-top:4px">${rt} · season ${Math.round(r.season * 10)}/10 · water ~${Math.round(r.wt)}°F${r.pat ? ` · tuned by your ${r.pat.n} logged catches` : ''}</div>
   ${WEB && state.fly ? flyBench(r.sp.id, true) : ''}
+  ${WEB && (c.flowTxt || c.windTxt) ? `<div class="small" style="margin-top:6px">${c.flowTxt ? '🌊 ' + esc(c.flowTxt) + '<br>' : ''}${c.windTxt ? '💨 ' + esc(c.windTxt) : ''}</div>` : ''}
   ${wins.map(w => `<div class="win"><b>${fmtT(w.a)} – ${fmtT(w.b)}</b> ${badge(w.peak)}<div class="small muted">${esc(w.why.join(' · ') || 'best overlap of factors')}</div></div>`).join('')}
+  ${WEB ? colorCard(r, sp, c) : ''}
   <div class="chartwrap" id="chartwrap">${chartSVG(day, r)}</div><div class="readout" id="readout">Tap or drag on the chart for details.</div>
   <div class="legend"><span><i style="background:var(--accent)"></i>Bite score</span>${day.ext.length ? '<span><i style="background:var(--tide);opacity:.5"></i>Tide</span>' : ''}<span><i style="background:var(--accent2);opacity:.35"></i>Major solunar</span><span><i style="background:var(--accent2);opacity:.15"></i>Minor</span><span><i style="background:#000;opacity:.35"></i>Night</span></div></div>`;
   if (WEB) html += viewNow();
@@ -293,13 +301,13 @@ function viewPickSpot() {
 
 function regsCard(spc, sp) {
   const r = REGS[spc.id];
-  if (WEB) { const st = natState(sp || spot()); if (st && st !== 'FL') return `<div class="card"><h2 style="margin:0">Rules: ${esc(spc.name)}</h2>${stateRegsBody(st, sp || spot())}</div>`; }
+  if (WEB) { const st = natState(sp || spot()); if (st && st !== 'FL') return `<div class="card"><h2 style="margin:0">Rules: ${esc(spc.name)}</h2>${stateRegsBody(st, sp || spot(), spc.id)}</div>`; }
   if (!r) return '';
   const st = regStatus(spc.id, state.day0 + 43200e3);
   return `<div class="card"><div class="hrow"><h2 style="flex:1;margin:0">Rules: ${esc(spc.name)}</h2>${st.open ? '<span class="score s4" style="font-size:12px">OPEN</span>' : '<span class="score" style="background:var(--bad);color:#fff;font-size:12px">CLOSED</span>'}</div>${regsBody(spc.id, sp)}</div>`;
 }
 function regsBody(id, sp) {
-  if (WEB) { const st = natState(sp || spot()); if (st && st !== 'FL') return stateRegsBody(st, sp || spot()); }
+  if (WEB) { const st = natState(sp || spot()); if (st && st !== 'FL') return stateRegsBody(st, sp || spot(), id); }
   const r = REGS[id]; if (!r) return '<div class="small muted">No regulation summary for this species — check MyFWC.com.</div>';
   return `<div class="grid2" style="margin-top:8px"><div class="kv"><b style="font-size:14px">${esc(r.size)}</b><span>Size</span></div><div class="kv"><b style="font-size:14px">${esc(r.bag)}</b><span>Bag limit</span></div></div>
    <div class="small" style="margin-top:6px"><b>Season:</b> ${esc(r.season)}${r.notes ? ' · ' + esc(r.notes) : ''}</div>
@@ -312,7 +320,8 @@ function viewConditions(c) {
   return `<div class="card"><h2>Conditions for ${fmtD(state.day0)}</h2><div class="small muted">${WEB ? 'Wind fills in from the NWS marine forecast. Enter the barometer trend, sky, clarity and water temp from your weather app' : 'Live weather can’t load inside this page, so enter what the forecast says'} — the scores update right away.</div>
    <div class="row"><div><label>Barometer</label>${opt('cPress', c.pressure, [['ff', 'Falling fast (front coming)'], ['f', 'Falling'], ['s', 'Steady'], ['r', 'Rising'], ['pf', 'Rising, post-front bluebird']])}</div></div>
    <div class="row"><div><label>Wind (mph)${c.windSrc === 'nws' ? ' · from NWS' : c.windSrc === 'auto' ? ' · forecast' : ''}</label><input id="cWind" type="number" inputmode="numeric" min="0" max="60" value="${c.windSrc === 'manual' ? esc(c.wind) : ''}" placeholder="${c.windSrc === 'nws' ? esc(c.wind) + ' (NWS forecast)' : c.windSrc === 'auto' ? esc(c.wind) + ' (forecast)' : '10'}"></div><div><label>Water temp °F${c.auto && c.auto.wtemp ? ' · auto' : ''}</label><input id="cTemp" type="number" inputmode="numeric" placeholder="${c.auto && c.auto.wtemp ? esc(c.wtemp) + ' (' + esc(c.auto.wtemp) + ')' : '~' + WATER_TEMP[salt ? 'salt' : 'fresh'][month] + ' typical'}" value="${c.auto && c.auto.wtemp ? '' : esc(c.wtemp)}"></div></div>
-   <div class="row"><div><label>Sky</label>${opt('cSky', c.sky, [['sun', 'Sunny'], ['partly', 'Partly cloudy'], ['overcast', 'Overcast'], ['rain', 'Rain / storms']])}</div><div><label>Water clarity</label>${opt('cClar', c.clarity, [['clear', 'Clear'], ['stained', 'Stained'], ['muddy', 'Muddy']])}</div></div>
+   <div class="row"><div><label>Sky</label>${opt('cSky', c.sky, [['sun', 'Sunny'], ['partly', 'Partly cloudy'], ['overcast', 'Overcast'], ['rain', 'Rain / storms']])}</div><div><label>Water clarity</label>${opt('cClar', WEB && c.auto && c.auto.clarity ? '' : c.clarity, [...(WEB ? [['', 'Auto' + (c.auto && c.auto.clarity ? ' (' + c.clarity + ')' : '')]] : []), ['clear', 'Clear'], ['stained', 'Stained'], ['muddy', 'Muddy']])}${WEB && c.auto && c.auto.clarity ? `<div class="small muted">${esc(c.auto.clarity)}</div>` : ''}}</div></div>
+   ${WEB ? facingRow(c) : ''}
    <h3>Check live</h3>${WEB ? webLiveLinks() : `<div class="small">
    <a href="https://www.weather.gov/jax/" target="_blank" rel="noopener">NWS Jacksonville forecast &amp; marine</a> ·
    <a href="https://www.ndbc.noaa.gov/station_page.php?station=mypf1" target="_blank" rel="noopener">Mayport gauge (pressure, water temp)</a> ·
@@ -410,8 +419,8 @@ function viewLog() {
   html += `<div class="card"><h2>Your numbers</h2><div class="grid2"><div class="kv"><b>${state.catches.reduce((a, c) => a + (+c.count || 1), 0)}</b><span>Fish logged</span></div><div class="kv"><b>${Object.keys(bySp).length}</b><span>Species</span></div></div>
    <div style="margin-top:8px"><button class="chip ${state.logFilter === 'all' ? 'on' : ''}" data-lf="all">All</button>${Object.entries(bySp).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<button class="chip ${state.logFilter === k ? 'on' : ''}" data-lf="${esc(k)}">${esc(SPMAP[k] ? SPMAP[k].name : k)} · ${n}</button>`).join('')}</div>
    ${state.logFilter !== 'all' ? patternView(state.logFilter) : '<div class="note">Pick a species to see when and how you catch it. With 5+ catches of a species, its forecast is tuned to your own pattern (turn off in Settings).</div>'}
-   ${state.catches.length ? '<div style="margin-top:10px"><button class="btn sm ghost" data-csv="1">Copy log as CSV</button></div>' : ''}</div>`;
-  if (WEB) html += viewForecastCheck();
+   ${state.catches.length ? `<div style="margin-top:10px"><button class="btn sm ghost" data-csv="1">Copy log as CSV</button>${WEB ? ' <button class="btn sm ghost" data-trip="1">📝 Trip report</button>' : ''}</div>` : ''}</div>`;
+  if (WEB) html += crewCard() + viewForecastCheck();
   html += `<div class="card">${cs.length ? cs.map(c => `<div class="catch" data-edit="${esc(c.id)}">${WEB ? photoTag(c) : ''}<div class="ic${Art.has(c.species) ? ' art' : ''}">${Art.has(c.species) ? Art.fish(c.species, { w: 64 }) : (c.method === 'fly' ? 'F' : '•')}${c.count > 1 ? `<span class="cnt">×${c.count}</span>` : ''}</div><div class="tx"><b>${esc(SPMAP[c.species] ? SPMAP[c.species].name : c.species)}</b>${c.length ? ` · ${esc(c.length)}"` : ''}${c.weight ? ` · ${esc(c.weight)} lb` : ''}
      <div class="small muted">${fmtD(c.ts)} ${fmtT(c.ts)} · ${esc((spots().find(s => s.id === c.spot) || {}).name || c.spotName || '')}${c.lat != null ? ` · <a href="https://maps.apple.com/?ll=${c.lat},${c.lng}&q=Catch" target="_blank" rel="noopener">📍 map</a>` : ''}</div>
      <div class="small">${[c.bait, c.method === 'fly' ? 'on fly' : '', c.kept ? 'kept' : 'released'].filter(Boolean).map(esc).join(' · ')}</div>
@@ -446,6 +455,7 @@ function openCatch(c, fresh) {
    ${WEB ? photoField(c) : ''}
    <label>Notes</label><textarea id="fNotes">${esc(c.notes || '')}</textarea>
    <div class="note" id="fCond"></div>
+   ${WEB && !state.catches.find(x => x.id === c.id) ? crewShareRow() : ''}
    <div style="margin-top:12px"><button class="btn" data-savecatch="1">Save catch</button></div>
    ${isNew ? '' : '<div style="margin-top:10px" id="delWrap"><button class="btn danger" data-del="1">Delete this catch</button></div>'}</div>`;
   $('#sheet')._c = { ...c }; $('#sheet')._photoFile = c._photoFile || null; delete $('#sheet')._c._photoFile; $('#sheet').classList.add('on'); updCond();
@@ -463,8 +473,10 @@ async function saveCatchForm() {
   const btn = document.querySelector('[data-savecatch]'); btn.disabled = true; btn.textContent = 'Saving…';
   if (c.photo) out.photo = c.photo; if (c.photoThumb) out.photoThumb = c.photoThumb;
   if (WEB && $('#sheet')._photoFile) { try { await attachPhoto(out, $('#sheet')._photoFile); } catch (e) { toast('Couldn’t save the photo'); } }
+  const shareCrew = WEB && $('#cfCrew') && $('#cfCrew').checked, shareSpot = WEB && $('#cfCrewSpot') && $('#cfCrewSpot').checked;
   const ok = await Store.saveCatch(out);
   btn.disabled = false; btn.textContent = 'Save catch';
+  if (ok && shareCrew) crewShareCatch(out, shareSpot);
   if (ok) { $('#sheet').classList.remove('on'); toast('Catch saved'); if (!Store.db || Store.localLog) render(); }
 }
 function csv() {
@@ -524,7 +536,7 @@ confidence is 0–1. Only give estimated_length_in when a ruler or measuring boa
 // ===== Settings =====
 function viewSettings() {
   const sps = spots();
-  return `${WEB ? alertsCard() + mySpotsCard() : ''}<div class="card"><h2>Tide offsets by spot${WEB ? ' (Jacksonville examples)' : ''}</h2><div class="small muted">Times shift the Mayport prediction (minutes, + is later); ratios scale heights. Presets come from NOAA subordinate stations. Adjust any spot to match what you see on the water.</div>
+  return `${WEB ? alertsCard() + mySpotsCard() + offlineCard() : ''}<div class="card"><h2>Tide offsets by spot${WEB ? ' (Jacksonville examples)' : ''}</h2><div class="small muted">Times shift the Mayport prediction (minutes, + is later); ratios scale heights. Presets come from NOAA subordinate stations. Adjust any spot to match what you see on the water.</div>
   ${sps.filter(s => s.tide).map(s => `<div class="spotrow"><b>${esc(s.name)}</b> <span class="small muted">${esc(s.src || 'custom')}</span>
    <div class="g4" style="margin-top:6px"><div><label>High +min</label><input data-off="${esc(s.id)}" data-k="hi" type="number" inputmode="numeric" value="${s.tide.hi}"></div><div><label>Low +min</label><input data-off="${esc(s.id)}" data-k="lo" type="number" inputmode="numeric" value="${s.tide.lo}"></div><div><label>High ×</label><input data-off="${esc(s.id)}" data-k="hr" type="number" inputmode="decimal" step="0.01" value="${s.tide.hr}"></div><div><label>Low ×</label><input data-off="${esc(s.id)}" data-k="lr" type="number" inputmode="decimal" step="0.01" value="${s.tide.lr}"></div></div>
    ${s.custom ? `<button class="btn sm danger" style="margin-top:8px" data-rmspot="${esc(s.id)}">Remove spot</button>` : ''}</div>`).join('')}
@@ -573,9 +585,9 @@ document.addEventListener('change', e => {
   if (id === 'spotSel') { state.spotId = e.target.value; state.settings.spotId = state.spotId; if (state.spId !== 'auto' && !eligible(spot()).find(s => s.id === state.spId)) state.spId = 'auto'; Store.saveSettings(); render(); }
   else if (id === 'spSel') { state.spId = e.target.value; render(); }
   else if (id === 'datePick') { const [y, m, dd] = e.target.value.split('-').map(Number); if (y) { state.day0 = new Date(y, m - 1, dd).getTime(); render(); } }
-  else if (['cPress', 'cWind', 'cTemp', 'cSky', 'cClar'].includes(id)) {
+  else if (['cPress', 'cWind', 'cTemp', 'cSky', 'cClar', 'cFace'].includes(id)) {
     const k = dkey(state.day0), c = { ...(state.settings.cond[dkey(state.day0)] || {}) };
-    c.pressure = $('#cPress').value; c.wind = $('#cWind').value === '' ? '' : +$('#cWind').value; c.wtemp = $('#cTemp').value; c.sky = $('#cSky').value; c.clarity = $('#cClar').value;
+    c.pressure = $('#cPress').value; c.wind = $('#cWind').value === '' ? '' : +$('#cWind').value; c.wtemp = $('#cTemp').value; c.sky = $('#cSky').value; c.clarity = $('#cClar').value; if (WEB && $('#cFace')) { const f = $('#cFace').value, sid = spot().id; state.settings.facing = state.settings.facing || {}; if (f) state.settings.facing[sid] = f; else delete state.settings.facing[sid]; }
     state.settings.cond = { ...state.settings.cond, [k]: c };
     // keep only the last ~60 days of condition entries
     const keys = Object.keys(state.settings.cond).sort(); while (keys.length > 60) delete state.settings.cond[keys.shift()];
@@ -596,6 +608,8 @@ document.addEventListener('change', e => {
 // Deep links: #forecast, #marine, #species, #regulations, #log, #fishid, #settings
 function applyHash() {
   const h = (location.hash || '').slice(1).toLowerCase();
+  const inv = WEB && h.match(/^crew=([a-z0-9]{4,8})$/); // invite link from a crew member
+  if (inv) { state.tab = 'log'; state.pendingCrew = inv[1].toUpperCase(); history.replaceState(null, '', location.pathname + location.search); render(); setTimeout(() => { const el = $('#crCode'); if (el) { el.value = state.pendingCrew; el.scrollIntoView({ block: 'center' }); } }, 400); return; }
   const bite = h.match(/^bite=([a-z0-9_-]+)$/); // e.g. #bite=redfish, used by links from Fly Bench
   if (bite && SPMAP[bite[1]]) {
     const id = bite[1]; state.spId = id; state.tab = 'forecast';

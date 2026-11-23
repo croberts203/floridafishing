@@ -111,6 +111,21 @@ async function usgsNow(lat: number, lng: number) {
         const m = await (await fetch(`https://api.waterdata.usgs.gov/ogcapi/${ver}/collections/monitoring-locations/items/${encodeURIComponent(best.id)}?f=json`)).json();
         best.name = m.properties?.monitoring_location_name || best.id;
       } catch { best.name = best.id; }
+      if (best.flowCfs) { // flow over the past week and the last 24 h, for the rising/falling trend
+        try {
+          const enc = encodeURIComponent(best.id);
+          const [dj, cj] = await Promise.all([
+            fetch(`https://api.waterdata.usgs.gov/ogcapi/${ver}/collections/daily/items?f=json&monitoring_location_id=${enc}&parameter_code=00060&statistic_id=00003&time=P8D&limit=20`, { signal: AbortSignal.timeout(12000) }).then((r) => r.json()),
+            fetch(`https://api.waterdata.usgs.gov/ogcapi/${ver}/collections/continuous/items?f=json&monitoring_location_id=${enc}&parameter_code=00060&time=PT27H&limit=200`, { signal: AbortSignal.timeout(12000) }).then((r) => r.json()).catch(() => null),
+          ]);
+          const daily = (dj.features || []).map((f: any) => +f.properties.value).filter((v: number) => isFinite(v) && v >= 0).sort((a: number, b: number) => a - b);
+          const fw: any = {};
+          if (daily.length >= 3) fw.median = daily[Math.floor(daily.length / 2)];
+          const pts = ((cj && cj.features) || []).map((f: any) => [Date.parse(f.properties.time), +f.properties.value]).filter((p: number[]) => isFinite(p[1])).sort((a: number[], b: number[]) => a[0] - b[0]);
+          if (pts.length > 4) { const old = pts.find((p: number[]) => p[0] >= Date.now() - 25 * 36e5) || pts[0], now = pts[pts.length - 1]; if (old[1] > 0) fw.change24 = Math.round((now[1] / old[1] - 1) * 1000) / 1000; }
+          if (fw.median) best.flowWeek = fw;
+        } catch { /* trend is optional */ }
+      }
       best.km = Math.round(best.km * 10) / 10;
       return best;
     } catch { /* try next version */ }

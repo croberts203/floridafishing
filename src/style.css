@@ -120,3 +120,15 @@ a.btn{display:inline-block;text-align:center;text-decoration:none;box-sizing:bor
 .photofield{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.photofield img{width:96px;height:72px;object-fit:cover;border-radius:8px}.filebtn{cursor:pointer;display:inline-block}
 nav button{min-width:0}
 .minimap{height:240px;border-radius:12px;overflow:hidden;margin-top:6px;background:#0d2230}.dpin{font-size:26px;line-height:1;filter:drop-shadow(0 2px 2px rgba(0,0,0,.6))}
+.kvrows{display:grid;gap:6px}.kvrows>div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding:4px 0}.kvrows b{text-align:right;font-weight:600}
+.colorbox{margin-top:10px;padding:10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--line,rgba(255,255,255,.1))}
+.cchips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.cchip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.07);font-size:13px}
+.cchip i{width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.35);display:inline-block}
+.trtext{white-space:pre-wrap;font:13px/1.45 ui-monospace,Menlo,monospace;background:rgba(255,255,255,.05);padding:10px;border-radius:10px;margin:8px 0;max-height:46vh;overflow:auto}
+.trphotos{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.crpost{display:flex;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.08)}
+.crthumb{width:56px;height:56px;object-fit:cover;border-radius:8px;flex:0 0 auto}
+.code{letter-spacing:2px;font-family:ui-monospace,Menlo,monospace}
+.kvrow{display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-size:14px}
+.rpin{width:24px;height:24px;border-radius:50%;background:#fff;color:#123;display:grid;place-items:center;font-size:13px;box-shadow:0 1px 4px rgba(0,0,0,.4)}

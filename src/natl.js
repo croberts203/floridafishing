@@ -34,7 +34,7 @@ function natWeather(sp) {
   if (c && !NAT.wx[k]) NAT.wx[k] = c;
   if (!c || c.fetched < Date.now() - 3 * 3600e3) once('wx:' + k, async () => {
     const base = `latitude=${sp.lat}&longitude=${sp.lng}&timezone=auto`;
-    const w = await getJSON(`https://api.open-meteo.com/v1/forecast?${base}&hourly=pressure_msl,wind_speed_10m,cloud_cover,precipitation_probability,temperature_2m&wind_speed_unit=mph&temperature_unit=fahrenheit&past_days=7&forecast_days=10`);
+    const w = await getJSON(`https://api.open-meteo.com/v1/forecast?${base}&hourly=pressure_msl,wind_speed_10m,wind_direction_10m,precipitation,cloud_cover,precipitation_probability,temperature_2m&wind_speed_unit=mph&temperature_unit=fahrenheit&past_days=7&forecast_days=10`);
     let sst = null;
     try { const m = await getJSON(`https://marine-api.open-meteo.com/v1/marine?${base}&hourly=sea_surface_temperature&temperature_unit=fahrenheit&past_days=1&forecast_days=8`); sst = m.hourly; } catch (e) { }
     NAT.wx[k] = { h: w.hourly, sst, fetched: Date.now() }; lsSet('ff.wx.' + k, NAT.wx[k]);
@@ -62,7 +62,11 @@ function autoCond(sp, t0) {
     const v = []; H.time.forEach((t, i) => { const d = Date.parse(t); if (d < t0 + 864e5 && d >= t0 - 7 * 864e5 && H.temperature_2m[i] != null) v.push(H.temperature_2m[i]); });
     if (v.length) { wtemp = Math.round(Math.max(34, Math.min(90, avg(v) * 0.9 + 6))); wsrc = 'estimated from air temps'; }
   }
-  return { pressure, wind: wind == null ? null : Math.round(wind), sky, wtemp, wsrc };
+  // rain over the 48 h before mid-morning (muddies inshore water) and the day's average wind direction
+  let rain48 = null, windDir = null;
+  if (H.precipitation) { const end = t0 + 10 * 36e5; let s = 0, n = 0; H.time.forEach((t, i) => { const d = Date.parse(t); if (d <= end && d > end - 48 * 36e5 && H.precipitation[i] != null) { s += H.precipitation[i]; n++; } }); if (n > 12) rain48 = Math.round(s * 10) / 10; }
+  if (H.wind_direction_10m) { let x = 0, y = 0; H.time.forEach((t, i) => { if (t.slice(0, 10) === key) { const hr = +t.slice(11, 13), d = H.wind_direction_10m[i]; if (hr >= 6 && hr <= 18 && d != null) { const w = H.wind_speed_10m[i] || 1; x += w * Math.cos(d * Math.PI / 180); y += w * Math.sin(d * Math.PI / 180); } } }); if (x || y) windDir = Math.round((Math.atan2(y, x) * 180 / Math.PI + 360) % 360); }
+  return { pressure, wind: wind == null ? null : Math.round(wind), sky, wtemp, wsrc, rain48, windDir };
 }
 
 // ---- NWS: office, state, marine zones, coastal forecast and advisories ----

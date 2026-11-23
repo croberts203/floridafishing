@@ -126,6 +126,18 @@ a.btn{display:inline-block;text-align:center;text-decoration:none;box-sizing:bor
 .photofield{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.photofield img{width:96px;height:72px;object-fit:cover;border-radius:8px}.filebtn{cursor:pointer;display:inline-block}
 nav button{min-width:0}
 .minimap{height:240px;border-radius:12px;overflow:hidden;margin-top:6px;background:#0d2230}.dpin{font-size:26px;line-height:1;filter:drop-shadow(0 2px 2px rgba(0,0,0,.6))}
+.kvrows{display:grid;gap:6px}.kvrows>div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding:4px 0}.kvrows b{text-align:right;font-weight:600}
+.colorbox{margin-top:10px;padding:10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--line,rgba(255,255,255,.1))}
+.cchips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.cchip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.07);font-size:13px}
+.cchip i{width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.35);display:inline-block}
+.trtext{white-space:pre-wrap;font:13px/1.45 ui-monospace,Menlo,monospace;background:rgba(255,255,255,.05);padding:10px;border-radius:10px;margin:8px 0;max-height:46vh;overflow:auto}
+.trphotos{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.crpost{display:flex;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.08)}
+.crthumb{width:56px;height:56px;object-fit:cover;border-radius:8px;flex:0 0 auto}
+.code{letter-spacing:2px;font-family:ui-monospace,Menlo,monospace}
+.kvrow{display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-size:14px}
+.rpin{width:24px;height:24px;border-radius:50%;background:#fff;color:#123;display:grid;place-items:center;font-size:13px;box-shadow:0 1px 4px rgba(0,0,0,.4)}
 </style></head>
 <body>
 <header><div class="hrow"><span id="logo"></span><h1>Fish Bite Forecast<small>Bites · tides · marine</small></h1><div class="seg" id="flyseg"></div></div></header>
@@ -720,9 +732,13 @@ const REGS = {
   shad: { size: 'None', bag: '10 per day (American, hickory, Alabama shad & blueback herring combined)', season: 'Open year-round', notes: 'Hook and line only.', url: 'https://myfwc.com/fishing/freshwater/regulations/general/' },
   catfish: { size: 'None statewide', bag: 'Nongame fish — no statewide bag limit in fresh water', season: 'Open year-round', notes: 'Special rules on some Fish Management Areas; verify.', url: 'https://myfwc.com/fishing/freshwater/regulations/general/', verify: true },
 };
-function regStatus(id, t) {
+function regStatus(id, t, sp) {
+  if (typeof WEB_BUILD !== 'undefined') {
+    const where = sp || spot(), st = natState(where);
+    if (st && typeof SE_REGS !== 'undefined' && SE_REGS[st]) { const until = seClosed(SE_REGS[st].sp[id], t, where); return until ? { open: false, until } : { open: true }; }
+    if (st && st !== 'FL') return { open: true };
+  }
   const r = REGS[id]; if (!r || !r.closed) return { open: true };
-  if (typeof WEB_BUILD !== 'undefined') { const st = natState(spot()); if (st && st !== 'FL') return { open: true }; }
   const d = new Date(t), md = (d.getMonth() + 1) * 100 + d.getDate();
   for (const [sm, sd, em, ed] of r.closed) {
     const a = sm * 100 + sd, b = em * 100 + ed;
@@ -734,6 +750,73 @@ function regJurisdiction(spot) {
   if (spot.water === 'fresh') return 'Florida freshwater rules (statewide)';
   if (spot.water === 'offshore') return 'Federal waters (beyond 3 nm in the Atlantic) — FWC rules shown where they extend; federal rules may be stricter';
   return 'Florida Atlantic state waters, Northeast Florida management regions';
+}
+
+// Saltwater rules for Georgia and the Carolinas (state waters). Checked 2026-11-23 against:
+//  GA: coastalgadnr.org/limits · SC: SCDNR 2026-27 guide (eregulations.com/southcarolina, updated Aug 11 2026; red drum law effective Jul 1 2026)
+//  NC: DMF Recreational Size and Bag Limits (effective Nov 1 2026). Rules change often — the app always links the agency page.
+// closed: [[startMonth, startDay, endMonth, endDay]] like regs.js; latMax/latMin limit a closure to part of the coast.
+const SE_REGS_CHECKED = '2026-11-23';
+const SE_REGS = {
+  GA: { agency: 'Georgia DNR Coastal Resources Division', url: 'https://coastalgadnr.org/limits', note: 'Georgia fishing license plus the free Saltwater Information Program (SIP) permit required.', sp: {
+    redfish: { size: '14–23" TL (slot)', bag: '5 per person', season: 'Open year-round', notes: 'Gamefish — rod and reel only. Changing Jan 1, 2027 to 3 per person and a 15–24" slot.' },
+    trout: { size: '14" TL minimum', bag: '15 per person', season: 'Open year-round' },
+    flounder: { size: '12" TL minimum', bag: '15 per person', season: 'Open year-round' },
+    sheepshead: { size: '10" FL minimum', bag: '15 per person', season: 'Open year-round' },
+    blackdrum: { size: '14" TL minimum', bag: '15 per person', season: 'Open year-round' },
+    cobia: { size: '36" FL minimum', bag: '1 per person, 6 per boat', season: 'Open Mar 1 – Oct 31', closed: [[11, 1, 2, 28]] },
+    spanish: { size: '12" FL minimum', bag: '15 per person', season: 'Open year-round' },
+    king: { size: '24" FL minimum', bag: '3 per person', season: 'Open year-round' },
+    bluefish: { size: '12" FL minimum', bag: '15 per person', season: 'Open May 1 – Feb 28', closed: [[3, 1, 4, 30]] },
+    tarpon: { size: '68" FL minimum', bag: '1 per person', season: 'Open year-round', notes: 'Release smaller tarpon in the water.' },
+    tripletail: { size: '18" TL minimum', bag: '2 per person', season: 'Open year-round' },
+    weakfish: { size: '13" TL minimum', bag: '1 per person', season: 'Open year-round' },
+    striper: { size: '22" TL minimum (27" in the Savannah River)', bag: '2 per person', season: 'Open year-round' },
+    mahi: { size: '20" FL minimum', bag: '10 per person, 54 per boat', season: 'Open year-round' },
+  } },
+  SC: { agency: 'South Carolina DNR', url: 'https://www.eregulations.com/southcarolina/fishing/finfish-size-catch-limits', note: 'Saltwater fishing license required age 16+. Gamefish caught on natural bait with hooks 4/0 or larger need non-offset, non-stainless circle hooks.', sp: {
+    redfish: { size: '18–25" TL (slot)', bag: '1 per person, 2 per boat', season: 'Open year-round; no gigging Dec 1 – Feb 28', notes: 'New rules since Jul 1, 2026. Rod and reel or gig only; possession prohibited in federal waters.' },
+    trout: { size: '14" TL minimum', bag: '10 per person', season: 'Open year-round; no gigging Dec 1 – Feb 28' },
+    flounder: { size: '16" TL minimum', bag: '5 per person, 10 per boat', season: 'Open year-round' },
+    sheepshead: { size: '14" TL minimum', bag: '10 per person, 30 per boat', season: 'Open year-round' },
+    blackdrum: { size: '14–27" TL (slot)', bag: '5 per person', season: 'Open year-round' },
+    cobia: { size: '36" FL minimum', bag: '1 per person; 3 per boat south of 32°31′ N, 6 per boat north of it', season: 'Closed May 1–31 in state waters south of 32°31′ N (around Beaufort/Hilton Head)', closed: [[5, 1, 5, 31]], latMax: 32.517 },
+    spanish: { size: '12" FL minimum', bag: '15 per person', season: 'Open year-round' },
+    king: { size: '24" FL minimum', bag: '3 per person', season: 'Open year-round' },
+    bluefish: { size: 'None listed', bag: '5 per person (7 on for-hire boats)', season: 'Open year-round' },
+    whiting: { size: 'None', bag: '50 per person combined with croaker and spot', season: 'Open year-round', notes: 'Hook and line only.' },
+    tarpon: { size: '77" FL minimum', bag: '1 per person', season: 'Open year-round', notes: 'Rod and reel only.' },
+    tripletail: { size: '18" TL minimum', bag: '3 per person, 9 per boat', season: 'Open year-round' },
+    weakfish: { size: '12" TL minimum', bag: '1 per person', season: 'Open year-round' },
+    striper: { size: '26" TL minimum (27" lower Savannah River)', bag: '3 per person (2 in lower Savannah River)', season: 'Closed Jun 16 – Sep 30 (except lower Savannah River)', closed: [[6, 16, 9, 30]] },
+    mahi: { size: '20" FL minimum', bag: '10 per person, 54 per boat', season: 'Open year-round' },
+  } },
+  NC: { agency: 'N.C. Division of Marine Fisheries', url: 'https://deq.nc.gov/about/divisions/marine-fisheries/rules-proclamations-and-size-and-bag-limits/recreational-size-and', note: 'Coastal Recreational Fishing License required. Harvest of red drum, flounder, spotted seatrout, weakfish and striped bass must be reported to DMF.', sp: {
+    redfish: { size: '18–27" TL (slot)', bag: '1 per person', season: 'Open year-round', notes: 'No gigging, spearing or gaffing.' },
+    trout: { size: '14–20" TL, plus 1 over 26"', bag: '3 per person', season: 'Open (closes through June 30 after a major cold stun)', notes: 'DMF closes speckled trout after significant cold-stun events — check before keeping fish in winter.', verify: true },
+    flounder: { size: '15" TL minimum', bag: '1 per person', season: '2026 season was Sep 1–14 only — closed now', closed: [[9, 15, 8, 31]], notes: 'All flounder species. Seasons are set each year by proclamation.' },
+    sheepshead: { size: '14" TL minimum', bag: '5 per person', season: 'Open year-round' },
+    blackdrum: { size: '14–25" TL (slot)', bag: '10 per person; may include 1 over 25"', season: 'Open year-round' },
+    cobia: { size: 'Set by proclamation', bag: 'Set by proclamation', season: 'See the current DMF cobia proclamation', verify: true },
+    spanish: { size: '12" FL minimum', bag: '15 per person', season: 'Open year-round' },
+    king: { size: '24" FL minimum', bag: '3 per person', season: 'Open year-round' },
+    bluefish: { size: 'None', bag: '5 per person (7 on for-hire boats)', season: 'Open year-round' },
+    tarpon: { size: '—', bag: 'Unlawful to possess', season: 'Catch and release only' },
+    weakfish: { size: '12" TL minimum', bag: '1 per person', season: 'Open year-round' },
+    striper: { size: 'Ocean: 28–31" TL slot', bag: 'Ocean: 1 per person', season: 'Albemarle Sound area currently closed; inland and ocean rules differ — check DMF', verify: true },
+    mahi: { size: 'None', bag: '10 per person, 54 per trip', season: 'Open year-round' },
+    seabass: { size: '13" TL minimum', bag: '7 per person south of Cape Hatteras; 15 north (May 1 – Dec 31)', season: 'Open (north of Hatteras: May 1 – Dec 31)' },
+  } },
+};
+function seClosed(rule, t, sp) {
+  if (!rule || !rule.closed) return null;
+  if (rule.latMax && sp && sp.lat != null && sp.lat > rule.latMax) return null;
+  const d = new Date(t), md = (d.getMonth() + 1) * 100 + d.getDate();
+  for (const [sm, sd, em, ed] of rule.closed) {
+    const a = sm * 100 + sd, b = em * 100 + ed;
+    if (a <= b ? (md >= a && md <= b) : (md >= a || md <= b)) return `${['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][em]} ${ed}`;
+  }
+  return null;
 }
 
 // Forecast engine: spot tides, per-sample features, species scoring, catch-log patterns.
@@ -830,6 +913,8 @@ const Engine = (() => {
     if (c.sky === 'overcast') w += 0.05 * (1 - sp.sight) - 0.1 * sp.sight * (fly ? 1 : .5);
     if (c.sky === 'sun') w += 0.05 * sp.sight;
     if (c.sky === 'rain') w -= 0.03;
+    if (c.flowF) w *= c.flowF; // river rising/falling (website)
+    if (c.windF) w *= c.windF; // wind onto or off the shore (website)
     return clamp(w, 0.4, 1.25);
   }
   function tempFactor(sp, wt) {
@@ -1349,7 +1434,7 @@ function natWeather(sp) {
   if (c && !NAT.wx[k]) NAT.wx[k] = c;
   if (!c || c.fetched < Date.now() - 3 * 3600e3) once('wx:' + k, async () => {
     const base = `latitude=${sp.lat}&longitude=${sp.lng}&timezone=auto`;
-    const w = await getJSON(`https://api.open-meteo.com/v1/forecast?${base}&hourly=pressure_msl,wind_speed_10m,cloud_cover,precipitation_probability,temperature_2m&wind_speed_unit=mph&temperature_unit=fahrenheit&past_days=7&forecast_days=10`);
+    const w = await getJSON(`https://api.open-meteo.com/v1/forecast?${base}&hourly=pressure_msl,wind_speed_10m,wind_direction_10m,precipitation,cloud_cover,precipitation_probability,temperature_2m&wind_speed_unit=mph&temperature_unit=fahrenheit&past_days=7&forecast_days=10`);
     let sst = null;
     try { const m = await getJSON(`https://marine-api.open-meteo.com/v1/marine?${base}&hourly=sea_surface_temperature&temperature_unit=fahrenheit&past_days=1&forecast_days=8`); sst = m.hourly; } catch (e) { }
     NAT.wx[k] = { h: w.hourly, sst, fetched: Date.now() }; lsSet('ff.wx.' + k, NAT.wx[k]);
@@ -1377,7 +1462,11 @@ function autoCond(sp, t0) {
     const v = []; H.time.forEach((t, i) => { const d = Date.parse(t); if (d < t0 + 864e5 && d >= t0 - 7 * 864e5 && H.temperature_2m[i] != null) v.push(H.temperature_2m[i]); });
     if (v.length) { wtemp = Math.round(Math.max(34, Math.min(90, avg(v) * 0.9 + 6))); wsrc = 'estimated from air temps'; }
   }
-  return { pressure, wind: wind == null ? null : Math.round(wind), sky, wtemp, wsrc };
+  // rain over the 48 h before mid-morning (muddies inshore water) and the day's average wind direction
+  let rain48 = null, windDir = null;
+  if (H.precipitation) { const end = t0 + 10 * 36e5; let s = 0, n = 0; H.time.forEach((t, i) => { const d = Date.parse(t); if (d <= end && d > end - 48 * 36e5 && H.precipitation[i] != null) { s += H.precipitation[i]; n++; } }); if (n > 12) rain48 = Math.round(s * 10) / 10; }
+  if (H.wind_direction_10m) { let x = 0, y = 0; H.time.forEach((t, i) => { if (t.slice(0, 10) === key) { const hr = +t.slice(11, 13), d = H.wind_direction_10m[i]; if (hr >= 6 && hr <= 18 && d != null) { const w = H.wind_speed_10m[i] || 1; x += w * Math.cos(d * Math.PI / 180); y += w * Math.sin(d * Math.PI / 180); } } }); if (x || y) windDir = Math.round((Math.atan2(y, x) * 180 / Math.PI + 360) % 360); }
+  return { pressure, wind: wind == null ? null : Math.round(wind), sky, wtemp, wsrc, rain48, windDir };
 }
 
 // ---- NWS: office, state, marine zones, coastal forecast and advisories ----
@@ -1621,6 +1710,12 @@ function cond(t0 = state.day0) {
       if ((raw.wind === undefined || raw.wind === '' || raw.wind === null) && a.wind != null && windSrc !== 'nws') { out.wind = a.wind; out.windSrc = 'auto'; }
       if ((raw.wtemp === undefined || raw.wtemp === '') && a.wtemp != null) { out.wtemp = a.wtemp; out.auto.wtemp = a.wsrc; }
     }
+    if (a && a.windDir != null) out.windDir = a.windDir;
+    const fl = typeof flowInfo === 'function' && t0 === midnight(Date.now()) ? flowInfo(sp) : null;
+    if (!raw.clarity && typeof estClarity === 'function') { const e = estClarity(sp, a, fl); if (e) { out.clarity = e.v; out.auto.clarity = e.why; } }
+    if (fl) { out.flowF = fl.factor; out.flowTxt = fl.text; }
+    const we = typeof windEffect === 'function' ? windEffect(sp, out) : null;
+    if (we) { out.windF = we.factor; out.windTxt = we.text; }
     const lt = lakeTemp(sp, t0);
     if ((raw.wtemp === undefined || raw.wtemp === '') && lt) { out.wtemp = lt.v; out.auto.wtemp = 'you entered ' + lt.when; }
     else if ((raw.wtemp === undefined || raw.wtemp === '') && t0 === midnight(Date.now())) { const lw = liveWaterTemp(sp); if (lw) { out.wtemp = lw.v; out.auto.wtemp = 'live: ' + lw.src; } }
@@ -1781,7 +1876,7 @@ function viewForecast() {
   if (!res.length) return topControls() + `<div class="card">No species profiles for this water type.</div>`;
   const r = chosen(res), [rt] = Engine.rating(r.day);
   const wins = Engine.windows(r, day);
-  let html = (WEB ? welcomeCard() : '') + topControls();
+  let html = (WEB ? offlineBanner() + welcomeCard() : '') + topControls();
   // alerts
   const alerts = [];
   const tailR = res.find(x => x.sp.id === 'redfish' && x.tail);
@@ -1798,7 +1893,9 @@ function viewForecast() {
   html += `<div class="card"><div class="banner">${Art.scene(r.sp.id, sp.water, { night: false })}<div class="cap">${esc(WATER_LABEL[sp.water] || '')}</div></div><div class="hrow"><div style="flex:1"><div class="muted small">${fmtD(state.day0)} · ${esc(sp.name)}</div><h2 style="margin:2px 0 0">${esc(r.sp.name)}${state.fly ? ' on fly' : ''}</h2></div>${WEB ? '<button class="bell" data-albell="1" title="Set a bite alert" aria-label="Set a bite alert">🔔</button>' : ''}${badge(r.day)}</div>
   <div class="small muted" style="margin-top:4px">${rt} · season ${Math.round(r.season * 10)}/10 · water ~${Math.round(r.wt)}°F${r.pat ? ` · tuned by your ${r.pat.n} logged catches` : ''}</div>
   ${WEB && state.fly ? flyBench(r.sp.id, true) : ''}
+  ${WEB && (c.flowTxt || c.windTxt) ? `<div class="small" style="margin-top:6px">${c.flowTxt ? '🌊 ' + esc(c.flowTxt) + '<br>' : ''}${c.windTxt ? '💨 ' + esc(c.windTxt) : ''}</div>` : ''}
   ${wins.map(w => `<div class="win"><b>${fmtT(w.a)} – ${fmtT(w.b)}</b> ${badge(w.peak)}<div class="small muted">${esc(w.why.join(' · ') || 'best overlap of factors')}</div></div>`).join('')}
+  ${WEB ? colorCard(r, sp, c) : ''}
   <div class="chartwrap" id="chartwrap">${chartSVG(day, r)}</div><div class="readout" id="readout">Tap or drag on the chart for details.</div>
   <div class="legend"><span><i style="background:var(--accent)"></i>Bite score</span>${day.ext.length ? '<span><i style="background:var(--tide);opacity:.5"></i>Tide</span>' : ''}<span><i style="background:var(--accent2);opacity:.35"></i>Major solunar</span><span><i style="background:var(--accent2);opacity:.15"></i>Minor</span><span><i style="background:#000;opacity:.35"></i>Night</span></div></div>`;
   if (WEB) html += viewNow();
@@ -1870,13 +1967,13 @@ function viewPickSpot() {
 
 function regsCard(spc, sp) {
   const r = REGS[spc.id];
-  if (WEB) { const st = natState(sp || spot()); if (st && st !== 'FL') return `<div class="card"><h2 style="margin:0">Rules: ${esc(spc.name)}</h2>${stateRegsBody(st, sp || spot())}</div>`; }
+  if (WEB) { const st = natState(sp || spot()); if (st && st !== 'FL') return `<div class="card"><h2 style="margin:0">Rules: ${esc(spc.name)}</h2>${stateRegsBody(st, sp || spot(), spc.id)}</div>`; }
   if (!r) return '';
   const st = regStatus(spc.id, state.day0 + 43200e3);
   return `<div class="card"><div class="hrow"><h2 style="flex:1;margin:0">Rules: ${esc(spc.name)}</h2>${st.open ? '<span class="score s4" style="font-size:12px">OPEN</span>' : '<span class="score" style="background:var(--bad);color:#fff;font-size:12px">CLOSED</span>'}</div>${regsBody(spc.id, sp)}</div>`;
 }
 function regsBody(id, sp) {
-  if (WEB) { const st = natState(sp || spot()); if (st && st !== 'FL') return stateRegsBody(st, sp || spot()); }
+  if (WEB) { const st = natState(sp || spot()); if (st && st !== 'FL') return stateRegsBody(st, sp || spot(), id); }
   const r = REGS[id]; if (!r) return '<div class="small muted">No regulation summary for this species — check MyFWC.com.</div>';
   return `<div class="grid2" style="margin-top:8px"><div class="kv"><b style="font-size:14px">${esc(r.size)}</b><span>Size</span></div><div class="kv"><b style="font-size:14px">${esc(r.bag)}</b><span>Bag limit</span></div></div>
    <div class="small" style="margin-top:6px"><b>Season:</b> ${esc(r.season)}${r.notes ? ' · ' + esc(r.notes) : ''}</div>
@@ -1889,7 +1986,8 @@ function viewConditions(c) {
   return `<div class="card"><h2>Conditions for ${fmtD(state.day0)}</h2><div class="small muted">${WEB ? 'Wind fills in from the NWS marine forecast. Enter the barometer trend, sky, clarity and water temp from your weather app' : 'Live weather can’t load inside this page, so enter what the forecast says'} — the scores update right away.</div>
    <div class="row"><div><label>Barometer</label>${opt('cPress', c.pressure, [['ff', 'Falling fast (front coming)'], ['f', 'Falling'], ['s', 'Steady'], ['r', 'Rising'], ['pf', 'Rising, post-front bluebird']])}</div></div>
    <div class="row"><div><label>Wind (mph)${c.windSrc === 'nws' ? ' · from NWS' : c.windSrc === 'auto' ? ' · forecast' : ''}</label><input id="cWind" type="number" inputmode="numeric" min="0" max="60" value="${c.windSrc === 'manual' ? esc(c.wind) : ''}" placeholder="${c.windSrc === 'nws' ? esc(c.wind) + ' (NWS forecast)' : c.windSrc === 'auto' ? esc(c.wind) + ' (forecast)' : '10'}"></div><div><label>Water temp °F${c.auto && c.auto.wtemp ? ' · auto' : ''}</label><input id="cTemp" type="number" inputmode="numeric" placeholder="${c.auto && c.auto.wtemp ? esc(c.wtemp) + ' (' + esc(c.auto.wtemp) + ')' : '~' + WATER_TEMP[salt ? 'salt' : 'fresh'][month] + ' typical'}" value="${c.auto && c.auto.wtemp ? '' : esc(c.wtemp)}"></div></div>
-   <div class="row"><div><label>Sky</label>${opt('cSky', c.sky, [['sun', 'Sunny'], ['partly', 'Partly cloudy'], ['overcast', 'Overcast'], ['rain', 'Rain / storms']])}</div><div><label>Water clarity</label>${opt('cClar', c.clarity, [['clear', 'Clear'], ['stained', 'Stained'], ['muddy', 'Muddy']])}</div></div>
+   <div class="row"><div><label>Sky</label>${opt('cSky', c.sky, [['sun', 'Sunny'], ['partly', 'Partly cloudy'], ['overcast', 'Overcast'], ['rain', 'Rain / storms']])}</div><div><label>Water clarity</label>${opt('cClar', WEB && c.auto && c.auto.clarity ? '' : c.clarity, [...(WEB ? [['', 'Auto' + (c.auto && c.auto.clarity ? ' (' + c.clarity + ')' : '')]] : []), ['clear', 'Clear'], ['stained', 'Stained'], ['muddy', 'Muddy']])}${WEB && c.auto && c.auto.clarity ? `<div class="small muted">${esc(c.auto.clarity)}</div>` : ''}}</div></div>
+   ${WEB ? facingRow(c) : ''}
    <h3>Check live</h3>${WEB ? webLiveLinks() : `<div class="small">
    <a href="https://www.weather.gov/jax/" target="_blank" rel="noopener">NWS Jacksonville forecast &amp; marine</a> ·
    <a href="https://www.ndbc.noaa.gov/station_page.php?station=mypf1" target="_blank" rel="noopener">Mayport gauge (pressure, water temp)</a> ·
@@ -1987,8 +2085,8 @@ function viewLog() {
   html += `<div class="card"><h2>Your numbers</h2><div class="grid2"><div class="kv"><b>${state.catches.reduce((a, c) => a + (+c.count || 1), 0)}</b><span>Fish logged</span></div><div class="kv"><b>${Object.keys(bySp).length}</b><span>Species</span></div></div>
    <div style="margin-top:8px"><button class="chip ${state.logFilter === 'all' ? 'on' : ''}" data-lf="all">All</button>${Object.entries(bySp).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<button class="chip ${state.logFilter === k ? 'on' : ''}" data-lf="${esc(k)}">${esc(SPMAP[k] ? SPMAP[k].name : k)} · ${n}</button>`).join('')}</div>
    ${state.logFilter !== 'all' ? patternView(state.logFilter) : '<div class="note">Pick a species to see when and how you catch it. With 5+ catches of a species, its forecast is tuned to your own pattern (turn off in Settings).</div>'}
-   ${state.catches.length ? '<div style="margin-top:10px"><button class="btn sm ghost" data-csv="1">Copy log as CSV</button></div>' : ''}</div>`;
-  if (WEB) html += viewForecastCheck();
+   ${state.catches.length ? `<div style="margin-top:10px"><button class="btn sm ghost" data-csv="1">Copy log as CSV</button>${WEB ? ' <button class="btn sm ghost" data-trip="1">📝 Trip report</button>' : ''}</div>` : ''}</div>`;
+  if (WEB) html += crewCard() + viewForecastCheck();
   html += `<div class="card">${cs.length ? cs.map(c => `<div class="catch" data-edit="${esc(c.id)}">${WEB ? photoTag(c) : ''}<div class="ic${Art.has(c.species) ? ' art' : ''}">${Art.has(c.species) ? Art.fish(c.species, { w: 64 }) : (c.method === 'fly' ? 'F' : '•')}${c.count > 1 ? `<span class="cnt">×${c.count}</span>` : ''}</div><div class="tx"><b>${esc(SPMAP[c.species] ? SPMAP[c.species].name : c.species)}</b>${c.length ? ` · ${esc(c.length)}"` : ''}${c.weight ? ` · ${esc(c.weight)} lb` : ''}
      <div class="small muted">${fmtD(c.ts)} ${fmtT(c.ts)} · ${esc((spots().find(s => s.id === c.spot) || {}).name || c.spotName || '')}${c.lat != null ? ` · <a href="https://maps.apple.com/?ll=${c.lat},${c.lng}&q=Catch" target="_blank" rel="noopener">📍 map</a>` : ''}</div>
      <div class="small">${[c.bait, c.method === 'fly' ? 'on fly' : '', c.kept ? 'kept' : 'released'].filter(Boolean).map(esc).join(' · ')}</div>
@@ -2023,6 +2121,7 @@ function openCatch(c, fresh) {
    ${WEB ? photoField(c) : ''}
    <label>Notes</label><textarea id="fNotes">${esc(c.notes || '')}</textarea>
    <div class="note" id="fCond"></div>
+   ${WEB && !state.catches.find(x => x.id === c.id) ? crewShareRow() : ''}
    <div style="margin-top:12px"><button class="btn" data-savecatch="1">Save catch</button></div>
    ${isNew ? '' : '<div style="margin-top:10px" id="delWrap"><button class="btn danger" data-del="1">Delete this catch</button></div>'}</div>`;
   $('#sheet')._c = { ...c }; $('#sheet')._photoFile = c._photoFile || null; delete $('#sheet')._c._photoFile; $('#sheet').classList.add('on'); updCond();
@@ -2040,8 +2139,10 @@ async function saveCatchForm() {
   const btn = document.querySelector('[data-savecatch]'); btn.disabled = true; btn.textContent = 'Saving…';
   if (c.photo) out.photo = c.photo; if (c.photoThumb) out.photoThumb = c.photoThumb;
   if (WEB && $('#sheet')._photoFile) { try { await attachPhoto(out, $('#sheet')._photoFile); } catch (e) { toast('Couldn’t save the photo'); } }
+  const shareCrew = WEB && $('#cfCrew') && $('#cfCrew').checked, shareSpot = WEB && $('#cfCrewSpot') && $('#cfCrewSpot').checked;
   const ok = await Store.saveCatch(out);
   btn.disabled = false; btn.textContent = 'Save catch';
+  if (ok && shareCrew) crewShareCatch(out, shareSpot);
   if (ok) { $('#sheet').classList.remove('on'); toast('Catch saved'); if (!Store.db || Store.localLog) render(); }
 }
 function csv() {
@@ -2101,7 +2202,7 @@ confidence is 0–1. Only give estimated_length_in when a ruler or measuring boa
 // ===== Settings =====
 function viewSettings() {
   const sps = spots();
-  return `${WEB ? alertsCard() + mySpotsCard() : ''}<div class="card"><h2>Tide offsets by spot${WEB ? ' (Jacksonville examples)' : ''}</h2><div class="small muted">Times shift the Mayport prediction (minutes, + is later); ratios scale heights. Presets come from NOAA subordinate stations. Adjust any spot to match what you see on the water.</div>
+  return `${WEB ? alertsCard() + mySpotsCard() + offlineCard() : ''}<div class="card"><h2>Tide offsets by spot${WEB ? ' (Jacksonville examples)' : ''}</h2><div class="small muted">Times shift the Mayport prediction (minutes, + is later); ratios scale heights. Presets come from NOAA subordinate stations. Adjust any spot to match what you see on the water.</div>
   ${sps.filter(s => s.tide).map(s => `<div class="spotrow"><b>${esc(s.name)}</b> <span class="small muted">${esc(s.src || 'custom')}</span>
    <div class="g4" style="margin-top:6px"><div><label>High +min</label><input data-off="${esc(s.id)}" data-k="hi" type="number" inputmode="numeric" value="${s.tide.hi}"></div><div><label>Low +min</label><input data-off="${esc(s.id)}" data-k="lo" type="number" inputmode="numeric" value="${s.tide.lo}"></div><div><label>High ×</label><input data-off="${esc(s.id)}" data-k="hr" type="number" inputmode="decimal" step="0.01" value="${s.tide.hr}"></div><div><label>Low ×</label><input data-off="${esc(s.id)}" data-k="lr" type="number" inputmode="decimal" step="0.01" value="${s.tide.lr}"></div></div>
    ${s.custom ? `<button class="btn sm danger" style="margin-top:8px" data-rmspot="${esc(s.id)}">Remove spot</button>` : ''}</div>`).join('')}
@@ -2150,9 +2251,9 @@ document.addEventListener('change', e => {
   if (id === 'spotSel') { state.spotId = e.target.value; state.settings.spotId = state.spotId; if (state.spId !== 'auto' && !eligible(spot()).find(s => s.id === state.spId)) state.spId = 'auto'; Store.saveSettings(); render(); }
   else if (id === 'spSel') { state.spId = e.target.value; render(); }
   else if (id === 'datePick') { const [y, m, dd] = e.target.value.split('-').map(Number); if (y) { state.day0 = new Date(y, m - 1, dd).getTime(); render(); } }
-  else if (['cPress', 'cWind', 'cTemp', 'cSky', 'cClar'].includes(id)) {
+  else if (['cPress', 'cWind', 'cTemp', 'cSky', 'cClar', 'cFace'].includes(id)) {
     const k = dkey(state.day0), c = { ...(state.settings.cond[dkey(state.day0)] || {}) };
-    c.pressure = $('#cPress').value; c.wind = $('#cWind').value === '' ? '' : +$('#cWind').value; c.wtemp = $('#cTemp').value; c.sky = $('#cSky').value; c.clarity = $('#cClar').value;
+    c.pressure = $('#cPress').value; c.wind = $('#cWind').value === '' ? '' : +$('#cWind').value; c.wtemp = $('#cTemp').value; c.sky = $('#cSky').value; c.clarity = $('#cClar').value; if (WEB && $('#cFace')) { const f = $('#cFace').value, sid = spot().id; state.settings.facing = state.settings.facing || {}; if (f) state.settings.facing[sid] = f; else delete state.settings.facing[sid]; }
     state.settings.cond = { ...state.settings.cond, [k]: c };
     // keep only the last ~60 days of condition entries
     const keys = Object.keys(state.settings.cond).sort(); while (keys.length > 60) delete state.settings.cond[keys.shift()];
@@ -2173,6 +2274,8 @@ document.addEventListener('change', e => {
 // Deep links: #forecast, #marine, #species, #regulations, #log, #fishid, #settings
 function applyHash() {
   const h = (location.hash || '').slice(1).toLowerCase();
+  const inv = WEB && h.match(/^crew=([a-z0-9]{4,8})$/); // invite link from a crew member
+  if (inv) { state.tab = 'log'; state.pendingCrew = inv[1].toUpperCase(); history.replaceState(null, '', location.pathname + location.search); render(); setTimeout(() => { const el = $('#crCode'); if (el) { el.value = state.pendingCrew; el.scrollIntoView({ block: 'center' }); } }, 400); return; }
   const bite = h.match(/^bite=([a-z0-9_-]+)$/); // e.g. #bite=redfish, used by links from Fly Bench
   if (bite && SPMAP[bite[1]]) {
     const id = bite[1]; state.spId = id; state.tab = 'forecast';
@@ -2456,6 +2559,7 @@ function viewMap() {
     <label class="chk"><input type="checkbox" data-maplayer="spots"${MAP.show.spots ? ' checked' : ''}> Spots</label>
     <label class="chk"><input type="checkbox" data-maplayer="catches"${MAP.show.catches ? ' checked' : ''}> Catches</label>
     <label class="chk"><input type="checkbox" data-maplayer="heat"${MAP.show.heat ? ' checked' : ''}> Hot spots</label>
+    <label class="chk"><input type="checkbox" data-maplayer="ramps"${MAP.show.ramps ? ' checked' : ''}> Boat ramps</label>
     <select id="mapSp"><option value="all">All species</option>${sps.map(id => `<option value="${id}"${MAP.sp === id ? ' selected' : ''}>${esc(SPMAP[id].name)}</option>`).join('')}</select></div>
    <div id="mapSlot">${MAP.failed ? '<div class="small muted" style="padding:20px">The map couldn’t load — check your connection.</div>' : MAP.loaded ? '' : '<div class="small muted" style="padding:20px">Loading map…</div>'}</div>
    <div class="note">Tap a spot for today’s bite score; tap a catch for details. Long-press (or right-click) anywhere to add a spot there. Imagery: USGS The National Map.</div></div>`;
@@ -2471,6 +2575,7 @@ function mountMap() {
     const usgs = L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: 'USGS The National Map' });
     const topo = L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: 'USGS The National Map' });
     usgs.addTo(m); L.control.layers({ 'Satellite': usgs, 'Topo': topo }, null, { position: 'topright' }).addTo(m);
+    m.on('moveend', () => { if (MAP.show.ramps) drawRamps(); });
     m.on('contextmenu', e => { openAddSpot(); setTimeout(() => draftSpot(e.latlng.lat, e.latlng.lng, 'My spot'), 50); });
     m.on('popupopen', e => { const b = e.popup.getElement().querySelector('[data-gospot]'); if (b) b.addEventListener('click', () => { state.tab = 'forecast'; state.spotId = b.dataset.gospot; state.settings.spotId = b.dataset.gospot; state.day0 = midnight(Date.now()); Store.saveSettings(); render(); window.scrollTo(0, 0); }); });
   } else slot.appendChild(MAP.el);
@@ -2516,6 +2621,7 @@ function drawMap() {
     Object.values(cell).forEach(o => L.circle([o.lat / o.n, o.lng / o.n], { radius: 120 + 380 * Math.sqrt(o.n / max), stroke: false, fillColor: '#ff6a3d', fillOpacity: .25 + .45 * o.n / max }).bindTooltip(`${o.n} fish`).addTo(g));
     MAP.layers.heat = g.addTo(m);
   }
+  if (MAP.show.ramps) setTimeout(drawRamps, 0);
   if (!MAP.fitDone) {
     MAP.fitDone = true;
     const sp = spot();
@@ -2651,6 +2757,331 @@ document.addEventListener('click', async e => {
   }
   if (d.usespot) { e.preventDefault(); state.spotId = d.usespot; state.settings.spotId = d.usespot; Store.saveSettings(); $('#sheet').classList.remove('on'); render(); window.scrollTo(0, 0); }
 });
+
+// ===== Lure & fly colors, water clarity estimate, wind direction and river flow — website build =====
+
+// ---------- Water clarity: your setting wins; otherwise estimate it from rain, river flow, wind and water type ----------
+function estClarity(sp, a, flow) {
+  if (!sp) return null;
+  const order = ['clear', 'stained', 'muddy'];
+  const base = { offshore: 0, nearshore: 0, surf: 1, inshore: 1, greatlakes: 0, fresh: 1 }[sp.water] ?? 1;
+  let lvl = base; const why = [];
+  if (sp.water === 'offshore' || sp.water === 'nearshore') why.push('open water is usually clear');
+  if (a && a.rain48 != null) {
+    if (a.rain48 >= 25) { lvl += sp.water === 'offshore' ? 0 : 2; why.push(`${Math.round(a.rain48 / 25.4 * 10) / 10}" of rain in 48 h`); }
+    else if (a.rain48 >= 8) { lvl += sp.water === 'offshore' ? 0 : 1; why.push(`some rain in the last 2 days`); }
+  }
+  if (flow && flow.ratio >= 1.6) { lvl += 1; why.push('river running high'); }
+  if (a && a.wind != null && ['surf', 'inshore', 'greatlakes'].includes(sp.water) && a.wind >= 16) { lvl += 1; why.push(`${a.wind} mph wind stirring it up`); }
+  if (sp.water === 'fresh' && typeof fwKindOf === 'function') { const k = fwKindOf(sp); if (k === 'river' && !why.length) why.push('rivers usually carry some color'); if ((k === 'lake' || k === 'reservoir') && !why.length) why.push('typical lake color'); }
+  if (!why.length) why.push(sp.water === 'surf' ? 'surf usually has some color' : 'typical for this water');
+  return { v: order[Math.max(0, Math.min(2, lvl))], why: 'estimated: ' + why.join(', ') };
+}
+
+// ---------- Lure and fly color picks ----------
+// The rule of thumb anglers use: clear water + bright light → natural, translucent; stained → bright or metallic (gold,
+// chartreuse); muddy or dark → solid dark silhouettes (black, purple) or loud colors with vibration; night → black.
+var BAIT_FIRST = { catfish: 1, sheepshead: 1, blackdrum: 1, reef: 1, tautog: 1, scup: 1, carp: 1, whiting: 1, pachalibut: 1, lingcod: 0, surfperch: 1 };
+var COLOR_SALT = {
+  'clear-bright': { pick: ['Clear/silver flake', 'Pearl/white', 'Natural shrimp (tan or pink)'], fly: ['Tan or white shrimp (EP, Gotcha)', 'Tan/white Clouser', 'Olive over white baitfish'] },
+  'clear-low': { pick: ['Pearl/chartreuse', 'Silver/blue back', 'White with a glow tail'], fly: ['White/chartreuse Clouser', 'Pearl Gummy minnow', 'Tan shrimp'] },
+  'stained-bright': { pick: ['Gold or copper ("new penny")', 'Root beer/gold flake', 'Chartreuse tail'], fly: ['Copper or gold flash shrimp', 'Root beer Clouser', 'Chartreuse/white Clouser'] },
+  'stained-low': { pick: ['Chartreuse', 'Pink/chartreuse ("electric chicken")', 'Gold spoon'], fly: ['Chartreuse/white Clouser', 'Pink/white shrimp', 'Black/gold Kwan'] },
+  'muddy-bright': { pick: ['Black/chartreuse', 'Purple/chartreuse', 'Root beer/chartreuse with a rattle'], fly: ['Black/chartreuse', 'Purple/black with flash', 'Chartreuse with a rattle'] },
+  'muddy-low': { pick: ['Black or dark purple', 'Black/chartreuse with a rattle', 'Gold spoon (flash)'], fly: ['Black/purple', 'Black/chartreuse', 'Dark crab'] },
+  night: { pick: ['Black or dark purple (silhouette)', 'White or glow under dock lights', 'Noisy topwater, dark'], fly: ['Black or purple', 'White under lights', 'Dark crab or shrimp'] },
+};
+var COLOR_FRESH = {
+  'clear-bright': { pick: ['Green pumpkin', 'Watermelon', 'Natural shad (white/silver)'], fly: ['Olive or brown nymph/streamer', 'Tan crayfish', 'White/silver baitfish'] },
+  'clear-low': { pick: ['White or pearl', 'Black/blue', 'Shad with a chartreuse tail'], fly: ['White streamer', 'Black/olive Woolly Bugger', 'Popper (yellow or white)'] },
+  'stained-bright': { pick: ['Chartreuse/white', 'Firetiger', 'Junebug or red craw'], fly: ['Chartreuse/white Clouser', 'Olive/yellow Woolly Bugger', 'Orange craw'] },
+  'stained-low': { pick: ['Black/blue', 'Chartreuse with a dark back', 'Gold blade'], fly: ['Black/chartreuse', 'Black Woolly Bugger', 'Yellow popper'] },
+  'muddy-bright': { pick: ['Black/blue', 'Bright chartreuse or orange with a rattle', 'Colorado-blade spinnerbait'], fly: ['Black with flash', 'Chartreuse', 'Big black popper'] },
+  'muddy-low': { pick: ['Black/blue or black/red', 'Loud chartreuse crankbait', 'Big Colorado blade'], fly: ['Black/purple', 'Black Woolly Bugger', 'Black popper'] },
+  night: { pick: ['Black or black/blue', 'Dark purple', 'Black buzzbait or jitterbug'], fly: ['Black popper or slider', 'Black/purple bugger', 'Black mouse'] },
+};
+var SPECIES_COLOR = {
+  redfish: 'Gold and copper spoons are a redfish classic in any water.', trout: 'Seatrout love pink, white and chartreuse soft plastics.',
+  flounder: 'Flounder respond to chartreuse and pink (and scented baits) worked slowly on the bottom.', snook: 'Snook: white, pearl and silver at night under lights.',
+  tarpon: 'Tarpon: purple/black in dirty water, natural or white in clear.', bass: 'Bass: match the main forage — shad colors near open water, craw colors around rock and wood.',
+  crappie: 'Crappie: chartreuse, pink/white and blue/white tubes or jigs.', bream: 'Bream: small crickets, worms, or black and chartreuse micro-jigs.',
+  pompano: 'Pompano: pink or chartreuse jigs and teasers, or sand fleas.', spanish: 'Spanish mackerel: silver spoons and gold or silver jigs, worked fast.',
+  bluefish: 'Bluefish: silver spoons and white bucktails; use wire.', cobia: 'Cobia: big bucktails or eels in white, chartreuse or pink.',
+  walleye: 'Walleye: chartreuse/orange or firetiger in stained water; natural perch in clear.', smallmouth: 'Smallmouth: green pumpkin and natural goby/craw colors.',
+  rainbow: 'Trout: natural olive/brown flies; brighter (pink, egg) in high or stained water.', brown: 'Brown trout: dark streamers at low light; natural colors in clear water.',
+  pike: 'Pike: bright spoons and big flashy baits.', musky: 'Musky: black in low light, natural perch/sucker in clear water.',
+  striper: 'Stripers: white/pearl or bone, darker at night.', albie: 'False albacore: small, slim and silver/green — match the bait.', bonefish: 'Bonefish: tan and pink over sand, olive over grass.',
+};
+function lightBand(smp, sky) {
+  if (!smp) return 'bright';
+  if (smp.lbin === 'Night') return 'night';
+  if (smp.lbin === 'Dawn' || smp.lbin === 'Dusk') return 'low';
+  if (sky === 'overcast' || sky === 'rain') return 'low';
+  return 'bright';
+}
+function colorPicks(spc, sp, t, c) {
+  const day = getDay(midnight(t), sp), i = Math.max(0, Math.min(day.samples.length - 1, Math.round((t - day.t0) / Engine.STEP)));
+  const smp = day.samples[i], light = lightBand(smp, c.sky), clarity = c.clarity || 'stained';
+  const fresh = ['fresh', 'greatlakes'].includes(sp.water), table = fresh ? COLOR_FRESH : COLOR_SALT;
+  const key = light === 'night' ? 'night' : `${clarity}-${light}`, set = table[key] || table['stained-bright'];
+  const moon = light === 'night' ? (day.ast.illum > .6 ? ' A bright moon backlights your bait — dark colors stand out best.' : ' Dark night: black, rattles and slow retrieves help fish find it.') : '';
+  const lightTxt = { night: 'night', low: smp && (smp.lbin === 'Dawn' || smp.lbin === 'Dusk') ? (smp.lbin === 'Dawn' ? 'first light' : 'last light') : 'cloudy, low light', bright: 'bright light' }[light];
+  return { light, clarity, list: state.fly ? set.fly : set.pick, why: `${lightTxt}, ${clarity} water`, tip: (SPECIES_COLOR[spc.id] || '') + moon, bait: !state.fly && BAIT_FIRST[spc.id] };
+}
+function colorCard(r, sp, c) {
+  if (!r || !sp) return '';
+  const w = Engine.windows(r, getDay(state.day0, sp), 3).sort((a, b) => b.peak - a.peak)[0], t = w ? w.pk : r.bestStart;
+  const p = colorPicks(r.sp, sp, t, c);
+  const sw = { 'Clear/silver flake': '#cfd8dc', 'Pearl/white': '#f4f1ea', 'Gold or copper ("new penny")': '#c9873a', 'Chartreuse': '#c7e83a', 'Green pumpkin': '#5c6b2e', 'Watermelon': '#6f8f4a', 'Black or dark purple': '#2b2140', 'Black/blue': '#1d2440', 'Black/chartreuse': '#1d1d1d' };
+  const chip = s => { const k = Object.keys(sw).find(x => s.startsWith(x.split(' ')[0])) ; const col = sw[s] || (/chartreuse/i.test(s) ? '#c7e83a' : /black|dark/i.test(s) ? '#222' : /gold|copper|root beer/i.test(s) ? '#b9802f' : /pink/i.test(s) ? '#f08fb0' : /white|pearl|silver|glow/i.test(s) ? '#eef0f0' : /green|olive|watermelon/i.test(s) ? '#6b7b3a' : /tan|natural|shrimp/i.test(s) ? '#d7b98c' : /purple/i.test(s) ? '#5a3a7a' : /orange|craw|firetiger/i.test(s) ? '#e0782f' : '#8aa'); return `<span class="cchip"><i style="background:${col}"></i>${esc(s)}</span>`; };
+  return `<div class="colorbox"><div class="small"><b>🎨 ${state.fly ? 'Fly' : 'Lure'} colors</b> for ${w ? fmtT(w.a) + '–' + fmtT(w.b) : 'the best window'} <span class="muted">(${esc(p.why)})</span></div>
+   <div class="cchips">${p.list.map(chip).join('')}</div>
+   ${p.bait ? `<div class="small muted">${esc(r.sp.name)} are mostly caught on natural bait — colors matter less than fresh bait on the bottom.</div>` : ''}${p.tip ? `<div class="small muted">${esc(p.tip.trim())}</div>` : ''}
+   ${c.auto && c.auto.clarity ? `<div class="small muted">Water clarity ${esc(c.auto.clarity)} — set it under Conditions if you can see it yourself.</div>` : ''}</div>`;
+}
+
+// ---------- Wind direction: is it blowing onto the shore you fish? ----------
+var FACING = { N: 0, NE: 45, E: 90, SE: 135, S: 180, SW: 225, W: 270, NW: 315 };
+function spotFacing(sp) { const f = sp.faces || (state.settings.facing || {})[sp.id]; return f && FACING[f] != null ? FACING[f] : null; }
+// returns { factor, text } — onshore wind stacks bait (and fish) against the shore; strong offshore wind flattens and clears it
+function windEffect(sp, c) {
+  if (c.windDir == null || c.wind == null) return null;
+  const f = spotFacing(sp), from = compass(c.windDir);
+  if (f == null) return { factor: 1, text: `Wind from the ${from} at ${Math.round(c.wind)} mph` };
+  const diff = Math.abs(((c.windDir - f) % 360 + 540) % 360 - 180); // 0 = blowing straight onto this shore
+  if (diff <= 50 && c.wind >= 6 && c.wind <= 20) return { factor: 1.07, text: `Wind from the ${from} at ${Math.round(c.wind)} mph is blowing onto your shore — bait and fish stack up on that bank` };
+  if (diff <= 50 && c.wind > 20) return { factor: .95, text: `Strong onshore wind (${from} ${Math.round(c.wind)} mph) — rough, muddy water on this shore` };
+  if (diff >= 130 && c.wind >= 12) return { factor: .97, text: `Offshore wind (${from} ${Math.round(c.wind)} mph) — calmer, clearer water but bait pushed away from this bank` };
+  return { factor: 1, text: `Wind from the ${from} at ${Math.round(c.wind)} mph — crosswind on this spot` };
+}
+
+// ---------- River flow: compare today with the past week ----------
+function flowInfo(sp) {
+  if (!sp || sp.water !== 'fresh' || (typeof fwKindOf === 'function' && fwKindOf(sp) !== 'river')) return null;
+  const n = natNow(sp), u = n && n.usgs; if (!u || !u.flowCfs || !u.flowWeek || u.km > 25) return null;
+  const now = u.flowCfs.v, med = u.flowWeek.median, d1 = u.flowWeek.change24; if (!med) return null;
+  const ratio = now / med, rising = d1 != null && d1 > .1, falling = d1 != null && d1 < -.08;
+  let factor = 1, text;
+  if (ratio >= 2 && rising) { factor = .72; text = 'River is high and rising — muddy and fast; fish tight to banks, eddies and creek mouths'; }
+  else if (ratio >= 1.4 && rising) { factor = .85; text = 'River is rising — fishing usually slows as it muddies'; }
+  else if (ratio >= 1.3 && falling) { factor = 1.08; text = 'River is falling and clearing after a rise — often a good bite'; }
+  else if (ratio <= .55) { factor = .93; text = 'River is low — fish concentrate in deeper holes; go light and stealthy'; }
+  else text = `River flow is near normal for the week${rising ? ' (rising slightly)' : falling ? ' (falling slightly)' : ''}`;
+  return { ratio, factor, text: `${text}. ${Math.round(now).toLocaleString()} cfs vs ${Math.round(med).toLocaleString()} cfs typical this week (${u.name}).` };
+}
+
+function facingRow(c) {
+  const sp = spot(), cur = sp.faces || (state.settings.facing || {})[sp.id] || '';
+  const dirs = [['', 'Not set'], ['N', 'North'], ['NE', 'Northeast'], ['E', 'East'], ['SE', 'Southeast'], ['S', 'South'], ['SW', 'Southwest'], ['W', 'West'], ['NW', 'Northwest']];
+  return `<div class="row"><div><label>Which way does this shore face? (looking out at the water)</label><select id="cFace">${dirs.map(([k, l]) => `<option value="${k}" ${k === cur ? 'selected' : ''}>${l}</option>`).join('')}</select><div class="small muted">${c.windDir != null ? `Forecast wind from the ${compass(c.windDir)}. ` : ''}Set this and wind blowing onto your bank (bait stacks up) or off it (calmer, clearer) counts in the score.</div></div></div>`;
+}
+
+// ===== Error reports, offline, trip report, fishing crew, boat ramps — website build =====
+
+// ---------- Error reports: the first few errors in a visit go to an insert-only table so problems get fixed ----------
+var ERR_SENT = new Set();
+function reportError(msg, stack) {
+  try {
+    msg = String(msg || 'error').slice(0, 500); const key = msg.slice(0, 120);
+    if (ERR_SENT.has(key) || ERR_SENT.size >= 5 || /ResizeObserver|Script error\.?$|extension:\/\//i.test(msg + (stack || ''))) return;
+    ERR_SENT.add(key);
+    const body = { msg, stack: String(stack || '').slice(0, 2000), url: (location.pathname + location.hash).slice(0, 300), ua: navigator.userAgent.slice(0, 300), build: (document.querySelector('meta[name="build"]') || {}).content || '' };
+    if (Cloud.user && Cloud.sb) Cloud.sb.from('forecast_errors').insert(body).then(() => { }, () => { });
+    else fetch(SB_URL + '/rest/v1/forecast_errors', { method: 'POST', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(body), keepalive: true }).catch(() => { });
+  } catch (e) { }
+}
+window.addEventListener('error', e => reportError(e.message, e.error && e.error.stack));
+window.addEventListener('unhandledrejection', e => { const r = e.reason || {}; if (/Failed to fetch|NetworkError|Load failed|aborted|timeout/i.test(r.message || String(r))) return; reportError('promise: ' + (r.message || String(r)), r.stack); });
+
+// ---------- Offline: everything you've looked at is saved; this pre-loads all your spots for the week ----------
+function offlineBanner() {
+  if (navigator.onLine !== false) return '';
+  const k = Object.keys(localStorage).filter(x => x.startsWith('ff.wx.')).map(x => { try { return JSON.parse(localStorage.getItem(x)).fetched; } catch (e) { return 0; } });
+  const t = k.length ? Math.max(...k) : 0;
+  return `<div class="alert">📴 <b>You're offline.</b> Showing the forecast saved ${t ? fmtD(t) + ' ' + fmtT(t) : 'earlier'} — tides and sun/moon are still exact; weather is the last forecast downloaded.</div>`;
+}
+window.addEventListener('online', () => render());
+window.addEventListener('offline', () => render());
+async function prepOffline(btn) {
+  const list = spots().filter(s => s.lat != null); let n = 0;
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  for (const s of list) {
+    try { natWeather(s); for (let d = 0; d < 7; d++) weekCell(s, midnight(Date.now() + d * 864e5 + 3600e3)); n++; } catch (e) { }
+  }
+  await new Promise(r => setTimeout(r, 6000)); // let the downloads finish
+  for (const s of list) { try { for (let d = 0; d < 7; d++) weekCell(s, midnight(Date.now() + d * 864e5 + 3600e3)); } catch (e) { } }
+  if (typeof loadLeaflet === 'function') { try { await loadLeaflet(); } catch (e) { } }
+  state.settings.offlineAt = Date.now(); Store.saveSettings();
+  toast(`Saved ${n} spot${n === 1 ? '' : 's'} for offline use`); render();
+}
+function offlineCard() {
+  const at = state.settings.offlineAt;
+  return `<div class="card"><h2>Offline</h2><div class="small">The app works without signal: tides, sun and moon are calculated on your phone, and the last weather forecast and map tiles you viewed are saved. Before a trip out of range, save all your spots for the week.</div>
+   <div class="row" style="margin-top:8px"><button class="btn ghost" data-prepoffline="1">⬇ Save my spots for offline</button></div>${at ? `<div class="note">Last saved ${fmtD(at)} ${fmtT(at)}.</div>` : ''}</div>`;
+}
+
+// ---------- Trip report: one day at one spot — the forecast, the conditions and what you caught ----------
+function tripCatches(t0, spotId) { return state.catches.filter(c => c.ts >= t0 && c.ts < t0 + 864e5 && (!spotId || c.spot === spotId)); }
+function tripReport(t0, spotId) {
+  const sp = spots().find(s => s.id === spotId) || spot(), cs = tripCatches(t0, sp.id), all = tripCatches(t0);
+  const list = cs.length ? cs : all; const prev = state.spotId; state.spotId = sp.id;
+  let best = null, c = {};
+  try { const r = scoreAll(t0); best = chosen(r.res); c = cond(t0); } catch (e) { }
+  state.spotId = prev;
+  const fish = list.reduce((a, x) => a + (+x.count || 1), 0), sp2 = {};
+  list.forEach(x => sp2[x.species] = (sp2[x.species] || 0) + (+x.count || 1));
+  const big = list.filter(x => +x.length).sort((a, b) => b.length - a.length)[0];
+  const lines = [
+    `🎣 Trip report — ${fmtD(t0)} · ${sp.name}`,
+    best ? `Forecast: ${best.sp.name} ${Math.round(best.day)}/100 (${Engine.rating(best.day)[0]}), best ${fmtT(best.bestStart)}–${fmtT(best.bestEnd)}` : '',
+    [c.pressure && { ff: 'barometer falling fast', f: 'barometer falling', s: 'steady barometer', r: 'barometer rising', pf: 'post-front' }[c.pressure], c.wind != null && `wind ${Math.round(c.wind)} mph${c.windDir != null ? ' ' + compass(c.windDir) : ''}`, c.sky, c.clarity && c.clarity + ' water', c.wtemp && `water ${Math.round(c.wtemp)}°F`].filter(Boolean).join(' · '),
+    fish ? `Caught: ${fish} fish — ${Object.entries(sp2).map(([k, n]) => `${n} ${SPMAP[k] ? SPMAP[k].name : k}`).join(', ')}` : 'No fish logged this day.',
+    big ? `Biggest: ${big.length}" ${SPMAP[big.species] ? SPMAP[big.species].name : big.species}${big.bait ? ' on ' + big.bait : ''} at ${fmtT(big.ts)}` : '',
+    ...list.slice(0, 12).map(x => `• ${fmtT(x.ts)} ${SPMAP[x.species] ? SPMAP[x.species].name : x.species}${x.count > 1 ? ' ×' + x.count : ''}${x.length ? ' ' + x.length + '"' : ''}${x.bait ? ' — ' + x.bait : ''}${x.cond && x.cond.stage ? ' (' + x.cond.stage + ')' : ''}`),
+    'fishforecast.net',
+  ].filter(Boolean);
+  return { sp, list, fish, best, text: lines.join('\n') };
+}
+function tripSheet(t0, spotId) {
+  t0 = t0 || midnight(Date.now()); const tr = tripReport(t0, spotId);
+  const days = [...new Set(state.catches.map(c => midnight(c.ts)))].sort((a, b) => b - a).slice(0, 30);
+  if (!days.includes(t0)) days.unshift(t0);
+  $('#sheet').innerHTML = `<div class="in"><div class="hrow"><h2 style="flex:1;margin:0">Trip report</h2><button class="btn sm ghost" data-close="1">Close</button></div>
+   <div class="row" style="margin-top:8px"><select id="trDay">${days.map(d => `<option value="${d}"${d === t0 ? ' selected' : ''}>${fmtD(d)}</option>`).join('')}</select>
+   <select id="trSpot">${spots().map(s => `<option value="${esc(s.id)}"${s.id === tr.sp.id ? ' selected' : ''}>${esc(s.name)}</option>`).join('')}</select></div>
+   <div class="trphotos">${tr.list.filter(x => x.photo || x.photoThumb).slice(0, 6).map(x => photoTag(x)).join('')}</div>
+   <pre class="trtext">${esc(tr.text)}</pre>
+   <div class="row"><button class="btn" data-trshare="1">Share</button><button class="btn ghost" data-trcopy="1">Copy</button>${Cloud.user && CREW.list.length ? '<button class="btn ghost" data-trcrew="1">Post to crew</button>' : ''}</div></div>`;
+  $('#sheet').classList.add('on'); $('#sheet')._tr = { t0, spotId: tr.sp.id, text: tr.text, tr };
+}
+document.addEventListener('change', e => {
+  if (e.target.id === 'trDay' || e.target.id === 'trSpot') tripSheet(+$('#trDay').value, $('#trSpot').value);
+});
+
+// ---------- Fishing crew: invite friends by code, share catches and plans, see a leaderboard ----------
+var CREW = { list: [], cur: null, members: [], posts: [], loaded: false, loading: false, err: '' };
+async function crewLoad(force) {
+  if (!Cloud.user || !Cloud.sb || (CREW.loading && !force)) return;
+  CREW.loading = true;
+  try {
+    const { data, error } = await Cloud.sb.from('forecast_crews').select('id,name,code,owner').order('created_at');
+    if (error) throw error;
+    CREW.list = data || [];
+    if (!CREW.cur || !CREW.list.find(c => c.id === CREW.cur)) CREW.cur = (CREW.list[0] || {}).id || null;
+    if (CREW.cur) {
+      const [m, p] = await Promise.all([
+        Cloud.sb.from('forecast_crew_members').select('user_id,display_name,joined_at').eq('crew_id', CREW.cur),
+        Cloud.sb.from('forecast_crew_posts').select('id,user_id,kind,data,created_at').eq('crew_id', CREW.cur).order('created_at', { ascending: false }).limit(100)]);
+      CREW.members = m.data || []; CREW.posts = p.data || [];
+    } else { CREW.members = []; CREW.posts = []; }
+    CREW.err = '';
+  } catch (e) { CREW.err = e.message || String(e); }
+  CREW.loaded = true; CREW.loading = false; if (state.tab === 'log') render();
+}
+function crewName(uid) { const m = CREW.members.find(x => x.user_id === uid); return m ? m.display_name : 'Former member'; }
+function crewCard() {
+  if (!Cloud.user) return `<div class="card"><h2>👥 Fishing crew</h2><div class="small muted">Sign in above to start a crew with your fishing buddies — share catches and trip plans, and see who's catching the most. Spots stay private unless you choose to share one.</div></div>`;
+  if (!CREW.loaded) { crewLoad(); return `<div class="card"><h2>👥 Fishing crew</h2><div class="small muted">Loading…</div></div>`; }
+  const c = CREW.list.find(x => x.id === CREW.cur);
+  const join = `<div class="row" style="margin-top:8px"><input id="crName" placeholder="Your name in the crew" maxlength="40" value="${esc(state.settings.crewName || '')}"></div>
+   <div class="row"><input id="crCode" placeholder="Invite code" maxlength="8" style="text-transform:uppercase"><button class="btn ghost" data-crjoin="1">Join</button></div>
+   <div class="row"><input id="crNew" placeholder="New crew name" maxlength="60"><button class="btn ghost" data-crnew="1">Start a crew</button></div>`;
+  if (!c) return `<div class="card"><h2>👥 Fishing crew</h2><div class="small">Start a crew and send the invite code to your buddies, or join theirs. Members see shared catches, plans and a leaderboard. Your spots stay private unless you share one.</div>${CREW.err ? `<div class="small" style="color:var(--bad)">${esc(CREW.err)}</div>` : ''}${join}</div>`;
+  const since = Date.now() - 30 * 864e5, board = {};
+  CREW.posts.filter(p => p.kind === 'catch' && Date.parse(p.created_at) > since).forEach(p => { const b = board[p.user_id] = board[p.user_id] || { n: 0, big: 0 }; b.n += +p.data.count || 1; b.big = Math.max(b.big, +p.data.length || 0); });
+  const rows = Object.entries(board).sort((a, b) => b[1].n - a[1].n);
+  const post = p => {
+    const d = p.data || {}, who = crewName(p.user_id), mine = p.user_id === Cloud.user.id, when = `${fmtD(Date.parse(p.created_at))}`;
+    const loc = d.lat != null ? ` · <a href="https://maps.apple.com/?ll=${+d.lat},${+d.lng}&q=${encodeURIComponent(d.spot || 'Spot')}" target="_blank" rel="noopener">📍 ${esc(d.spot || 'map')}</a>` : d.area ? ` · ${esc(d.area)}` : '';
+    const body = p.kind === 'catch' ? `<b>${esc(who)}</b> caught ${d.count > 1 ? esc(d.count) + ' ' : ''}${esc(d.species || 'fish')}${d.length ? ` · ${esc(d.length)}"` : ''}${d.bait ? ` on ${esc(d.bait)}` : ''}${loc}${d.text ? `<pre class="trtext">${esc(d.text)}</pre>` : ''}`
+      : `<b>${esc(who)}</b> is going fishing ${esc(d.when || '')}${d.area ? ' · ' + esc(d.area) : ''}${loc}${d.note ? `<div class="small">${esc(d.note)}</div>` : ''}`;
+    return `<div class="crpost">${d.thumb ? `<img class="crthumb" src="${esc(d.thumb)}" alt="">` : ''}<div style="flex:1;min-width:0">${body}<div class="small muted">${when}${mine ? ` · <a href="#" data-crdel="${esc(p.id)}">delete</a>` : ''}</div></div></div>`;
+  };
+  return `<div class="card"><div class="hrow"><h2 style="flex:1;margin:0">👥 ${esc(c.name)}</h2>${CREW.list.length > 1 ? `<select id="crPick">${CREW.list.map(x => `<option value="${x.id}"${x.id === c.id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select>` : ''}</div>
+   <div class="small muted">Invite code <b class="code">${esc(c.code)}</b> <a href="#" data-crinvite="1">share invite</a> · ${CREW.members.length} member${CREW.members.length === 1 ? '' : 's'} · <a href="#" data-crreload="1">refresh</a></div>
+   ${rows.length ? `<h3>Last 30 days</h3>${rows.map(([u, b], i) => `<div class="kvrow"><span>${['🥇', '🥈', '🥉'][i] || i + 1 + '.'} ${esc(crewName(u))}</span><b>${b.n} fish${b.big ? ` · biggest ${b.big}"` : ''}</b></div>`).join('')}` : ''}
+   <div class="row" style="margin-top:8px"><button class="btn sm" data-crplan="1">📅 Share a trip plan</button><button class="btn sm ghost" data-trip="1">Trip report</button></div>
+   <h3>Crew feed</h3>${CREW.posts.length ? CREW.posts.slice(0, 40).map(post).join('') : '<div class="small muted">Nothing shared yet. When you log a catch you can share it with the crew.</div>'}
+   <details style="margin-top:10px"><summary class="small">Join or start another crew · leave</summary>${join}<div class="row"><button class="btn sm ghost" data-crleave="1">Leave ${esc(c.name)}</button></div></details></div>`;
+}
+async function crewShareCatch(c, withSpot) {
+  if (!Cloud.user || !CREW.cur) return;
+  const s = spots().find(x => x.id === c.spot), d = { species: SPMAP[c.species] ? SPMAP[c.species].name : c.species, count: +c.count || 1, length: c.length || null, bait: c.bait || null, ts: c.ts, area: s ? (natState(s) || '') : '' };
+  if (withSpot && (c.lat != null || (s && s.lat != null))) { d.lat = +(c.lat ?? s.lat).toFixed(4); d.lng = +(c.lng ?? s.lng).toFixed(4); d.spot = s ? s.name : ''; }
+  if (c.photoThumb && c.photoThumb.length < 15000) d.thumb = c.photoThumb;
+  const { error } = await Cloud.sb.from('forecast_crew_posts').insert({ crew_id: CREW.cur, kind: 'catch', data: d });
+  if (error) toast(error.message); else { toast('Shared with ' + (CREW.list.find(x => x.id === CREW.cur) || {}).name); crewLoad(true); }
+}
+function crewShareRow() {
+  if (!Cloud.user || !CREW.list.length) return '';
+  return `<div class="row"><label class="chk"><input type="checkbox" id="cfCrew"${state.settings.crewShare ? ' checked' : ''}> Share with ${esc((CREW.list.find(x => x.id === CREW.cur) || CREW.list[0]).name)}</label><label class="chk"><input type="checkbox" id="cfCrewSpot"> include the spot</label></div>`;
+}
+function crewPlanSheet() {
+  const s = spot();
+  $('#sheet').innerHTML = `<div class="in"><div class="hrow"><h2 style="flex:1;margin:0">Share a trip plan</h2><button class="btn sm ghost" data-close="1">Close</button></div>
+   <label>When</label><input id="cpWhen" value="${esc(new Date(Date.now() + 864e5).toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' }))} at dawn" maxlength="80">
+   <label>Where (general area)</label><input id="cpArea" value="${esc(s.name)}" maxlength="80">
+   <label class="chk"><input type="checkbox" id="cpSpot"> include the exact spot on a map</label>
+   <label>Note</label><input id="cpNote" placeholder="Room for one more — bring shrimp" maxlength="200">
+   <div class="row" style="margin-top:10px"><button class="btn" data-cpsend="1">Share</button></div></div>`;
+  $('#sheet').classList.add('on');
+}
+document.addEventListener('click', async e => {
+  const d = e.target.closest('[data-prepoffline],[data-trip],[data-trshare],[data-trcopy],[data-trcrew],[data-crjoin],[data-crnew],[data-crinvite],[data-crreload],[data-crleave],[data-crdel],[data-crplan],[data-cpsend]'); if (!d) return;
+  const x = d.dataset; e.preventDefault();
+  if (x.prepoffline) return prepOffline(d);
+  if (x.trip) return tripSheet(state.day0 <= midnight(Date.now()) ? state.day0 : midnight(Date.now()), state.spotId);
+  const tr = $('#sheet')._tr;
+  if (x.trshare && tr) { if (navigator.share) { try { await navigator.share({ title: 'Trip report', text: tr.text }); } catch (er) { } } else { await navigator.clipboard.writeText(tr.text); toast('Copied'); } return; }
+  if (x.trcopy && tr) { try { await navigator.clipboard.writeText(tr.text); toast('Copied'); } catch (er) { toast('Couldn’t copy'); } return; }
+  if (x.trcrew && tr) { const big = tr.tr.list[0] || {}; const { error } = await Cloud.sb.from('forecast_crew_posts').insert({ crew_id: CREW.cur, kind: 'catch', data: { species: tr.tr.fish + ' fish', count: 0, text: tr.text, thumb: big.photoThumb && big.photoThumb.length < 15000 ? big.photoThumb : undefined } }); toast(error ? error.message : 'Posted to crew'); if (!error) { $('#sheet').classList.remove('on'); crewLoad(true); } return; }
+  const name = (($('#crName') || {}).value || '').trim(); if (name) { state.settings.crewName = name; Store.saveSettings(); }
+  if (x.crjoin) { const code = ($('#crCode').value || '').trim(); if (!code) return toast('Enter the invite code'); const { data, error } = await Cloud.sb.rpc('forecast_join_crew', { invite: code, my_name: name || 'Angler' }); if (error) return toast(error.message); CREW.cur = data.id; toast('Joined ' + data.name); return crewLoad(true); }
+  if (x.crnew) { const n = ($('#crNew').value || '').trim(); if (!n) return toast('Name the crew'); const { data, error } = await Cloud.sb.rpc('forecast_create_crew', { crew_name: n, my_name: name || 'Me' }); if (error) return toast(error.message); CREW.cur = data.id; toast('Crew started — invite code ' + data.code); return crewLoad(true); }
+  const c = CREW.list.find(y => y.id === CREW.cur);
+  if (x.crinvite && c) { const t = `Join my fishing crew "${c.name}" on Fish Bite Forecast: open https://fishforecast.net/#crew=${c.code} (sign in, then Catch log → Join).`; if (navigator.share) { try { await navigator.share({ text: t }); } catch (er) { } } else { await navigator.clipboard.writeText(t); toast('Invite copied'); } return; }
+  if (x.crreload) return crewLoad(true);
+  if (x.crleave && c) { if (!confirmInline(d, 'Tap again to leave')) return; await Cloud.sb.from('forecast_crew_members').delete().eq('crew_id', c.id).eq('user_id', Cloud.user.id); CREW.cur = null; toast('Left ' + c.name); return crewLoad(true); }
+  if (x.crdel) { if (!confirmInline(d, 'tap again to delete')) return; await Cloud.sb.from('forecast_crew_posts').delete().eq('id', x.crdel); return crewLoad(true); }
+  if (x.crplan) return crewPlanSheet();
+  if (x.cpsend) { const sp = spot(), data = { when: $('#cpWhen').value.trim().slice(0, 80), area: $('#cpArea').value.trim().slice(0, 80), note: $('#cpNote').value.trim().slice(0, 200) }; if ($('#cpSpot').checked && sp.lat != null) { data.lat = +sp.lat.toFixed(4); data.lng = +sp.lng.toFixed(4); data.spot = sp.name; } const { error } = await Cloud.sb.from('forecast_crew_posts').insert({ crew_id: CREW.cur, kind: 'plan', data }); toast(error ? error.message : 'Plan shared'); if (!error) { $('#sheet').classList.remove('on'); crewLoad(true); } }
+});
+// two-tap confirm without a browser dialog
+function confirmInline(el, msg) { if (el.dataset.armed) return true; el.dataset.armed = '1'; const t = el.textContent; el.textContent = msg; setTimeout(() => { delete el.dataset.armed; el.textContent = t; }, 3000); return false; }
+document.addEventListener('change', e => { if (e.target.id === 'crPick') { CREW.cur = e.target.value; crewLoad(true); } if (e.target.id === 'cfCrew') { state.settings.crewShare = e.target.checked; Store.saveSettings(); } });
+
+// ---------- Boat ramps on the map (OpenStreetMap, loaded for the area you're looking at) ----------
+var RAMPS = { cells: {}, busy: false };
+function rampCellKey(lat, lng) { return Math.floor(lat / .5) + ',' + Math.floor(lng / .5); }
+async function rampsFor(lat, lng) {
+  const k = rampCellKey(lat, lng); if (RAMPS.cells[k]) return RAMPS.cells[k];
+  const saved = lsGet('ff.ramps.' + k, null); if (saved && saved.t > Date.now() - 30 * 864e5) return RAMPS.cells[k] = saved.list;
+  const [a, b] = k.split(',').map(Number), bb = `${a * .5},${b * .5},${a * .5 + .5},${b * .5 + .5}`;
+  const q = `[out:json][timeout:25];(nwr["leisure"="slipway"](${bb});nwr["amenity"="boat_ramp"](${bb}););out center tags 300;`;
+  let j = null;
+  for (const host of ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter']) {
+    try { const r = await fetch(host + '?data=' + encodeURIComponent(q)); if (r.ok) { j = await r.json(); break; } } catch (e) { }
+  }
+  if (!j) throw new Error('ramps unavailable');
+  const list = (j.elements || []).map(el => ({ lat: el.lat ?? (el.center || {}).lat, lng: el.lon ?? (el.center || {}).lon, name: (el.tags || {}).name || 'Boat ramp', fee: (el.tags || {}).fee, access: (el.tags || {}).access })).filter(r => r.lat != null && r.access !== 'private' && r.access !== 'no');
+  lsSet('ff.ramps.' + k, { t: Date.now(), list }); return RAMPS.cells[k] = list;
+}
+async function drawRamps() {
+  const m = MAP.map; if (!m || !MAP.show.ramps || RAMPS.busy) return;
+  RAMPS.busy = true;
+  try {
+    if (m.getZoom() < 9) { toast('Zoom in to see boat ramps'); return; }
+    const b = m.getBounds(), cells = new Set();
+    for (let la = b.getSouth(); la < b.getNorth() + .5; la += .5) for (let lo = b.getWest(); lo < b.getEast() + .5; lo += .5) cells.add([la, lo]);
+    const lists = await Promise.all([...cells].slice(0, 6).map(([la, lo]) => rampsFor(la, lo).catch(() => [])));
+    if (MAP.layers.ramps) m.removeLayer(MAP.layers.ramps);
+    const g = L.layerGroup();
+    lists.flat().forEach(r => L.marker([r.lat, r.lng], { icon: L.divIcon({ html: '<div class="rpin">⛵</div>', className: 'mpinwrap', iconSize: [24, 24], iconAnchor: [12, 12] }) })
+      .bindPopup(`<b>${esc(r.name)}</b>${r.fee === 'yes' ? '<br>Fee' : r.fee === 'no' ? '<br>Free' : ''}<br><a href="https://maps.apple.com/?daddr=${r.lat},${r.lng}" target="_blank" rel="noopener">Directions</a> · <span class="small muted">© OpenStreetMap</span>`).addTo(g));
+    MAP.layers.ramps = g.addTo(m);
+    if (!lists.flat().length) toast('No boat ramps mapped here');
+  } finally { RAMPS.busy = false; }
+}
 
 // ===== Website-only UI: spots anywhere in the US, accounts, nationwide marine & rules =====
 function natState(sp) { const p = sp && sp.lat != null ? natPoint(sp) : null; return p ? p.state : null; }
@@ -2817,7 +3248,17 @@ viewMarine = function () {
 };
 
 // ---- Rules for whichever state the spot is in ----
-function stateRegsBody(st, sp) {
+function stateRegsBody(st, sp, id) {
+  const se = SE_REGS[st], isSalt = sp && !['fresh', 'greatlakes'].includes(sp.water);
+  if (se && isSalt && id && se.sp[id]) {
+    const r = se.sp[id], until = seClosed(r, state.day0 + 43200e3, sp);
+    return `<div class="kvrows" style="margin-top:6px">
+      <div><span class="muted small">Size</span><b>${esc(r.size)}</b></div><div><span class="muted small">Bag</span><b>${esc(r.bag)}</b></div><div><span class="muted small">Season</span><b>${esc(r.season)}</b></div></div>
+      ${until ? `<div class="alert" style="margin-top:8px">Closed now — reopens after ${esc(until)}.</div>` : ''}
+      ${r.notes ? `<div class="small" style="margin-top:6px">${esc(r.notes)}</div>` : ''}${r.verify ? '<div class="small" style="margin-top:4px;color:var(--accent2)">Changes by proclamation — confirm before keeping fish.</div>' : ''}
+      <div style="margin-top:8px"><a class="btn sm ghost" href="${esc(se.url)}" target="_blank" rel="noopener">${esc(se.agency)} ↗</a></div>
+      <div class="note">${esc(se.note)} State waters; federal rules can differ offshore. Checked ${esc(SE_REGS_CHECKED)} — rules change, so confirm before keeping fish.</div>`;
+  }
   const r = STATE_REGS[st]; const salt = sp && !['fresh', 'greatlakes'].includes(sp.water);
   const url = r ? (salt && r[2] ? r[2] : r[1]) : 'https://www.fisheries.noaa.gov/state-recreational-fishing-websites';
   return `<div class="small" style="margin-top:6px">Size, bag and season limits for this spot are set by <b>${esc(r ? r[0] : st)}</b>${sp && sp.water === 'offshore' ? ' (and by federal rules in federal waters)' : ''}. They change often, so check the official source before keeping fish.</div>
@@ -2986,7 +3427,7 @@ async function runPhotoLog(file) {
   for (let i = 0; i < 25 && where.lat != null && !natPoint(where); i++) await new Promise(r => setTimeout(r, 200)); // state lookup
   const stCode = where.lat != null ? natState(where) : null;
   if (stCode) lines.push(`📜 Rules: <b>${esc((STATE_REGS[stCode] || [stCode])[0])}</b>`);
-  const rulesHtml = d.species && d.species !== 'other' ? (() => { const st = stCode === 'FL' ? regStatus(d.species, d.ts) : { open: true }; return `<div class="card" style="margin:12px 0 0"><div class="hrow"><b style="flex:1">Local rules: ${esc(SPMAP[d.species].name)}</b>${stCode === 'FL' ? (st.open ? '<span class="score s4" style="font-size:12px">OPEN</span>' : '<span class="score" style="background:var(--bad);color:#fff;font-size:12px">CLOSED</span>') : ''}</div>${!st.open ? `<div class="alert" style="margin-top:8px">Harvest is closed until ${esc(st.until)} — release it.</div>` : ''}${stCode && stCode !== 'FL' ? stateRegsBody(stCode, spx) : stCode === 'FL' ? regsBody(d.species, spx) : '<div class="small muted">Couldn’t work out which state you’re in — check your state’s rules.</div>'}${d.length && REGS[d.species] && stCode === 'FL' ? `<div class="note">Your fish: about ${esc(d.length)}" — compare with the size limit above and measure before keeping.</div>` : ''}</div>`; })() : (d.name ? `<div class="note">Check ${esc((STATE_REGS[stCode] || ['your state'])[0])} rules for ${esc(d.name)} before keeping it.</div>` : '');
+  const rulesHtml = d.species && d.species !== 'other' ? (() => { const st = (stCode === 'FL' || SE_REGS[stCode]) ? regStatus(d.species, d.ts, where) : { open: true }; return `<div class="card" style="margin:12px 0 0"><div class="hrow"><b style="flex:1">Local rules: ${esc(SPMAP[d.species].name)}</b>${(stCode === 'FL' || SE_REGS[stCode]) ? (st.open ? '<span class="score s4" style="font-size:12px">OPEN</span>' : '<span class="score" style="background:var(--bad);color:#fff;font-size:12px">CLOSED</span>') : ''}</div>${!st.open ? `<div class="alert" style="margin-top:8px">Harvest is closed until ${esc(st.until)} — release it.</div>` : ''}${stCode && stCode !== 'FL' ? stateRegsBody(stCode, { ...spx, ...(d.lat != null ? { lat: d.lat, lng: d.lng } : {}) }, d.species) : stCode === 'FL' ? regsBody(d.species, spx) : '<div class="small muted">Couldn’t work out which state you’re in — check your state’s rules.</div>'}${d.length && REGS[d.species] && stCode === 'FL' ? `<div class="note">Your fish: about ${esc(d.length)}" — compare with the size limit above and measure before keeping.</div>` : ''}</div>`; })() : (d.name ? `<div class="note">Check ${esc((STATE_REGS[stCode] || ['your state'])[0])} rules for ${esc(d.name)} before keeping it.</div>` : '');
   show(rulesHtml + `<div style="margin-top:12px"><button class="btn" data-photocontinue="1">Continue to log this catch</button></div><div class="note">Tide, solunar, moon and weather for that time are recorded automatically.</div>`);
 }
 document.addEventListener('change', e => { if (e.target.id === 'plFile' && e.target.files && e.target.files[0]) runPhotoLog(e.target.files[0]); });

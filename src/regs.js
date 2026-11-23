@@ -26,9 +26,13 @@ const REGS = {
   shad: { size: 'None', bag: '10 per day (American, hickory, Alabama shad & blueback herring combined)', season: 'Open year-round', notes: 'Hook and line only.', url: 'https://myfwc.com/fishing/freshwater/regulations/general/' },
   catfish: { size: 'None statewide', bag: 'Nongame fish — no statewide bag limit in fresh water', season: 'Open year-round', notes: 'Special rules on some Fish Management Areas; verify.', url: 'https://myfwc.com/fishing/freshwater/regulations/general/', verify: true },
 };
-function regStatus(id, t) {
+function regStatus(id, t, sp) {
+  if (typeof WEB_BUILD !== 'undefined') {
+    const where = sp || spot(), st = natState(where);
+    if (st && typeof SE_REGS !== 'undefined' && SE_REGS[st]) { const until = seClosed(SE_REGS[st].sp[id], t, where); return until ? { open: false, until } : { open: true }; }
+    if (st && st !== 'FL') return { open: true };
+  }
   const r = REGS[id]; if (!r || !r.closed) return { open: true };
-  if (typeof WEB_BUILD !== 'undefined') { const st = natState(spot()); if (st && st !== 'FL') return { open: true }; }
   const d = new Date(t), md = (d.getMonth() + 1) * 100 + d.getDate();
   for (const [sm, sd, em, ed] of r.closed) {
     const a = sm * 100 + sd, b = em * 100 + ed;
