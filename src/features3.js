@@ -61,23 +61,28 @@ function lightBand(smp, sky) {
 }
 function colorPicks(spc, sp, t, c) {
   const day = getDay(midnight(t), sp), i = Math.max(0, Math.min(day.samples.length - 1, Math.round((t - day.t0) / Engine.STEP)));
-  const smp = day.samples[i], light = lightBand(smp, c.sky), clarity = c.clarity || 'stained';
+  const smp = day.samples[i], wc = typeof waterCheck === 'function' ? waterCheck(sp, 1.5) : null;
+  const useWc = wc && wc.light && Math.abs(t - Date.now()) < 90 * 60e3; // the photo's light only applies near now
+  const light = useWc ? wc.light : lightBand(smp, c.sky), clarity = c.clarity || 'stained';
   const fresh = ['fresh', 'greatlakes'].includes(sp.water), table = fresh ? COLOR_FRESH : COLOR_SALT;
   const key = light === 'night' ? 'night' : `${clarity}-${light}`, set = table[key] || table['stained-bright'];
   const moon = light === 'night' ? (day.ast.illum > .6 ? ' A bright moon backlights your bait — dark colors stand out best.' : ' Dark night: black, rattles and slow retrieves help fish find it.') : '';
   const lightTxt = { night: 'night', low: smp && (smp.lbin === 'Dawn' || smp.lbin === 'Dusk') ? (smp.lbin === 'Dawn' ? 'first light' : 'last light') : 'cloudy, low light', bright: 'bright light' }[light];
-  return { light, clarity, list: state.fly ? set.fly : set.pick, why: `${lightTxt}, ${clarity} water`, tip: (SPECIES_COLOR[spc.id] || '') + moon, bait: !state.fly && BAIT_FIRST[spc.id] };
+  const tint = c.tint && TINT_TIP[c.tint] ? ' ' + TINT_TIP[c.tint] : '';
+  return { light, clarity, list: state.fly ? set.fly : set.pick, why: `${useWc ? 'measured: ' + wc.lightLabel : lightTxt}, ${clarity}${c.tint && c.tint !== 'clear' ? ' ' + c.tint : ''} water`, tip: (SPECIES_COLOR[spc.id] || '') + moon + tint, bait: !state.fly && BAIT_FIRST[spc.id] };
 }
 function colorCard(r, sp, c) {
   if (!r || !sp) return '';
-  const w = Engine.windows(r, getDay(state.day0, sp), 3).sort((a, b) => b.peak - a.peak)[0], t = w ? w.pk : r.bestStart;
+  const wc = state.day0 === midnight(Date.now()) && typeof waterCheck === 'function' ? waterCheck(sp, 1.5) : null;
+  const w = wc ? null : Engine.windows(r, getDay(state.day0, sp), 3).sort((a, b) => b.peak - a.peak)[0], t = wc ? Date.now() : w ? w.pk : r.bestStart;
   const p = colorPicks(r.sp, sp, t, c);
   const sw = { 'Clear/silver flake': '#cfd8dc', 'Pearl/white': '#f4f1ea', 'Gold or copper ("new penny")': '#c9873a', 'Chartreuse': '#c7e83a', 'Green pumpkin': '#5c6b2e', 'Watermelon': '#6f8f4a', 'Black or dark purple': '#2b2140', 'Black/blue': '#1d2440', 'Black/chartreuse': '#1d1d1d' };
   const chip = s => { const k = Object.keys(sw).find(x => s.startsWith(x.split(' ')[0])) ; const col = sw[s] || (/chartreuse/i.test(s) ? '#c7e83a' : /black|dark/i.test(s) ? '#222' : /gold|copper|root beer/i.test(s) ? '#b9802f' : /pink/i.test(s) ? '#f08fb0' : /white|pearl|silver|glow/i.test(s) ? '#eef0f0' : /green|olive|watermelon/i.test(s) ? '#6b7b3a' : /tan|natural|shrimp/i.test(s) ? '#d7b98c' : /purple/i.test(s) ? '#5a3a7a' : /orange|craw|firetiger/i.test(s) ? '#e0782f' : '#8aa'); return `<span class="cchip"><i style="background:${col}"></i>${esc(s)}</span>`; };
-  return `<div class="colorbox"><div class="small"><b>🎨 ${state.fly ? 'Fly' : 'Lure'} colors</b> for ${w ? fmtT(w.a) + '–' + fmtT(w.b) : 'the best window'} <span class="muted">(${esc(p.why)})</span></div>
+  return `<div class="colorbox"><div class="small"><b>🎨 ${state.fly ? 'Fly' : 'Lure'} colors</b> for ${wc ? 'right now' : w ? fmtT(w.a) + '–' + fmtT(w.b) : 'the best window'} <span class="muted">(${esc(p.why)})</span></div>
    <div class="cchips">${p.list.map(chip).join('')}</div>
    ${p.bait ? `<div class="small muted">${esc(r.sp.name)} are mostly caught on natural bait — colors matter less than fresh bait on the bottom.</div>` : ''}${p.tip ? `<div class="small muted">${esc(p.tip.trim())}</div>` : ''}
-   ${c.auto && c.auto.clarity ? `<div class="small muted">Water clarity ${esc(c.auto.clarity)} — set it under Conditions if you can see it yourself.</div>` : ''}</div>`;
+   ${c.auto && c.auto.clarity && !/photo/.test(c.auto.clarity) ? `<div class="small muted">Water clarity ${esc(c.auto.clarity)}.</div>` : ''}
+   <div class="row" style="margin-top:6px"><button class="btn sm ghost" data-watercheck="1">📷 Check the water now</button></div></div>`;
 }
 
 // ---------- Wind direction: is it blowing onto the shore you fish? ----------

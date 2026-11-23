@@ -46,7 +46,9 @@ function cond(t0 = state.day0) {
     }
     if (a && a.windDir != null) out.windDir = a.windDir;
     const fl = typeof flowInfo === 'function' && t0 === midnight(Date.now()) ? flowInfo(sp) : null;
-    if (!raw.clarity && typeof estClarity === 'function') { const e = estClarity(sp, a, fl); if (e) { out.clarity = e.v; out.auto.clarity = e.why; } }
+    const wc = typeof waterCheck === 'function' && t0 === midnight(Date.now()) ? waterCheck(sp) : null;
+    if (!raw.clarity && wc && wc.clarity) { out.clarity = wc.clarity; out.auto.clarity = 'from your photo at ' + fmtT(wc.t); out.tint = wc.tint; }
+    else if (!raw.clarity && typeof estClarity === 'function') { const e = estClarity(sp, a, fl); if (e) { out.clarity = e.v; out.auto.clarity = e.why; } }
     if (fl) { out.flowF = fl.factor; out.flowTxt = fl.text; }
     const we = typeof windEffect === 'function' ? windEffect(sp, out) : null;
     if (we) { out.windF = we.factor; out.windTxt = we.text; }
@@ -321,7 +323,7 @@ function viewConditions(c) {
    <div class="row"><div><label>Barometer</label>${opt('cPress', c.pressure, [['ff', 'Falling fast (front coming)'], ['f', 'Falling'], ['s', 'Steady'], ['r', 'Rising'], ['pf', 'Rising, post-front bluebird']])}</div></div>
    <div class="row"><div><label>Wind (mph)${c.windSrc === 'nws' ? ' · from NWS' : c.windSrc === 'auto' ? ' · forecast' : ''}</label><input id="cWind" type="number" inputmode="numeric" min="0" max="60" value="${c.windSrc === 'manual' ? esc(c.wind) : ''}" placeholder="${c.windSrc === 'nws' ? esc(c.wind) + ' (NWS forecast)' : c.windSrc === 'auto' ? esc(c.wind) + ' (forecast)' : '10'}"></div><div><label>Water temp °F${c.auto && c.auto.wtemp ? ' · auto' : ''}</label><input id="cTemp" type="number" inputmode="numeric" placeholder="${c.auto && c.auto.wtemp ? esc(c.wtemp) + ' (' + esc(c.auto.wtemp) + ')' : '~' + WATER_TEMP[salt ? 'salt' : 'fresh'][month] + ' typical'}" value="${c.auto && c.auto.wtemp ? '' : esc(c.wtemp)}"></div></div>
    <div class="row"><div><label>Sky</label>${opt('cSky', c.sky, [['sun', 'Sunny'], ['partly', 'Partly cloudy'], ['overcast', 'Overcast'], ['rain', 'Rain / storms']])}</div><div><label>Water clarity</label>${opt('cClar', WEB && c.auto && c.auto.clarity ? '' : c.clarity, [...(WEB ? [['', 'Auto' + (c.auto && c.auto.clarity ? ' (' + c.clarity + ')' : '')]] : []), ['clear', 'Clear'], ['stained', 'Stained'], ['muddy', 'Muddy']])}${WEB && c.auto && c.auto.clarity ? `<div class="small muted">${esc(c.auto.clarity)}</div>` : ''}}</div></div>
-   ${WEB ? facingRow(c) : ''}
+   ${WEB ? facingRow(c) + '<div class="row"><button class="btn sm ghost" data-watercheck="1">📷 Check the water (light &amp; clarity from a photo)</button></div>' : ''}
    <h3>Check live</h3>${WEB ? webLiveLinks() : `<div class="small">
    <a href="https://www.weather.gov/jax/" target="_blank" rel="noopener">NWS Jacksonville forecast &amp; marine</a> ·
    <a href="https://www.ndbc.noaa.gov/station_page.php?station=mypf1" target="_blank" rel="noopener">Mayport gauge (pressure, water temp)</a> ·

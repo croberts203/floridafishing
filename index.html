@@ -1712,7 +1712,9 @@ function cond(t0 = state.day0) {
     }
     if (a && a.windDir != null) out.windDir = a.windDir;
     const fl = typeof flowInfo === 'function' && t0 === midnight(Date.now()) ? flowInfo(sp) : null;
-    if (!raw.clarity && typeof estClarity === 'function') { const e = estClarity(sp, a, fl); if (e) { out.clarity = e.v; out.auto.clarity = e.why; } }
+    const wc = typeof waterCheck === 'function' && t0 === midnight(Date.now()) ? waterCheck(sp) : null;
+    if (!raw.clarity && wc && wc.clarity) { out.clarity = wc.clarity; out.auto.clarity = 'from your photo at ' + fmtT(wc.t); out.tint = wc.tint; }
+    else if (!raw.clarity && typeof estClarity === 'function') { const e = estClarity(sp, a, fl); if (e) { out.clarity = e.v; out.auto.clarity = e.why; } }
     if (fl) { out.flowF = fl.factor; out.flowTxt = fl.text; }
     const we = typeof windEffect === 'function' ? windEffect(sp, out) : null;
     if (we) { out.windF = we.factor; out.windTxt = we.text; }
@@ -1987,7 +1989,7 @@ function viewConditions(c) {
    <div class="row"><div><label>Barometer</label>${opt('cPress', c.pressure, [['ff', 'Falling fast (front coming)'], ['f', 'Falling'], ['s', 'Steady'], ['r', 'Rising'], ['pf', 'Rising, post-front bluebird']])}</div></div>
    <div class="row"><div><label>Wind (mph)${c.windSrc === 'nws' ? ' · from NWS' : c.windSrc === 'auto' ? ' · forecast' : ''}</label><input id="cWind" type="number" inputmode="numeric" min="0" max="60" value="${c.windSrc === 'manual' ? esc(c.wind) : ''}" placeholder="${c.windSrc === 'nws' ? esc(c.wind) + ' (NWS forecast)' : c.windSrc === 'auto' ? esc(c.wind) + ' (forecast)' : '10'}"></div><div><label>Water temp °F${c.auto && c.auto.wtemp ? ' · auto' : ''}</label><input id="cTemp" type="number" inputmode="numeric" placeholder="${c.auto && c.auto.wtemp ? esc(c.wtemp) + ' (' + esc(c.auto.wtemp) + ')' : '~' + WATER_TEMP[salt ? 'salt' : 'fresh'][month] + ' typical'}" value="${c.auto && c.auto.wtemp ? '' : esc(c.wtemp)}"></div></div>
    <div class="row"><div><label>Sky</label>${opt('cSky', c.sky, [['sun', 'Sunny'], ['partly', 'Partly cloudy'], ['overcast', 'Overcast'], ['rain', 'Rain / storms']])}</div><div><label>Water clarity</label>${opt('cClar', WEB && c.auto && c.auto.clarity ? '' : c.clarity, [...(WEB ? [['', 'Auto' + (c.auto && c.auto.clarity ? ' (' + c.clarity + ')' : '')]] : []), ['clear', 'Clear'], ['stained', 'Stained'], ['muddy', 'Muddy']])}${WEB && c.auto && c.auto.clarity ? `<div class="small muted">${esc(c.auto.clarity)}</div>` : ''}}</div></div>
-   ${WEB ? facingRow(c) : ''}
+   ${WEB ? facingRow(c) + '<div class="row"><button class="btn sm ghost" data-watercheck="1">📷 Check the water (light &amp; clarity from a photo)</button></div>' : ''}
    <h3>Check live</h3>${WEB ? webLiveLinks() : `<div class="small">
    <a href="https://www.weather.gov/jax/" target="_blank" rel="noopener">NWS Jacksonville forecast &amp; marine</a> ·
    <a href="https://www.ndbc.noaa.gov/station_page.php?station=mypf1" target="_blank" rel="noopener">Mayport gauge (pressure, water temp)</a> ·
@@ -2821,23 +2823,28 @@ function lightBand(smp, sky) {
 }
 function colorPicks(spc, sp, t, c) {
   const day = getDay(midnight(t), sp), i = Math.max(0, Math.min(day.samples.length - 1, Math.round((t - day.t0) / Engine.STEP)));
-  const smp = day.samples[i], light = lightBand(smp, c.sky), clarity = c.clarity || 'stained';
+  const smp = day.samples[i], wc = typeof waterCheck === 'function' ? waterCheck(sp, 1.5) : null;
+  const useWc = wc && wc.light && Math.abs(t - Date.now()) < 90 * 60e3; // the photo's light only applies near now
+  const light = useWc ? wc.light : lightBand(smp, c.sky), clarity = c.clarity || 'stained';
   const fresh = ['fresh', 'greatlakes'].includes(sp.water), table = fresh ? COLOR_FRESH : COLOR_SALT;
   const key = light === 'night' ? 'night' : `${clarity}-${light}`, set = table[key] || table['stained-bright'];
   const moon = light === 'night' ? (day.ast.illum > .6 ? ' A bright moon backlights your bait — dark colors stand out best.' : ' Dark night: black, rattles and slow retrieves help fish find it.') : '';
   const lightTxt = { night: 'night', low: smp && (smp.lbin === 'Dawn' || smp.lbin === 'Dusk') ? (smp.lbin === 'Dawn' ? 'first light' : 'last light') : 'cloudy, low light', bright: 'bright light' }[light];
-  return { light, clarity, list: state.fly ? set.fly : set.pick, why: `${lightTxt}, ${clarity} water`, tip: (SPECIES_COLOR[spc.id] || '') + moon, bait: !state.fly && BAIT_FIRST[spc.id] };
+  const tint = c.tint && TINT_TIP[c.tint] ? ' ' + TINT_TIP[c.tint] : '';
+  return { light, clarity, list: state.fly ? set.fly : set.pick, why: `${useWc ? 'measured: ' + wc.lightLabel : lightTxt}, ${clarity}${c.tint && c.tint !== 'clear' ? ' ' + c.tint : ''} water`, tip: (SPECIES_COLOR[spc.id] || '') + moon + tint, bait: !state.fly && BAIT_FIRST[spc.id] };
 }
 function colorCard(r, sp, c) {
   if (!r || !sp) return '';
-  const w = Engine.windows(r, getDay(state.day0, sp), 3).sort((a, b) => b.peak - a.peak)[0], t = w ? w.pk : r.bestStart;
+  const wc = state.day0 === midnight(Date.now()) && typeof waterCheck === 'function' ? waterCheck(sp, 1.5) : null;
+  const w = wc ? null : Engine.windows(r, getDay(state.day0, sp), 3).sort((a, b) => b.peak - a.peak)[0], t = wc ? Date.now() : w ? w.pk : r.bestStart;
   const p = colorPicks(r.sp, sp, t, c);
   const sw = { 'Clear/silver flake': '#cfd8dc', 'Pearl/white': '#f4f1ea', 'Gold or copper ("new penny")': '#c9873a', 'Chartreuse': '#c7e83a', 'Green pumpkin': '#5c6b2e', 'Watermelon': '#6f8f4a', 'Black or dark purple': '#2b2140', 'Black/blue': '#1d2440', 'Black/chartreuse': '#1d1d1d' };
   const chip = s => { const k = Object.keys(sw).find(x => s.startsWith(x.split(' ')[0])) ; const col = sw[s] || (/chartreuse/i.test(s) ? '#c7e83a' : /black|dark/i.test(s) ? '#222' : /gold|copper|root beer/i.test(s) ? '#b9802f' : /pink/i.test(s) ? '#f08fb0' : /white|pearl|silver|glow/i.test(s) ? '#eef0f0' : /green|olive|watermelon/i.test(s) ? '#6b7b3a' : /tan|natural|shrimp/i.test(s) ? '#d7b98c' : /purple/i.test(s) ? '#5a3a7a' : /orange|craw|firetiger/i.test(s) ? '#e0782f' : '#8aa'); return `<span class="cchip"><i style="background:${col}"></i>${esc(s)}</span>`; };
-  return `<div class="colorbox"><div class="small"><b>🎨 ${state.fly ? 'Fly' : 'Lure'} colors</b> for ${w ? fmtT(w.a) + '–' + fmtT(w.b) : 'the best window'} <span class="muted">(${esc(p.why)})</span></div>
+  return `<div class="colorbox"><div class="small"><b>🎨 ${state.fly ? 'Fly' : 'Lure'} colors</b> for ${wc ? 'right now' : w ? fmtT(w.a) + '–' + fmtT(w.b) : 'the best window'} <span class="muted">(${esc(p.why)})</span></div>
    <div class="cchips">${p.list.map(chip).join('')}</div>
    ${p.bait ? `<div class="small muted">${esc(r.sp.name)} are mostly caught on natural bait — colors matter less than fresh bait on the bottom.</div>` : ''}${p.tip ? `<div class="small muted">${esc(p.tip.trim())}</div>` : ''}
-   ${c.auto && c.auto.clarity ? `<div class="small muted">Water clarity ${esc(c.auto.clarity)} — set it under Conditions if you can see it yourself.</div>` : ''}</div>`;
+   ${c.auto && c.auto.clarity && !/photo/.test(c.auto.clarity) ? `<div class="small muted">Water clarity ${esc(c.auto.clarity)}.</div>` : ''}
+   <div class="row" style="margin-top:6px"><button class="btn sm ghost" data-watercheck="1">📷 Check the water now</button></div></div>`;
 }
 
 // ---------- Wind direction: is it blowing onto the shore you fish? ----------
@@ -3082,6 +3089,114 @@ async function drawRamps() {
     if (!lists.flat().length) toast('No boat ramps mapped here');
   } finally { RAMPS.busy = false; }
 }
+
+// ===== Check the water: a photo gives the light level (from its exposure data) and Claude reads clarity & tint =====
+
+// Read exposure time, f-number and ISO from a JPEG's EXIF block (no library needed).
+async function readExposure(file) {
+  try {
+    const buf = await file.slice(0, 256 * 1024).arrayBuffer(), v = new DataView(buf);
+    if (v.getUint16(0) !== 0xFFD8) return null;
+    let p = 2;
+    while (p + 4 < v.byteLength) {
+      const m = v.getUint16(p), len = v.getUint16(p + 2);
+      if (m === 0xFFE1 && v.getUint32(p + 4) === 0x45786966) return parseTiff(v, p + 10);
+      if ((m & 0xFF00) !== 0xFF00) break;
+      p += 2 + len;
+    }
+  } catch (e) { }
+  return null;
+}
+function parseTiff(v, t) {
+  const le = v.getUint16(t) === 0x4949, u16 = o => v.getUint16(t + o, le), u32 = o => v.getUint32(t + o, le);
+  const out = {};
+  const rat = o => { const a = u32(o), b = u32(o + 4); return b ? a / b : null; };
+  const str = (o, n) => { let s = ''; for (let i = 0; i < n - 1; i++) s += String.fromCharCode(v.getUint8(t + o + i)); return s; };
+  const ifd = (off, cb) => { const n = u16(off); for (let i = 0; i < n; i++) { const e = off + 2 + i * 12; cb(u16(e), u16(e + 2), u32(e + 4), e + 8); } };
+  let exifOff = null;
+  ifd(u32(4), (tag, type, cnt, vo) => { if (tag === 0x8769) exifOff = u32(vo - 0); });
+  if (exifOff == null) return null;
+  ifd(exifOff, (tag, type, cnt, vo) => {
+    if (tag === 0x829A) out.t = rat(u32(vo));          // ExposureTime (s)
+    else if (tag === 0x829D) out.f = rat(u32(vo));     // FNumber
+    else if (tag === 0x8827) out.iso = u16(vo);        // ISO
+    else if (tag === 0x9003 && cnt >= 19) out.taken = str(u32(vo), cnt); // DateTimeOriginal "YYYY:MM:DD HH:MM:SS"
+  });
+  if (!out.t || !out.f || !out.iso) return null;
+  out.ev = Math.log2(out.f * out.f / out.t) - Math.log2(out.iso / 100); // exposure value at ISO 100
+  if (out.taken) { const [d, h] = out.taken.split(' '), [Y, M, D] = d.split(':').map(Number), [hh, mm, ss] = h.split(':').map(Number); out.takenMs = new Date(Y, M - 1, D, hh, mm, ss).getTime(); }
+  return out;
+}
+// EV100 → what an angler would call it
+function lightFromEV(ev) {
+  if (ev < 4) return { band: 'night', label: 'dark — night or deep twilight' };
+  if (ev < 8) return { band: 'low', label: 'very low light — dawn, dusk or a storm' };
+  if (ev < 11.5) return { band: 'low', label: 'low light — heavy overcast or shade' };
+  if (ev < 13.5) return { band: 'bright', label: 'moderate — bright overcast or hazy sun' };
+  return { band: 'bright', label: 'bright sun' };
+}
+var TINT_TIP = {
+  tannic: 'Tea-stained (tannic) water: chartreuse, gold, orange and white stand out; browns and green pumpkin disappear.',
+  green: 'Green water: chartreuse and white show up well; natural greens blend in.',
+  brown: 'Muddy brown water: go dark (black, purple) for a silhouette, or loud chartreuse, with rattles or vibration.',
+  blue: 'Blue open water: natural blue/white, silver and pink — or dark colors on the surface at low light.',
+  clear: 'Clear water: natural, translucent colors and lighter line; fish see everything.',
+};
+
+// The latest water check for a spot, if it's still current.
+function waterCheck(sp, maxH) {
+  const w = (state.settings.waterCheck || {})[sp && sp.id];
+  return w && Date.now() - w.t < (maxH || 8) * 3600e3 && midnight(w.t) === midnight(Date.now()) ? w : null;
+}
+
+function waterSheet() {
+  const sp = spot();
+  $('#sheet').innerHTML = `<div class="in"><div class="hrow"><h2 style="flex:1;margin:0">Check the water</h2><button class="btn sm ghost" data-close="1">Close</button></div>
+   <div class="small muted" style="margin:6px 0 10px">Take a photo of the water at ${esc(sp.name)} — aim at the water near you at an angle (not straight into the sun). Polarized sunglasses over the lens cut glare. The photo's exposure tells the light level; ${Cloud.user ? 'Claude reads the clarity and color' : '<b>sign in</b> (Catch log) to have Claude read the clarity and color too'}.</div>
+   <label class="btn ghost" style="display:block;text-align:center">📷 Take photo<input id="wcFile" type="file" accept="image/*" capture="environment" style="display:none"></label>
+   <img id="wcPrev" alt="" style="display:none;width:100%;max-height:260px;object-fit:cover;border-radius:12px;margin-top:10px">
+   <div id="wcOut" style="margin-top:10px"></div></div>`;
+  $('#sheet').classList.add('on');
+}
+async function runWaterCheck(file) {
+  const out = $('#wcOut'), sp = spot(), res = { t: Date.now() };
+  $('#wcPrev').src = URL.createObjectURL(file); $('#wcPrev').style.display = 'block';
+  const ex = await readExposure(file);
+  const lines = [];
+  if (ex) {
+    const old = ex.takenMs && Math.abs(Date.now() - ex.takenMs) > 45 * 60e3;
+    const L = lightFromEV(ex.ev);
+    if (old) lines.push(`<div class="small muted">This photo was taken ${fmtD(ex.takenMs)} ${fmtT(ex.takenMs)}, so its light level isn't used for right now.</div>`);
+    else { res.ev = Math.round(ex.ev * 10) / 10; res.light = L.band; res.lightLabel = L.label; lines.push(`<div class="kvrow"><span>☀️ Light</span><b>${esc(L.label)}</b></div>`); }
+  } else lines.push('<div class="small muted">No exposure data in this photo (some apps strip it) — light comes from the sun angle and cloud forecast instead.</div>');
+  out.innerHTML = lines.join('') + (Cloud.user ? '<div class="small muted">🔎 Reading the water…</div>' : '');
+  if (Cloud.user && Cloud.sb && navigator.onLine !== false) {
+    try {
+      const img = await shrink(file);
+      const { data: sess } = await Cloud.sb.auth.getSession();
+      const r = await fetch(SB_URL + '/functions/v1/catch-photo', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + sess.session.access_token, apikey: SB_KEY },
+        body: JSON.stringify({ mode: 'water', image: img, media_type: 'image/jpeg', region: (REGION_LABEL[spotRegion(sp)] || 'the US') + (natState(sp) ? ', ' + natState(sp) : ''), water: (WATER_LABEL[sp.water] || sp.water) + (sp.water === 'fresh' && typeof fwKindOf === 'function' && fwKindOf(sp) ? ' ' + fwKindOf(sp) : ''), light: res.lightLabel || '' }) });
+      const j = await r.json();
+      if (!r.ok) lines.push(`<div class="small" style="color:var(--bad)">${esc(j.message || 'Couldn’t read the water')}</div>`);
+      else if (j.is_water === false) lines.push('<div class="small">That doesn’t look like water — try again aimed at the water.</div>');
+      else if (j.confident === false || j.glare) lines.push(`<div class="small">Hard to judge from this photo${j.note ? ': ' + esc(j.note) : ''}. ${esc(j.retake_tip || 'Try again at an angle, out of the glare.')}</div>`);
+      if (r.ok && j.is_water !== false && ['clear', 'stained', 'muddy'].includes(j.clarity) && j.confident !== false) {
+        Object.assign(res, { clarity: j.clarity, tint: j.tint, vis: j.visibility_ft, surface: j.surface, sky: j.sky, note: j.note });
+        lines.push(`<div class="kvrow"><span>💧 Clarity</span><b>${esc(j.clarity)}${j.visibility_ft != null ? ` · ~${esc(j.visibility_ft)} ft` : ''}</b></div>
+          ${j.tint ? `<div class="kvrow"><span>🎨 Color</span><b>${esc({ tannic: 'tea-stained (tannic)', green: 'green', brown: 'muddy brown', blue: 'blue', clear: 'clear' }[j.tint] || j.tint)}</b></div>` : ''}
+          ${j.surface ? `<div class="kvrow"><span>🌊 Surface</span><b>${esc(j.surface)}</b></div>` : ''}${j.note ? `<div class="small muted">${esc(j.note)}</div>` : ''}`);
+      }
+    } catch (e) { lines.push('<div class="small muted">Couldn’t reach Claude — the light reading still counts.</div>'); }
+  }
+  if (res.light || res.clarity) {
+    state.settings.waterCheck = state.settings.waterCheck || {}; state.settings.waterCheck[sp.id] = res; Store.saveSettings();
+    lines.push(`<div class="note">Saved for ${esc(sp.name)} — the score and color picks now use this. Light counts for about 90 minutes; clarity for the rest of today.</div><div class="row" style="margin-top:8px"><button class="btn" data-close="1">See colors</button></div>`);
+    render();
+  }
+  out.innerHTML = lines.join('');
+}
+document.addEventListener('change', e => { if (e.target.id === 'wcFile' && e.target.files[0]) runWaterCheck(e.target.files[0]); });
+document.addEventListener('click', e => { if (e.target.closest('[data-watercheck]')) { e.preventDefault(); waterSheet(); } });
 
 // ===== Website-only UI: spots anywhere in the US, accounts, nationwide marine & rules =====
 function natState(sp) { const p = sp && sp.lat != null ? natPoint(sp) : null; return p ? p.state : null; }
