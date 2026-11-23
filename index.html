@@ -1215,6 +1215,13 @@ function natNow(sp) {
   });
   return c ? c.data : null;
 }
+// A lake temperature the user entered for this spot, good for 3 days either side of the reading.
+function lakeTemp(sp, t0) {
+  const r = sp && sp.water === 'fresh' && state.settings.lakeTemp && state.settings.lakeTemp[sp.id];
+  if (!r || Math.abs(t0 + 43200e3 - r.t) > 3.5 * 864e5) return null;
+  const h = (Date.now() - r.t) / 36e5;
+  return { v: r.v, t: r.t, when: h < 1 ? 'just now' : h < 24 ? Math.round(h) + ' h ago' : Math.round(h / 24) + ' d ago' };
+}
 function liveWaterTemp(sp) {
   const n = natNow(sp); if (!n) return null;
   const fresh = ['fresh', 'greatlakes'].includes(sp.water);
@@ -1269,7 +1276,9 @@ function cond(t0 = state.day0) {
       if ((raw.wind === undefined || raw.wind === '' || raw.wind === null) && a.wind != null && windSrc !== 'nws') { out.wind = a.wind; out.windSrc = 'auto'; }
       if ((raw.wtemp === undefined || raw.wtemp === '') && a.wtemp != null) { out.wtemp = a.wtemp; out.auto.wtemp = a.wsrc; }
     }
-    if ((raw.wtemp === undefined || raw.wtemp === '') && t0 === midnight(Date.now())) { const lw = liveWaterTemp(sp); if (lw) { out.wtemp = lw.v; out.auto.wtemp = 'live: ' + lw.src; } }
+    const lt = lakeTemp(sp, t0);
+    if ((raw.wtemp === undefined || raw.wtemp === '') && lt) { out.wtemp = lt.v; out.auto.wtemp = 'you entered ' + lt.when; }
+    else if ((raw.wtemp === undefined || raw.wtemp === '') && t0 === midnight(Date.now())) { const lw = liveWaterTemp(sp); if (lw) { out.wtemp = lw.v; out.auto.wtemp = 'live: ' + lw.src; } }
     if (out.wtemp === '' && sp.lat != null) { // rough fallback by latitude
       const m = new Date(t0 + 43200e3).getMonth(), salt = !['fresh', 'greatlakes'].includes(sp.water);
       out.wtemp = Math.round(Math.max(36, Math.min(88, WATER_TEMP[salt ? 'salt' : 'fresh'][m] - (sp.lat - 30.3) * 1.4))); out.auto.wtemp = 'typical for the season';
@@ -1612,7 +1621,7 @@ function catchCond(ts, spotId) {
   const t0 = midnight(ts), day = getDay(t0, sp);
   const i = Math.min(day.samples.length - 1, Math.max(0, Math.round((ts - t0) / Engine.STEP)));
   const s = day.samples[i], raw = state.settings.cond[dkey(t0)] || {}, au = WEB ? (autoCond(sp, t0) || {}) : {};
-  const c = { pressure: raw.pressure || au.pressure, wind: raw.wind ?? au.wind, sky: raw.sky || au.sky, clarity: raw.clarity, wtemp: raw.wtemp || au.wtemp };
+  const c = { pressure: raw.pressure || au.pressure, wind: raw.wind ?? au.wind, sky: raw.sky || au.sky, clarity: raw.clarity, wtemp: raw.wtemp || (WEB && lakeTemp(sp, t0) || {}).v || au.wtemp };
   return {
     stage: s.ts ? Engine.stageLabel(s.ts) : null, stageBin: s.ts ? Engine.stageBin(s.ts) : null, tideFt: s.ts ? +s.ts.h.toFixed(2) : null,
     sol: s.solTag || 'none', lbin: s.lbin, moon: day.ast.phaseName, illum: Math.round(day.ast.illum * 100),
@@ -2128,29 +2137,47 @@ function viewNow() {
   const sp = spot(); if (sp.lat == null) return '';
   if (state.day0 !== midnight(Date.now())) return '';
   const n = natNow(sp);
-  if (!n) return `<div class="card"><h2>Right now</h2><div class="small muted">Loading live gauges and buoys…</div></div>`;
+  if (!n) return `<div class="card"><h2>Right now</h2><div class="small muted">Loading live gauges and buoys…</div>${lakeBox(sp)}</div>`;
   const rows = [];
+  const lake = lakeBox(sp);
   const kv = (big, label, sub) => `<div class="kv"><b>${big}</b><span>${label}${sub ? '<br>' + sub : ''}</span></div>`;
-  const c = n.coops, b = n.buoy, u = n.usgs;
+  const fresh = sp.water === 'fresh', c = fresh ? null : n.coops, b = fresh ? null : n.buoy, u = n.usgs;
   if (c && c.waterLevel) {
     const dv = c.waterLevel.predicted != null ? c.waterLevel.ft - c.waterLevel.predicted : null;
     rows.push(kv(`${c.waterLevel.ft.toFixed(1)} ft`, 'Water level now', dv != null && Math.abs(dv) >= 0.2 ? `<span style="color:var(--accent2)">${dv > 0 ? '+' : ''}${dv.toFixed(1)} ft vs. predicted</span>` : dv != null ? 'on prediction' : ''));
   }
-  const wt = liveWaterTemp(sp); if (wt) rows.push(kv(`${wt.v}°F`, 'Water temp', esc(wt.src)));
+  const wt = liveWaterTemp(sp); if (wt) rows.push(kv(`${wt.v}°F`, sp.water === 'fresh' ? 'River gauge temp' : 'Water temp', esc(wt.src)));
   const w = c && c.wind ? { mph: c.wind.mph, g: c.wind.gustMph, dir: c.wind.dir } : b && b.windMph != null ? { mph: b.windMph, g: b.gustMph, dir: compass(b.windDeg) } : null;
   if (w) rows.push(kv(`${Math.round(w.mph)} mph`, 'Wind ' + esc(w.dir || ''), w.g ? 'gusts ' + Math.round(w.g) : ''));
   if (b && b.waveFt != null) rows.push(kv(`${b.waveFt} ft`, 'Waves', `${b.periodS ? b.periodS + ' s period · ' : ''}${esc(b.name)}`));
   const pres = c && c.pressureMb ? c.pressureMb.v : b && b.pressureMb; if (pres) rows.push(kv(`${(pres * 0.02953).toFixed(2)} in`, 'Barometer', b && b.pressureTendMb != null ? `${b.pressureTendMb > 0 ? 'rising' : b.pressureTendMb < 0 ? 'falling' : 'steady'} ${Math.abs(b.pressureTendMb).toFixed(1)} mb/3h` : ''));
   if (u && u.flowCfs) rows.push(kv(`${Math.round(u.flowCfs.v).toLocaleString()} cfs`, 'River flow', esc(u.name)));
   if (u && u.gageFt && (sp.water === 'fresh' || !c)) rows.push(kv(`${u.gageFt.v.toFixed(2)} ft`, 'Gage height', esc(u.name)));
-  if (!rows.length) return `<div class="card"><h2>Right now</h2><div class="small muted">No live gauges or buoys reporting near this spot.</div></div>`;
+  if (!rows.length) return `<div class="card"><h2>Right now</h2><div class="small muted">No live gauges or buoys reporting near this spot.</div>${lake}</div>`;
   const times = [c && c.waterLevel && utc(c.waterLevel.t), b && utc(b.t), u && (u.flowCfs || u.gageFt) && Date.parse((u.flowCfs || u.gageFt).t)].filter(Boolean);
   const dv = c && c.waterLevel && c.waterLevel.predicted != null ? c.waterLevel.ft - c.waterLevel.predicted : 0;
   const note = Math.abs(dv) >= 0.5 ? `<div class="alert" style="margin-top:8px">Water is running ${Math.abs(dv).toFixed(1)} ft ${dv > 0 ? 'higher' : 'lower'} than predicted — wind${sp.water === 'inshore' ? ' or river flow' : ''} is ${dv > 0 ? 'pushing water in; flats and grass flood earlier and deeper' : 'holding water out; flats drain earlier'}.</div>` : '';
   const links = [c && `<a href="https://tidesandcurrents.noaa.gov/stationhome.html?id=${esc(c.id)}" target="_blank" rel="noopener">NOAA ${esc(c.name)}</a>`, b && `<a href="https://www.ndbc.noaa.gov/station_page.php?station=${esc(b.id)}" target="_blank" rel="noopener">Buoy ${esc(b.id)}</a>`, u && `<a href="https://waterdata.usgs.gov/monitoring-location/${esc(u.id)}/" target="_blank" rel="noopener">USGS gauge</a>`, `<a href="https://radar.weather.gov/" target="_blank" rel="noopener">Radar</a>`].filter(Boolean).join(' · ');
   return `<div class="card"><div class="hrow"><h2 style="flex:1;margin:0">Right now</h2><span class="small muted">${times.length ? 'updated ' + ago(Math.max(...times)) : ''}</span></div>
-   <div class="grid2" style="margin-top:8px">${rows.join('')}</div>${note}<div class="note">Live readings from the nearest NOAA gauge${b ? ', NDBC buoy' : ''}${u ? ' and USGS stream gauge' : ''}. ${links}</div></div>`;
+   <div class="grid2" style="margin-top:8px">${rows.join('')}</div>${note}${lake}<div class="note">Live readings from the nearest ${[c && 'NOAA gauge', b && 'NDBC buoy', u && 'USGS stream gauge'].filter(Boolean).join(', ').replace(/, ([^,]*)$/, ' and $1') || 'stations'}. ${links}</div></div>`;
 }
+// Freshwater lakes rarely have a temperature sensor, so let the angler enter one.
+function lakeBox(sp) {
+  if (sp.water !== 'fresh') return '';
+  const lt = lakeTemp(sp, midnight(Date.now())), a = cond();
+  return `<div class="lakebox" style="margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:10px">
+   <label for="lakeT" style="display:block;font-weight:600">Lake water temp °F <span class="small muted">(optional)</span></label>
+   <div style="display:flex;gap:8px;margin-top:6px;align-items:center"><input id="lakeT" type="number" inputmode="decimal" min="32" max="95" step="1" style="flex:1 1 auto;min-width:0;width:auto" value="${lt ? lt.v : ''}" placeholder="${lt ? '' : a.wtemp ? a.wtemp + ' estimated — enter yours' : 'from your sonar or thermometer'}">${lt ? '<button class="btn ghost" id="lakeClr" type="button" style="flex:0 0 auto;width:auto;margin:0;padding:8px 14px">Clear</button>' : ''}</div>
+   <div class="small muted" style="margin-top:4px">${lt ? `Using ${lt.v}°F you entered ${lt.when} for the bite score (kept for 3 days).` : 'Lakes usually have no live sensor. Enter a reading from your graph or a thermometer and the bite score will use it for this spot for 3 days.'}</div></div>`;
+}
+function saveLakeTemp(v) {
+  const sp = spot(), m = { ...(state.settings.lakeTemp || {}) };
+  if (v === '' || v == null || isNaN(+v)) delete m[sp.id]; else m[sp.id] = { v: Math.round(+v), t: Date.now() };
+  state.settings.lakeTemp = m; Store.saveSettings(); dayCache.clear();
+  const y = window.scrollY; render(); window.scrollTo(0, y);
+}
+document.addEventListener('change', e => { if (e.target.id === 'lakeT') { const v = e.target.value; if (v !== '' && (+v < 32 || +v > 95)) { toast('Enter 32–95 °F'); return; } saveLakeTemp(v); } });
+document.addEventListener('click', e => { if (e.target.id === 'lakeClr') saveLakeTemp(''); });
 setInterval(() => { if (document.visibilityState === 'visible' && state.tab === 'forecast' && state.day0 === midnight(Date.now())) render(); }, 10 * 60e3);
 </script>
 </body></html>
