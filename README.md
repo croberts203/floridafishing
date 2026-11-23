@@ -1,6 +1,6 @@
-# Jax Bite Forecast — fishforecast.net
+# Fish Forecast — fishforecast.net
 
-Fishing bite forecast for Jacksonville, Florida: species-by-species bite scores, tides (NOAA Mayport harmonics), sun/moon/solunar, live NWS small craft advisory and seas, a spot picker, Florida regulations, fly-fishing mode and an on-device catch log.
+Fishing bite forecast for anywhere in the US (built from a Jacksonville, FL original): species-by-species bite scores, tides (NOAA Mayport harmonics), sun/moon/solunar, live NWS small craft advisory and seas, a spot picker, Florida regulations, fly-fishing mode and an on-device catch log.
 
 Static site for GitHub Pages — no build step needed. `index.html` is generated from the app sources; `CNAME` holds the custom domain.
 
