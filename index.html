@@ -115,6 +115,16 @@ h1{white-space:nowrap;min-width:0}h1 small{white-space:nowrap;overflow:hidden;te
 .sw input:checked+span{background:var(--accent)}.sw input:checked+span:before{transform:translateX(18px);background:#06221c}
 a.btn{display:inline-block;text-align:center;text-decoration:none;box-sizing:border-box}
 .row a.btn{flex:1}
+.fwline{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin:6px 0 2px}.fwline select{width:auto;padding:4px 8px;font-size:12px;margin-left:auto}
+.fc-verdict{margin-top:8px;padding:8px 10px;border-radius:10px;font-weight:600;font-size:14px}.fc-verdict.good{background:rgba(63,208,181,.15);color:var(--accent)}.fc-verdict.ok{background:rgba(242,184,75,.14);color:var(--accent2)}.fc-verdict.poor{background:rgba(224,122,74,.15);color:#f0a07a}
+.mapcard{padding:10px}.maptools{flex-wrap:wrap;align-items:center;gap:4px 12px;margin-bottom:8px}.maptools .chk{margin:0}.maptools select{width:auto;flex:1;min-width:130px}
+#leafmap{height:62vh;min-height:340px;border-radius:12px;overflow:hidden;background:#0d2230}
+.mpinwrap{background:none;border:0}.mpin{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 12px system-ui;color:#06221c;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.45)}
+.cpin{width:40px;height:22px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8))}.cpin.approx{opacity:.7}
+.leaflet-popup-content{font:13px system-ui;color:#123}.leaflet-popup-content .btn{color:#06221c}
+.cphoto{width:64px;height:48px;object-fit:cover;border-radius:8px;flex:0 0 auto;margin-right:8px;cursor:pointer}
+.photofield{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.photofield img{width:96px;height:72px;object-fit:cover;border-radius:8px}.filebtn{cursor:pointer;display:inline-block}
+nav button{min-width:0}
 </style></head>
 <body>
 <header><div class="hrow"><span id="logo"></span><h1>Fish Bite Forecast<small>Bites · tides · marine</small></h1><div class="seg" id="flyseg"></div></div></header>
@@ -123,7 +133,7 @@ a.btn{display:inline-block;text-align:center;text-decoration:none;box-sizing:bor
 <button data-tab="forecast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 15c2.5-3 5-3 7.5 0s5 3 7.5 0 2.5-1.5 3-2"/><path d="M3 19c2.5-3 5-3 7.5 0s5 3 7.5 0"/><circle cx="17" cy="6" r="2.5"/></svg>Forecast</button>
 <button data-tab="species"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M2 12c3-5 9-7 14-3l4-3v12l-4-3c-5 4-11 2-14-3z"/><circle cx="8" cy="11" r="1" fill="currentColor"/></svg>Species</button>
 <button data-tab="log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Catch log</button>
-<button data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>Settings</button>
+<button data-tab="map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg>Map</button><button data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>Settings</button>
 </nav>
 <div class="sheet" id="sheet"></div><div class="toast" id="toast"></div>
 <script>const WEB_BUILD=true;
@@ -512,7 +522,7 @@ const US_SPECIES = [
     where: 'Large lakes and rivers — weed edges, rock bars and current breaks.', bait: ['Bucktail', 'Large glide bait', 'Topwater', 'Sucker rig'],
     tips: 'Fish of 10,000 casts. Moon phases and front changes trigger feeding; always figure-eight at the boat.',
     fly: { r: 2, kit: '10 wt, intermediate, wire bite tippet', flies: ['Large articulated streamer'], tips: 'Long casts, big flies, patient retrieves.' } },
-  { id: 'rainbow', name: 'Rainbow trout & steelhead', grp: 'Freshwater', waters: ['fresh', 'greatlakes'], lat: [30, 49], temp: [38, 50, 64, 72], tide: null, light: [.9, .7, .95, .3], ps: .6, wt: 18, sight: .4,
+  { id: 'rainbow', name: 'Rainbow trout & steelhead', grp: 'Freshwater', waters: ['fresh', 'greatlakes'], lat: [33.5, 49], temp: [38, 50, 64, 72], tide: null, light: [.9, .7, .95, .3], ps: .6, wt: 18, sight: .4,
     where: 'Cold streams, tailwaters below dams, stocked lakes; steelhead in Great Lakes and Pacific tributaries.', bait: ['Spinner', 'PowerBait (stocked fish)', 'Small spoon', 'Drift-fished eggs or worms'],
     tips: 'Cold, oxygenated water. Watch hatch times; tailwater generation schedules change everything.',
     fly: { r: 3, kit: '4–6 wt (8 wt steelhead), floating', flies: ['Pheasant tail', 'Elk hair caddis', 'Parachute Adams', 'Woolly bugger', 'Egg pattern'], tips: 'Match the hatch; dead-drift nymphs under an indicator when nothing is rising.' } },
@@ -1519,9 +1529,47 @@ function lakeTemp(sp, t0) {
 function liveWaterTemp(sp) {
   const n = natNow(sp); if (!n) return null;
   const fresh = ['fresh', 'greatlakes'].includes(sp.water);
+  // a river gauge says nothing reliable about a lake or pond's temperature
+  if (sp.water === 'fresh' && typeof isLakeLike === 'function' && isLakeLike(sp)) return null;
   const opts = fresh ? [n.usgs && n.usgs.waterTempF && [n.usgs.waterTempF.v, n.usgs.name], n.buoy && n.buoy.waterTempF != null && [n.buoy.waterTempF, n.buoy.name]]
     : [n.coops && n.coops.waterTempF && [n.coops.waterTempF.v, n.coops.name], n.buoy && n.buoy.waterTempF != null && n.buoy.km < 60 && [n.buoy.waterTempF, n.buoy.name], n.usgs && n.usgs.waterTempF && n.usgs.km < 15 && [n.usgs.waterTempF.v, n.usgs.name]];
   const hit = opts.find(Boolean); return hit ? { v: Math.round(hit[0]), src: hit[1] } : null;
+}
+
+// ---- Lake, pond, reservoir or river? (USGS National Hydrography Dataset via our proxy) ----
+const FW_LABEL = { lake: 'Lake', pond: 'Pond', reservoir: 'Reservoir', river: 'River / creek' };
+function fwLookup(lat, lng) {
+  const k = lat.toFixed(4) + ',' + lng.toFixed(4); NAT.fw = NAT.fw || lsGet('ff.fw', {});
+  if (NAT.fw[k]) return NAT.fw[k];
+  once('fw:' + k, async () => {
+    const j = await getJSON(`${TIDE_API}?water=${k}`);
+    if (j.error && j.kind == null) return; // try again later
+    NAT.fw[k] = { kind: j.kind || null, name: j.name || null, acres: j.acres || null }; lsSet('ff.fw', NAT.fw);
+  });
+  return null;
+}
+// what the app uses: your choice for the spot, else what the map says
+function fwInfo(sp) {
+  if (!sp || sp.water !== 'fresh' || sp.lat == null) return null;
+  const det = sp.fw || fwLookup(sp.lat, sp.lng);
+  const pick = sp.fwKind || (state.settings.fwKinds || {})[sp.id];
+  const kind = pick || (det && det.kind) || null;
+  return { kind, det, manual: !!pick, name: det && det.name, acres: det && det.acres, pending: !det && !pick };
+}
+const fwKindOf = sp => { const f = fwInfo(sp); return f ? f.kind : null; };
+const isLakeLike = sp => { const k = fwKindOf(sp); return k === 'lake' || k === 'pond' || k === 'reservoir'; };
+// species that only make sense in one kind of fresh water
+{
+  const base = speciesFits;
+  speciesFits = function (s, sp) {
+    if (!base(s, sp)) return false;
+    const k = sp.water === 'fresh' ? fwKindOf(sp) : null; if (!k) return true;
+    if ((s.id === 'shad' || s.id === 'salmonpac') && k !== 'river') return false;   // run rivers
+    if (s.id === 'laketrout' && (k === 'river' || k === 'pond')) return false;      // big, deep, cold lakes
+    if ((s.id === 'musky' || s.id === 'striperfw' || s.id === 'walleye') && k === 'pond') return false;
+    if (s.id === 'brook' && k === 'reservoir') return false;
+    return true;
+  };
 }
 
 // ===== UI =====
@@ -1699,8 +1747,10 @@ function render() {
   if (state.tab === 'forecast') m.innerHTML = viewForecast();
   else if (state.tab === 'species') m.innerHTML = viewSpecies();
   else if (state.tab === 'log') m.innerHTML = viewLog();
+  else if (WEB && state.tab === 'map') m.innerHTML = viewMap();
   else m.innerHTML = viewSettings();
   if (state.tab === 'forecast') bindChart();
+  if (WEB && state.tab === 'map') mountMap();
 }
 
 function topControls() {
@@ -1935,7 +1985,8 @@ function viewLog() {
    <div style="margin-top:8px"><button class="chip ${state.logFilter === 'all' ? 'on' : ''}" data-lf="all">All</button>${Object.entries(bySp).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<button class="chip ${state.logFilter === k ? 'on' : ''}" data-lf="${esc(k)}">${esc(SPMAP[k] ? SPMAP[k].name : k)} · ${n}</button>`).join('')}</div>
    ${state.logFilter !== 'all' ? patternView(state.logFilter) : '<div class="note">Pick a species to see when and how you catch it. With 5+ catches of a species, its forecast is tuned to your own pattern (turn off in Settings).</div>'}
    ${state.catches.length ? '<div style="margin-top:10px"><button class="btn sm ghost" data-csv="1">Copy log as CSV</button></div>' : ''}</div>`;
-  html += `<div class="card">${cs.length ? cs.map(c => `<div class="catch" data-edit="${esc(c.id)}"><div class="ic${Art.has(c.species) ? ' art' : ''}">${Art.has(c.species) ? Art.fish(c.species, { w: 64 }) : (c.method === 'fly' ? 'F' : '•')}${c.count > 1 ? `<span class="cnt">×${c.count}</span>` : ''}</div><div class="tx"><b>${esc(SPMAP[c.species] ? SPMAP[c.species].name : c.species)}</b>${c.length ? ` · ${esc(c.length)}"` : ''}${c.weight ? ` · ${esc(c.weight)} lb` : ''}
+  if (WEB) html += viewForecastCheck();
+  html += `<div class="card">${cs.length ? cs.map(c => `<div class="catch" data-edit="${esc(c.id)}">${WEB ? photoTag(c) : ''}<div class="ic${Art.has(c.species) ? ' art' : ''}">${Art.has(c.species) ? Art.fish(c.species, { w: 64 }) : (c.method === 'fly' ? 'F' : '•')}${c.count > 1 ? `<span class="cnt">×${c.count}</span>` : ''}</div><div class="tx"><b>${esc(SPMAP[c.species] ? SPMAP[c.species].name : c.species)}</b>${c.length ? ` · ${esc(c.length)}"` : ''}${c.weight ? ` · ${esc(c.weight)} lb` : ''}
      <div class="small muted">${fmtD(c.ts)} ${fmtT(c.ts)} · ${esc((spots().find(s => s.id === c.spot) || {}).name || c.spotName || '')}${c.lat != null ? ` · <a href="https://maps.apple.com/?ll=${c.lat},${c.lng}&q=Catch" target="_blank" rel="noopener">📍 map</a>` : ''}</div>
      <div class="small">${[c.bait, c.method === 'fly' ? 'on fly' : '', c.kept ? 'kept' : 'released'].filter(Boolean).map(esc).join(' · ')}</div>
      <div class="small muted">${c.cond ? [c.cond.stage, c.cond.sol !== 'none' ? c.cond.sol : '', c.cond.moon].filter(Boolean).map(esc).join(' · ') : ''}</div></div></div>`).join('') : '<div class="muted">No catches yet. Each entry records the tide stage, solunar period and moon automatically.</div>'}</div>`;
@@ -1966,11 +2017,12 @@ function openCatch(c, fresh) {
    <label>Bait / lure / fly</label><input id="fBait" list="baitList" value="${esc(c.bait || '')}"><datalist id="baitList">${[...sugg].map(s => `<option value="${esc(s)}">`).join('')}</datalist>
    <div class="row"><div><label>Length (in)</label><input id="fLen" type="number" inputmode="decimal" step="0.25" value="${esc(c.length || '')}"></div><div><label>Weight (lb)</label><input id="fWt" type="number" inputmode="decimal" step="0.1" value="${esc(c.weight || '')}"></div></div>
    <label>Kept or released</label><div><button class="chip ${!c.kept ? 'on' : ''}" data-kept="0">Released</button><button class="chip ${c.kept ? 'on' : ''}" data-kept="1">Kept</button></div>
+   ${WEB ? photoField(c) : ''}
    <label>Notes</label><textarea id="fNotes">${esc(c.notes || '')}</textarea>
    <div class="note" id="fCond"></div>
    <div style="margin-top:12px"><button class="btn" data-savecatch="1">Save catch</button></div>
    ${isNew ? '' : '<div style="margin-top:10px" id="delWrap"><button class="btn danger" data-del="1">Delete this catch</button></div>'}</div>`;
-  $('#sheet')._c = { ...c }; $('#sheet').classList.add('on'); updCond();
+  $('#sheet')._c = { ...c }; $('#sheet')._photoFile = c._photoFile || null; delete $('#sheet')._c._photoFile; $('#sheet').classList.add('on'); updCond();
 }
 function updCond() {
   const ts = new Date($('#fTs').value).getTime(); if (isNaN(ts)) return;
@@ -1983,6 +2035,8 @@ async function saveCatchForm() {
   const spotId = $('#fSpot').value;
   const out = { id: c.id, ts, species: sp, spot: spotId, spotName: (spots().find(s => s.id === spotId) || {}).name || '', where: $('#fWhere').value.trim(), method: $('#fMeth').value, count: Math.max(1, parseInt($('#fCnt').value) || 1), bait: $('#fBait').value.trim(), length: $('#fLen').value, weight: $('#fWt').value, kept: !!c.kept, notes: $('#fNotes').value.trim(), cond: catchCond(ts, spotId), idBy: c.idBy || null, lat: c.lat ?? null, lng: c.lng ?? null, created: c.created || Date.now() };
   const btn = document.querySelector('[data-savecatch]'); btn.disabled = true; btn.textContent = 'Saving…';
+  if (c.photo) out.photo = c.photo; if (c.photoThumb) out.photoThumb = c.photoThumb;
+  if (WEB && $('#sheet')._photoFile) { try { await attachPhoto(out, $('#sheet')._photoFile); } catch (e) { toast('Couldn’t save the photo'); } }
   const ok = await Store.saveCatch(out);
   btn.disabled = false; btn.textContent = 'Save catch';
   if (ok) { $('#sheet').classList.remove('on'); toast('Catch saved'); if (!Store.db || Store.localLog) render(); }
@@ -2077,7 +2131,7 @@ document.addEventListener('click', async e => {
   if (d.kept != null) { $('#sheet')._c.kept = d.kept === '1'; t.parentNode.querySelectorAll('.chip').forEach(b => b.classList.toggle('on', b === t)); return; }
   if (d.savecatch) { saveCatchForm(); return; }
   if (d.del) { t.outerHTML = '<div class="row"><button class="btn danger" data-delyes="1">Yes, delete</button><button class="btn ghost" data-close="1">Keep it</button></div>'; return; }
-  if (d.delyes) { await Store.deleteCatch($('#sheet')._c.id); $('#sheet').classList.remove('on'); toast('Deleted'); if (!Store.db || Store.localLog) render(); return; }
+  if (d.delyes) { if (WEB) removePhotos($('#sheet')._c); await Store.deleteCatch($('#sheet')._c.id); $('#sheet').classList.remove('on'); toast('Deleted'); if (!Store.db || Store.localLog) render(); return; }
   if (d.lf) { state.logFilter = d.lf; render(); return; }
   if (d.csv) { try { await navigator.clipboard.writeText(csv()); toast('Copied — paste into a spreadsheet'); } catch (er) { toast('Copy was blocked'); } return; }
   if (d.addspot) {
@@ -2323,6 +2377,212 @@ document.addEventListener('change', async e => {
   if (id) { const { error } = await Cloud.sb.from('forecast_alerts').update({ enabled: e.target.checked }).eq('id', id); if (error) toast('Couldn’t update'); else { const r = (ALERT.rules || []).find(x => x.id === id); if (r) r.enabled = e.target.checked; } }
 });
 
+// ===== Forecast check (scores vs. your catches), map, catch photos — website build =====
+
+// ---------- How did the forecast do? ----------
+function catchSpot(c) {
+  const s = spots().find(x => x.id === c.spot);
+  if (s) return c.lat != null && s.lat != null && distKm(c.lat, c.lng, s.lat, s.lng) > 3 ? { ...s, id: 'c@' + c.id, lat: c.lat, lng: c.lng, station: s.station } : s;
+  return c.lat != null ? { id: 'c@' + c.id, name: c.spotName || 'Catch', lat: c.lat, lng: c.lng, water: 'inshore' } : null;
+}
+var CHECK = { key: null, res: null, busy: false };
+function runForecastCheck() {
+  const list = state.catches.filter(c => c.ts && SPMAP[c.species] && catchSpot(c)).slice(0, 120);
+  const key = list.map(c => c.id + c.ts).join('|');
+  if (CHECK.key === key) return CHECK.res;
+  if (list.length < 5) return { n: list.length };
+  const rows = [];
+  for (const c of list) {
+    const sp = catchSpot(c), t0 = midnight(c.ts), s = SPMAP[c.species];
+    const k = c.cond || {};
+    const cnd = { pressure: k.pressure || 's', wind: k.wind ?? 10, sky: k.sky || 'partly', clarity: k.clarity || 'stained', wtemp: k.wtemp ?? '' };
+    const opts = { fly: c.method === 'fly', region: spotRegion(sp) }; // no learned patterns here, so the check is fair
+    const day = getDay(t0, sp), r = Engine.scoreSpecies(day, s, cnd, opts);
+    const i = Math.min(r.series.length - 1, Math.max(0, Math.round((c.ts - t0) / Engine.STEP)));
+    const v = r.series[i].v, vals = r.series.map(x => x.v);
+    const hourPct = vals.filter(x => x < v).length / vals.length;
+    // same spot and conditions on nearby days: did you go on one of the better days?
+    const others = [-6, -3, 3, 6].map(d => Engine.scoreSpecies(getDay(midnight(t0 + d * 864e5 + 3600e3), sp), s, cnd, opts).day);
+    const dayPct = others.filter(x => x < r.day).length / others.length;
+    rows.push({ c, s, v, hourPct, day: r.day, dayPct, stage: k.stageBin, light: k.lbin });
+  }
+  const n = rows.length, share = f => rows.filter(f).length / n;
+  const res = { n, hourTop: share(r => r.hourPct >= 2 / 3), dayGood: share(r => r.dayPct >= .5), avgV: rows.reduce((a, r) => a + r.v, 0) / n, rows, bySp: {} };
+  rows.forEach(r => { (res.bySp[r.s.id] = res.bySp[r.s.id] || []).push(r); });
+  CHECK.key = key; CHECK.res = res; return res;
+}
+function viewForecastCheck() {
+  if (!state.checkOpen) return `<div class="card"><div class="hrow"><h2 style="flex:1;margin:0">How’s the forecast doing?</h2><button class="btn sm" data-runcheck="1">Check</button></div><div class="small muted" style="margin-top:4px">Compares the bite score at the moment of each catch you logged with the rest of that day and nearby days.</div></div>`;
+  const r = runForecastCheck();
+  if (r.n < 5) return `<div class="card"><h2>How’s the forecast doing?</h2><div class="small">Log at least 5 catches with a time and spot to check the forecast against them — you have ${r.n}.</div></div>`;
+  const pct = x => Math.round(x * 100) + '%';
+  const verdict = r.hourTop >= .5 ? ['good', 'The forecast lines up well with your catches.'] : r.hourTop >= .4 ? ['ok', 'The forecast does a bit better than chance for you.'] : ['poor', 'The forecast isn’t picking your times well yet — your own pattern will help more.'];
+  const sp = Object.entries(r.bySp).filter(([, l]) => l.length >= 3).sort((a, b) => b[1].length - a[1].length).slice(0, 5).map(([id, l]) => {
+    const top = l.filter(x => x.hourPct >= 2 / 3).length / l.length;
+    const st = {}; l.forEach(x => { if (x.stage) st[x.stage] = (st[x.stage] || 0) + 1; });
+    const fav = Object.entries(st).sort((a, b) => b[1] - a[1])[0];
+    return `<div class="spotrow"><div class="hrow">${Art.has(id) ? Art.fish(id, { w: 54, cls: 'thumb' }) : ''}<div style="flex:1"><b>${esc(SPMAP[id].name)}</b> <span class="small muted">${l.length} catches</span><div class="small">${pct(top)} in the forecast’s best hours${fav && fav[1] >= 3 ? ` · most on <b>${esc(fav[0].replace('-', ' ').toLowerCase())}</b> tide` : ''}</div></div></div></div>`;
+  }).join('');
+  return `<div class="card"><div class="hrow"><h2 style="flex:1;margin:0">How’s the forecast doing?</h2><button class="btn sm ghost" data-runcheck="0">Hide</button></div>
+   <div class="fc-verdict ${verdict[0]}">${verdict[1]}</div>
+   <div class="grid2" style="margin-top:8px"><div class="kv"><b>${pct(r.hourTop)}</b><span>of catches came in the day’s top-third hours (chance: 33%)</span></div>
+   <div class="kv"><b>${pct(r.dayGood)}</b><span>came on a better-scoring day than nearby days (chance: 50%)</span></div></div>
+   ${sp ? `<h3>By species</h3>${sp}` : ''}
+   <div class="note">Based on ${r.n} catches, scored without your learned patterns so it’s a fair test. ${state.settings.usePatterns ? 'Your own patterns are already blended into the forecast for species with 5+ catches.' : '<a href="#" data-patternson="1">Turn on “learn from my catches”</a> to blend your pattern into the forecast.'}</div></div>`;
+}
+
+// ---------- Map ----------
+var MAP = { el: null, map: null, layers: {}, loaded: false, loading: false, show: { spots: true, catches: true, heat: false }, sp: 'all', fitDone: false };
+function loadLeaflet() {
+  if (MAP.loaded || MAP.loading) return; MAP.loading = true;
+  const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; css.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY='; css.crossOrigin = ''; document.head.appendChild(css);
+  const js = document.createElement('script'); js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; js.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo='; js.crossOrigin = '';
+  js.onload = () => { MAP.loaded = true; MAP.loading = false; render(); }; js.onerror = () => { MAP.loading = false; MAP.failed = true; render(); };
+  document.head.appendChild(js);
+}
+function viewMap() {
+  loadLeaflet();
+  const sps = [...new Set(state.catches.map(c => c.species))].filter(id => SPMAP[id]);
+  return `<div class="card mapcard"><div class="row maptools">
+    <label class="chk"><input type="checkbox" data-maplayer="spots"${MAP.show.spots ? ' checked' : ''}> Spots</label>
+    <label class="chk"><input type="checkbox" data-maplayer="catches"${MAP.show.catches ? ' checked' : ''}> Catches</label>
+    <label class="chk"><input type="checkbox" data-maplayer="heat"${MAP.show.heat ? ' checked' : ''}> Hot spots</label>
+    <select id="mapSp"><option value="all">All species</option>${sps.map(id => `<option value="${id}"${MAP.sp === id ? ' selected' : ''}>${esc(SPMAP[id].name)}</option>`).join('')}</select></div>
+   <div id="mapSlot">${MAP.failed ? '<div class="small muted" style="padding:20px">The map couldn’t load — check your connection.</div>' : MAP.loaded ? '' : '<div class="small muted" style="padding:20px">Loading map…</div>'}</div>
+   <div class="note">Tap a spot for today’s bite score; tap a catch for details. Long-press (or right-click) anywhere to add a spot there. Imagery: USGS The National Map.</div></div>`;
+}
+function scoreColor(v) { return v >= 70 ? '#3fd0b5' : v >= 50 ? '#7fd86a' : v >= 30 ? '#f2b84b' : v >= 12 ? '#e07a4a' : '#8a96a3'; }
+function mountMap() {
+  if (!MAP.loaded || !window.L) return;
+  const slot = $('#mapSlot'); if (!slot) return;
+  if (!MAP.el) {
+    MAP.el = document.createElement('div'); MAP.el.id = 'leafmap';
+    slot.appendChild(MAP.el);
+    const m = MAP.map = L.map(MAP.el, { zoomControl: true, attributionControl: true });
+    const usgs = L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryTopo/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: 'USGS The National Map' });
+    const topo = L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: 'USGS The National Map' });
+    usgs.addTo(m); L.control.layers({ 'Satellite + labels': usgs, 'Topo': topo }, null, { position: 'topright' }).addTo(m);
+    m.on('contextmenu', e => { openAddSpot(); setTimeout(() => draftSpot(e.latlng.lat, e.latlng.lng, 'My spot'), 50); });
+    m.on('popupopen', e => { const b = e.popup.getElement().querySelector('[data-gospot]'); if (b) b.addEventListener('click', () => { state.tab = 'forecast'; state.spotId = b.dataset.gospot; state.settings.spotId = b.dataset.gospot; state.day0 = midnight(Date.now()); Store.saveSettings(); render(); window.scrollTo(0, 0); }); });
+  } else slot.appendChild(MAP.el);
+  drawMap(); setTimeout(() => MAP.map && MAP.map.invalidateSize(), 50);
+}
+function catchesForMap() {
+  return state.catches.filter(c => MAP.sp === 'all' || c.species === MAP.sp).map(c => {
+    const s = spots().find(x => x.id === c.spot); const lat = c.lat != null ? c.lat : s && s.lat, lng = c.lng != null ? c.lng : s && s.lng;
+    return lat != null ? { c, lat, lng, exact: c.lat != null } : null;
+  }).filter(Boolean);
+}
+function drawMap() {
+  const m = MAP.map; if (!m) return;
+  Object.values(MAP.layers).forEach(l => m.removeLayer(l)); MAP.layers = {};
+  const pts = [];
+  if (MAP.show.spots) {
+    const g = L.layerGroup(), t0 = midnight(Date.now());
+    spots().filter(s => s.lat != null).forEach(s => {
+      let v = null, name = '';
+      try { const c = weekCell(s, t0); if (c) { v = c.v; name = c.best.sp.name; } } catch (e) { }
+      const html = `<div class="mpin" style="background:${v == null ? '#8a96a3' : scoreColor(v)}">${v == null ? '•' : Math.round(v)}</div>`;
+      L.marker([s.lat, s.lng], { icon: L.divIcon({ html, className: 'mpinwrap', iconSize: [30, 30], iconAnchor: [15, 15] }) })
+        .bindPopup(`<b>${esc(s.name)}</b><br>${v == null ? '' : `Today: ${esc(name)} <b>${Math.round(v)}</b><br>`}<button class="btn sm" data-gospot="${esc(s.id)}" style="margin-top:6px">Open forecast</button>`).addTo(g);
+      pts.push([s.lat, s.lng]);
+    });
+    MAP.layers.spots = g.addTo(m);
+  }
+  const cs = catchesForMap();
+  if (MAP.show.catches) {
+    const g = L.layerGroup();
+    cs.forEach(({ c, lat, lng, exact }) => {
+      const s = SPMAP[c.species], html = `<div class="cpin${exact ? '' : ' approx'}">${Art.has(c.species) ? Art.fish(c.species, { w: 40 }) : '🐟'}</div>`;
+      L.marker([lat, lng], { icon: L.divIcon({ html, className: 'mpinwrap', iconSize: [40, 22], iconAnchor: [20, 11] }) })
+        .bindPopup(`${photoTag(c, 'pop')}<b>${esc(s ? s.name : c.species)}</b>${c.length ? ` · ${esc(c.length)}"` : ''}${c.weight ? ` · ${esc(c.weight)} lb` : ''}<br>${fmtD(c.ts)} ${fmtT(c.ts)}${c.bait ? '<br>' + esc(c.bait) : ''}${exact ? '' : '<br><span class="small">Placed at the spot (no exact GPS)</span>'}`).addTo(g);
+      pts.push([lat, lng]);
+    });
+    MAP.layers.catches = g.addTo(m);
+  }
+  if (MAP.show.heat && cs.length) { // group catches into ~300 m cells
+    const cell = {}, g = L.layerGroup();
+    cs.forEach(({ c, lat, lng }) => { const k = (lat / .003).toFixed(0) + ',' + (lng / .003).toFixed(0); const o = cell[k] = cell[k] || { lat: 0, lng: 0, n: 0 }; const w = +c.count || 1; o.lat += lat * w; o.lng += lng * w; o.n += w; });
+    const max = Math.max(...Object.values(cell).map(o => o.n));
+    Object.values(cell).forEach(o => L.circle([o.lat / o.n, o.lng / o.n], { radius: 120 + 380 * Math.sqrt(o.n / max), stroke: false, fillColor: '#ff6a3d', fillOpacity: .25 + .45 * o.n / max }).bindTooltip(`${o.n} fish`).addTo(g));
+    MAP.layers.heat = g.addTo(m);
+  }
+  if (!MAP.fitDone) {
+    MAP.fitDone = true;
+    const sp = spot();
+    if (pts.length > 1) m.fitBounds(pts, { padding: [30, 30], maxZoom: 13 }); else m.setView(sp.lat != null ? [sp.lat, sp.lng] : [30.33, -81.56], 11);
+  }
+}
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset && t.dataset.maplayer) { MAP.show[t.dataset.maplayer] = t.checked; drawMap(); return; }
+  if (t.id === 'mapSp') { MAP.sp = t.value; drawMap(); }
+});
+
+// ---------- Photos saved with catches ----------
+var PHOTO_URL = {}, PHOTO_BUSY = new Set();
+async function resizeTo(file, max, q) {
+  const bmp = await createImageBitmap(file); const s = Math.min(1, max / Math.max(bmp.width, bmp.height));
+  const cv = document.createElement('canvas'); cv.width = Math.round(bmp.width * s); cv.height = Math.round(bmp.height * s);
+  cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
+  return new Promise(res => cv.toBlob(b => res(b), 'image/jpeg', q));
+}
+const blobToDataUrl = b => new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(b); });
+// called from saveCatchForm before the catch is stored
+async function attachPhoto(out, file) {
+  if (!file) return;
+  const thumb = await resizeTo(file, 360, .72);
+  if (Cloud.user && Cloud.sb) {
+    const full = await resizeTo(file, 1600, .82), base = `${Cloud.user.id}/${out.id}`;
+    const st = Cloud.sb.storage.from('catch-photos');
+    const a = await st.upload(base + '.jpg', full, { upsert: true, contentType: 'image/jpeg' });
+    const b = await st.upload(base + '_t.jpg', thumb, { upsert: true, contentType: 'image/jpeg' });
+    if (!a.error && !b.error) { out.photo = base; delete out.photoThumb; delete PHOTO_URL[base + '_t']; delete PHOTO_URL[base]; return; }
+    toast('Photo didn’t upload — kept a small copy on this phone');
+  }
+  out.photoThumb = await blobToDataUrl(thumb); // not signed in: small copy saved with the catch on this phone
+}
+function photoSrc(c, full) {
+  if (c.photo) {
+    const k = c.photo + (full ? '' : '_t'); if (PHOTO_URL[k]) return PHOTO_URL[k];
+    if (!PHOTO_BUSY.has(k) && Cloud.sb) { PHOTO_BUSY.add(k); Cloud.sb.storage.from('catch-photos').createSignedUrl(k + '.jpg', 3600 * 6).then(({ data }) => { PHOTO_BUSY.delete(k); if (data && data.signedUrl) { PHOTO_URL[k] = data.signedUrl; render(); if (MAP.map) drawMap(); } }); }
+    return null;
+  }
+  return c.photoThumb || null;
+}
+function photoTag(c, kind) {
+  const src = photoSrc(c, false); if (!src) return '';
+  return kind === 'pop' ? `<img src="${esc(src)}" alt="" style="width:180px;border-radius:8px;display:block;margin-bottom:6px">` : `<img class="cphoto" src="${esc(src)}" alt="Catch photo" data-photoview="${esc(c.id)}">`;
+}
+function viewPhoto(id) {
+  const c = state.catches.find(x => x.id === id); if (!c) return;
+  const src = photoSrc(c, true) || photoSrc(c, false);
+  $('#sheet').innerHTML = `<div class="in"><div class="hrow"><h2 style="flex:1;margin:0">${esc(SPMAP[c.species] ? SPMAP[c.species].name : c.species)}</h2><button class="btn sm ghost" data-close="1">Close</button></div>
+   ${src ? `<img src="${esc(src)}" alt="Catch photo" style="width:100%;border-radius:12px;margin-top:10px">` : '<div class="small muted">Loading photo…</div>'}
+   <div class="small muted" style="margin-top:6px">${fmtD(c.ts)} ${fmtT(c.ts)}${c.length ? ` · ${esc(c.length)}"` : ''}${c.weight ? ` · ${esc(c.weight)} lb` : ''}</div>
+   <button class="btn ghost" data-edit="${esc(c.id)}" style="margin-top:10px">Edit catch</button></div>`;
+  $('#sheet').classList.add('on');
+  if (c.photo && !PHOTO_URL[c.photo]) { const t = setInterval(() => { if (PHOTO_URL[c.photo]) { clearInterval(t); if ($('#sheet').classList.contains('on')) viewPhoto(id); } }, 300); setTimeout(() => clearInterval(t), 8000); }
+}
+function photoField(c) {
+  const src = photoSrc(c, false);
+  return `<label>Photo</label><div class="photofield">${src ? `<img src="${esc(src)}" alt="">` : ''}<label class="btn ghost sm filebtn">📷 ${src ? 'Replace' : 'Add'} photo<input type="file" accept="image/*" id="fPhoto" hidden></label><span class="small muted" id="fPhotoNote">${Cloud.user ? '' : 'Sign in to keep full-size photos in your account.'}</span></div>`;
+}
+async function removePhotos(c) { if (c && c.photo && Cloud.sb) { try { await Cloud.sb.storage.from('catch-photos').remove([c.photo + '.jpg', c.photo + '_t.jpg']); } catch (e) { } } }
+document.addEventListener('change', e => {
+  if (e.target.id === 'fPhoto' && e.target.files && e.target.files[0]) {
+    const f = e.target.files[0]; $('#sheet')._photoFile = f;
+    const box = e.target.closest('.photofield'); let im = box.querySelector('img'); if (!im) { im = document.createElement('img'); box.prepend(im); }
+    im.src = URL.createObjectURL(f); $('#fPhotoNote').textContent = 'Will be saved with the catch';
+  }
+});
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-runcheck],[data-patternson],[data-photoview]'); if (!t) return;
+  if (t.dataset.photoview) { e.stopPropagation(); e.preventDefault(); viewPhoto(t.dataset.photoview); return; }
+  if (t.dataset.runcheck != null) { state.checkOpen = t.dataset.runcheck === '1'; render(); return; }
+  if (t.dataset.patternson) { e.preventDefault(); state.settings.usePatterns = true; Store.saveSettings(); dayCache.clear(); CHECK.key = null; render(); toast('Learning from your catches'); }
+}, true);
+
 // ===== Website-only UI: spots anywhere in the US, accounts, nationwide marine & rules =====
 function natState(sp) { const p = sp && sp.lat != null ? natPoint(sp) : null; return p ? p.state : null; }
 const WATER_OPTS = [['fresh', 'Fresh water (lake, river, pond)'], ['greatlakes', 'Great Lakes'], ['inshore', 'Inshore salt / brackish (bay, river mouth, flats)'], ['surf', 'Surf / beach'], ['nearshore', 'Nearshore (boat, within ~10 mi)'], ['offshore', 'Offshore']];
@@ -2381,14 +2641,29 @@ async function draftSpot(lat, lng, name) {
   addDraft = { lat, lng, name, stations: st };
   $('#spotDraft').innerHTML = `<label>Spot name</label><input id="dName" value="${esc(name)}">
    <label>What kind of water?</label>${waterSel('', guess, 'id="dWater"')}
+   <div id="dFw" class="small" style="margin-top:6px"></div>
    <div class="note">${near ? `Nearest NOAA tide station: <b>${esc(near.name)}</b> (${near.km} km). It’s used for salt water spots.` : 'No NOAA tide station found nearby.'}</div>
    <div style="margin-top:12px"><button class="btn" data-savespot="1">Save spot</button></div>`;
+  draftWaterType(lat, lng);
+}
+async function draftWaterType(lat, lng) {
+  const box = $('#dFw'); if (!box) return;
+  box.textContent = 'Checking the USGS map for a lake or river here…';
+  let j = null; try { j = await getJSON(`${TIDE_API}?water=${lat.toFixed(4)},${lng.toFixed(4)}`); } catch (e) { }
+  if (!$('#dFw') || !addDraft) return;
+  if (!j || !j.kind) { box.textContent = j && !j.error ? 'No lake or river on the USGS map right here — you can set it after saving.' : ''; return; }
+  addDraft.fw = { kind: j.kind, name: j.name || null, acres: j.acres || null };
+  NAT.fw = NAT.fw || {}; NAT.fw[lat.toFixed(4) + ',' + lng.toFixed(4)] = addDraft.fw; lsSet('ff.fw', NAT.fw);
+  box.innerHTML = `Looks like <b>${esc(j.name || 'unnamed water')}</b> — ${FW_LABEL[j.kind].toLowerCase()}${j.acres ? `, ${j.acres.toLocaleString()} acres` : ''}.`;
+  if ($('#dWater').value !== 'fresh' && !(((addDraft.stations || [])[0] || {}).km < 8)) $('#dWater').value = 'fresh';
+  const nm = $('#dName'); if (j.name && (!nm.value || /^(my spot|my location)$/i.test(nm.value) || /^-?\d/.test(nm.value))) nm.value = j.name;
 }
 function saveDraft() {
   if (!addDraft) return;
   const water = $('#dWater').value, name = $('#dName').value.trim() || addDraft.name || 'My spot';
   const near = (addDraft.stations || [])[0];
   const sp = { id: 'm_' + Date.now().toString(36), name, lat: +addDraft.lat.toFixed(4), lng: +addDraft.lng.toFixed(4), water, group: 'My spots' };
+  if (water === 'fresh' && addDraft.fw) sp.fw = addDraft.fw;
   if (near && near.km < 60 && !['fresh', 'greatlakes'].includes(water)) sp.station = { id: near.id, name: near.name, km: near.km };
   saveMySpots([sp].concat(state.settings.mySpots || []));
   state.spotId = sp.id; state.settings.spotId = sp.id; state.spId = 'auto';
@@ -2432,7 +2707,7 @@ function mySpotsCard() {
   return `<div class="card"><div class="hrow"><h2 style="flex:1;margin:0">My spots</h2><button class="btn sm" data-addspot2="1">+ Add spot</button></div>
    ${mine.length ? mine.map(s => `<div class="spotrow"><b>${esc(s.name)}</b> <span class="small muted">${s.lat.toFixed(3)}, ${s.lng.toFixed(3)}${natState(s) ? ' · ' + esc(natState(s)) : ''}</span>
      <label>Water</label>${waterSel('', s.water, `data-spotwater="${esc(s.id)}"`)}
-     ${['fresh', 'greatlakes'].includes(s.water) ? '' : `<div class="small" style="margin-top:6px">Tide station: <b>${s.station ? esc(s.station.name) + (s.station.km != null ? ` (${s.station.km} km)` : '') : 'none'}</b> <a href="#" data-stations="${esc(s.id)}">change</a></div><div id="stl_${esc(s.id)}"></div>`}
+     ${s.water === 'fresh' ? fwLine(s) : ''}${['fresh', 'greatlakes'].includes(s.water) ? '' : `<div class="small" style="margin-top:6px">Tide station: <b>${s.station ? esc(s.station.name) + (s.station.km != null ? ` (${s.station.km} km)` : '') : 'none'}</b> <a href="#" data-stations="${esc(s.id)}">change</a></div><div id="stl_${esc(s.id)}"></div>`}
      <button class="btn sm danger" style="margin-top:8px" data-delspot="${esc(s.id)}">Remove</button></div>`).join('') : '<div class="small muted" style="margin-top:6px">No spots yet — add your home water with GPS or search.</div>'}</div>`;
 }
 function welcomeCard() {
@@ -2528,6 +2803,7 @@ document.addEventListener('click', async e => {
 document.addEventListener('change', e => {
   const el = e.target;
   if (el.id === 'zoneSel') { const list = (state.settings.mySpots || []).map(s => s.id === state.spotId ? { ...s, zone: el.value } : s); if (list.find(s => s.id === state.spotId)) saveMySpots(list); else { state.settings.zoneFor = { ...(state.settings.zoneFor || {}), [state.spotId]: el.value }; Store.saveSettings(); } dayCache.clear(); render(); return; }
+  if (el.dataset.fwkind != null) { const m = { ...(state.settings.fwKinds || {}) }; if (el.value) m[el.dataset.fwkind] = el.value; else delete m[el.dataset.fwkind]; state.settings.fwKinds = m; Store.saveSettings(); dayCache.clear(); render(); return; }
   if (el.dataset.spotwater) { const list = (state.settings.mySpots || []).map(s => s.id === el.dataset.spotwater ? { ...s, water: el.value } : s); saveMySpots(list); render(); return; }
   if (el.dataset.stationfor) { const [id, name, km] = el.value.split('|'); const list = (state.settings.mySpots || []).map(s => s.id === el.dataset.stationfor ? { ...s, station: { id, name, km: +km } } : s); saveMySpots(list); toast('Tide station changed'); render(); return; }
 });
@@ -2587,7 +2863,7 @@ async function runPhotoLog(file) {
   const out = $('#plOut'); const im = $('#plPrev'); im.src = URL.createObjectURL(file); im.style.display = 'block';
   const lines = []; const show = extra => { out.innerHTML = `<div class="small">${lines.join('<br>')}</div>${extra || ''}`; };
   let exif = {}; try { exif = readExif(await file.arrayBuffer()); } catch (e) { }
-  const d = { ts: exif.time || Date.now(), tsSrc: exif.time ? 'photo' : 'now', lat: exif.lat, lng: exif.lng, posSrc: exif.lat != null ? 'photo' : '' };
+  const d = { ts: exif.time || Date.now(), tsSrc: exif.time ? 'photo' : 'now', lat: exif.lat, lng: exif.lng, posSrc: exif.lat != null ? 'photo' : '', file };
   lines.push(`🕒 ${d.tsSrc === 'photo' ? 'Taken' : 'Time'}: <b>${fmtD(d.ts)} ${fmtT(d.ts)}</b>${d.tsSrc === 'photo' ? ' (from photo)' : ' (now — the photo had no time)'}`);
   show();
   if (d.lat == null && navigator.geolocation && Math.abs(Date.now() - d.ts) < 3 * 3600e3) {
@@ -2639,7 +2915,7 @@ document.addEventListener('click', e => {
   if (t.dataset.photocontinue && photoDraft) {
     const d = photoDraft;
     openCatch({ id: 'c_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ts: d.ts, species: d.species || '', spot: d.spot, method: state.fly ? 'fly' : 'conv', count: 1, kept: false,
-      length: d.length || '', weight: d.weight || '', notes: d.species === 'other' && d.name ? d.name : '', idBy: d.name ? { name: d.name, conf: d.conf } : null, lat: d.lat != null ? +d.lat.toFixed(5) : null, lng: d.lng != null ? +d.lng.toFixed(5) : null }, true);
+      length: d.length || '', weight: d.weight || '', notes: d.species === 'other' && d.name ? d.name : '', idBy: d.name ? { name: d.name, conf: d.conf } : null, lat: d.lat != null ? +d.lat.toFixed(5) : null, lng: d.lng != null ? +d.lng.toFixed(5) : null, _photoFile: d.file }, true);
   }
 });
 
@@ -2651,7 +2927,7 @@ function viewNow() {
   const sp = spot(); if (sp.lat == null) return '';
   if (state.day0 !== midnight(Date.now())) return '';
   const n = natNow(sp);
-  if (!n) return `<div class="card"><h2>Right now</h2><div class="small muted">Loading live gauges and buoys…</div>${lakeBox(sp)}</div>`;
+  if (!n) return `<div class="card"><h2>Right now</h2>${fwLine(sp)}<div class="small muted">Loading live gauges and buoys…</div>${lakeBox(sp)}</div>`;
   const rows = [];
   const lake = lakeBox(sp);
   const kv = (big, label, sub) => `<div class="kv"><b>${big}</b><span>${label}${sub ? '<br>' + sub : ''}</span></div>`;
@@ -2660,27 +2936,36 @@ function viewNow() {
     const dv = c.waterLevel.predicted != null ? c.waterLevel.ft - c.waterLevel.predicted : null;
     rows.push(kv(`${c.waterLevel.ft.toFixed(1)} ft`, 'Water level now', dv != null && Math.abs(dv) >= 0.2 ? `<span style="color:var(--accent2)">${dv > 0 ? '+' : ''}${dv.toFixed(1)} ft vs. predicted</span>` : dv != null ? 'on prediction' : ''));
   }
-  const wt = liveWaterTemp(sp); if (wt) rows.push(kv(`${wt.v}°F`, sp.water === 'fresh' ? 'River gauge temp' : 'Water temp', esc(wt.src)));
+  const wt = liveWaterTemp(sp); if (wt) rows.push(kv(`${wt.v}°F`, 'Water temp', esc(wt.src)));
+  if (!wt && sp.water === 'fresh' && u && u.waterTempF && isLakeLike(sp)) rows.push(kv(`${Math.round(u.waterTempF.v)}°F`, 'River gauge temp', 'nearby river — not used for the lake'));
   const w = c && c.wind ? { mph: c.wind.mph, g: c.wind.gustMph, dir: c.wind.dir } : b && b.windMph != null ? { mph: b.windMph, g: b.gustMph, dir: compass(b.windDeg) } : null;
   if (w) rows.push(kv(`${Math.round(w.mph)} mph`, 'Wind ' + esc(w.dir || ''), w.g ? 'gusts ' + Math.round(w.g) : ''));
   if (b && b.waveFt != null) rows.push(kv(`${b.waveFt} ft`, 'Waves', `${b.periodS ? b.periodS + ' s period · ' : ''}${esc(b.name)}`));
   const pres = c && c.pressureMb ? c.pressureMb.v : b && b.pressureMb; if (pres) rows.push(kv(`${(pres * 0.02953).toFixed(2)} in`, 'Barometer', b && b.pressureTendMb != null ? `${b.pressureTendMb > 0 ? 'rising' : b.pressureTendMb < 0 ? 'falling' : 'steady'} ${Math.abs(b.pressureTendMb).toFixed(1)} mb/3h` : ''));
   if (u && u.flowCfs) rows.push(kv(`${Math.round(u.flowCfs.v).toLocaleString()} cfs`, 'River flow', esc(u.name)));
   if (u && u.gageFt && (sp.water === 'fresh' || !c)) rows.push(kv(`${u.gageFt.v.toFixed(2)} ft`, 'Gage height', esc(u.name)));
-  if (!rows.length) return `<div class="card"><h2>Right now</h2><div class="small muted">No live gauges or buoys reporting near this spot.</div>${lake}</div>`;
+  if (!rows.length) return `<div class="card"><h2>Right now</h2>${fwLine(sp)}<div class="small muted">No live gauges or buoys reporting near this spot.</div>${lake}</div>`;
   const times = [c && c.waterLevel && utc(c.waterLevel.t), b && utc(b.t), u && (u.flowCfs || u.gageFt) && Date.parse((u.flowCfs || u.gageFt).t)].filter(Boolean);
   const dv = c && c.waterLevel && c.waterLevel.predicted != null ? c.waterLevel.ft - c.waterLevel.predicted : 0;
   const note = Math.abs(dv) >= 0.5 ? `<div class="alert" style="margin-top:8px">Water is running ${Math.abs(dv).toFixed(1)} ft ${dv > 0 ? 'higher' : 'lower'} than predicted — wind${sp.water === 'inshore' ? ' or river flow' : ''} is ${dv > 0 ? 'pushing water in; flats and grass flood earlier and deeper' : 'holding water out; flats drain earlier'}.</div>` : '';
   const links = [c && `<a href="https://tidesandcurrents.noaa.gov/stationhome.html?id=${esc(c.id)}" target="_blank" rel="noopener">NOAA ${esc(c.name)}</a>`, b && `<a href="https://www.ndbc.noaa.gov/station_page.php?station=${esc(b.id)}" target="_blank" rel="noopener">Buoy ${esc(b.id)}</a>`, u && `<a href="https://waterdata.usgs.gov/monitoring-location/${esc(u.id)}/" target="_blank" rel="noopener">USGS gauge</a>`, `<a href="https://radar.weather.gov/" target="_blank" rel="noopener">Radar</a>`].filter(Boolean).join(' · ');
-  return `<div class="card"><div class="hrow"><h2 style="flex:1;margin:0">Right now</h2><span class="small muted">${times.length ? 'updated ' + ago(Math.max(...times)) : ''}</span></div>
+  return `<div class="card"><div class="hrow"><h2 style="flex:1;margin:0">Right now</h2><span class="small muted">${times.length ? 'updated ' + ago(Math.max(...times)) : ''}</span></div>${fwLine(sp)}
    <div class="grid2" style="margin-top:8px">${rows.join('')}</div>${note}${lake}<div class="note">Live readings from the nearest ${[c && 'NOAA gauge', b && 'NDBC buoy', u && 'USGS stream gauge'].filter(Boolean).join(', ').replace(/, ([^,]*)$/, ' and $1') || 'stations'}. ${links}</div></div>`;
 }
 // Freshwater lakes rarely have a temperature sensor, so let the angler enter one.
+// "Lake Weir · Lake · 5,700 acres (USGS map)  [change]"
+function fwLine(sp) {
+  const f = fwInfo(sp); if (!f) return '';
+  const label = f.kind ? FW_LABEL[f.kind] : 'Lake or river?';
+  const what = f.pending ? 'Checking the USGS map…' : `${f.name ? `<b>${esc(f.name)}</b> · ` : ''}${label}${f.acres ? ` · ${f.acres.toLocaleString()} acres` : ''} <span class="muted">${f.manual ? '(your choice)' : f.kind ? '(USGS map)' : ''}</span>`;
+  return `<div class="fwline small">${what}<select data-fwkind="${esc(sp.id)}" aria-label="Kind of water"><option value="">${f.det && f.det.kind ? 'Auto: ' + FW_LABEL[f.det.kind] : 'Auto'}</option>${Object.keys(FW_LABEL).map(k => `<option value="${k}"${f.manual && f.kind === k ? ' selected' : ''}>${FW_LABEL[k]}</option>`).join('')}</select></div>`;
+}
 function lakeBox(sp) {
-  if (sp.water !== 'fresh') return '';
+  if (sp.water !== 'fresh' || fwKindOf(sp) === 'river') return '';
+  const what = { pond: 'Pond', reservoir: 'Reservoir' }[fwKindOf(sp)] || 'Lake';
   const lt = lakeTemp(sp, midnight(Date.now())), a = cond();
   return `<div class="lakebox" style="margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:10px">
-   <label for="lakeT" style="display:block;font-weight:600">Lake water temp °F <span class="small muted">(optional)</span></label>
+   <label for="lakeT" style="display:block;font-weight:600">${what} water temp °F <span class="small muted">(optional)</span></label>
    <div style="display:flex;gap:8px;margin-top:6px;align-items:center"><input id="lakeT" type="number" inputmode="decimal" min="32" max="95" step="1" style="flex:1 1 auto;min-width:0;width:auto" value="${lt ? lt.v : ''}" placeholder="${lt ? '' : a.wtemp ? a.wtemp + ' estimated — enter yours' : 'from your sonar or thermometer'}">${lt ? '<button class="btn ghost" id="lakeClr" type="button" style="flex:0 0 auto;width:auto;margin:0;padding:8px 14px">Clear</button>' : ''}</div>
    <div class="small muted" style="margin-top:4px">${lt ? `Using ${lt.v}°F you entered ${lt.when} for the bite score (kept for 3 days).` : 'Lakes usually have no live sensor. Enter a reading from your graph or a thermometer and the bite score will use it for this spot for 3 days.'}</div></div>`;
 }

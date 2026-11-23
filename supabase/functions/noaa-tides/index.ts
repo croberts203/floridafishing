@@ -2,6 +2,7 @@
 // GET ?nearest=LAT,LON                    -> up to 6 nearest NOAA tide-prediction stations
 // GET ?station=ID&begin=YYYYMMDD&days=N   -> NOAA high/low predictions (GMT, feet, MLLW)
 // GET ?now=LAT,LON                        -> live readings: nearest NOAA water-level gauge, NDBC buoy, USGS stream gauge
+// GET ?water=LAT,LON                      -> what kind of fresh water this is (lake / pond / reservoir / river) from the USGS National Hydrography Dataset
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, OPTIONS", "Access-Control-Allow-Headers": "content-type" };
 const json = (body: unknown, status = 200, maxAge = 3600) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": `public, max-age=${maxAge}` } });
@@ -117,6 +118,34 @@ async function usgsNow(lat: number, lng: number) {
   return null;
 }
 
+// ---- lake or river? (USGS National Hydrography Dataset, high resolution) ----
+const NHD = "https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer";
+async function nhdQuery(layer: number, lat: number, lng: number, meters: number) {
+  const q = new URLSearchParams({ geometry: `${lng},${lat}`, geometryType: "esriGeometryPoint", inSR: "4326", spatialRel: "esriSpatialRelIntersects",
+    distance: String(meters), units: "esriSRUnit_Meter", outFields: "*", returnGeometry: "false", f: "json" });
+  const r = await fetch(`${NHD}/${layer}/query?${q}`, { signal: AbortSignal.timeout(12000) });
+  const j = await r.json();
+  return (j.features || []).map((f: any) => { const a: Record<string, any> = {}; for (const k in f.attributes) a[k.toLowerCase()] = f.attributes[k]; return a; });
+}
+async function waterKind(lat: number, lng: number) {
+  const [wb, area, fl] = await Promise.all([nhdQuery(12, lat, lng, 120), nhdQuery(9, lat, lng, 60), nhdQuery(6, lat, lng, 150)].map((p) => p.catch(() => null)));
+  if (!wb && !area && !fl) return { kind: null, name: null, error: "lookup unavailable" };
+  const named = (l: any[]) => l.find((x) => x.gnis_name) || l[0];
+  const lakes = (wb || []).filter((x) => x.ftype === 390 || x.ftype === 436);
+  if (lakes.length) {
+    const w = named(lakes.sort((a, b) => (b.areasqkm || 0) - (a.areasqkm || 0)));
+    const kind = w.ftype === 436 ? "reservoir" : (w.areasqkm || 0) < 0.05 ? "pond" : "lake";
+    return { kind, name: w.gnis_name || null, acres: w.areasqkm ? Math.round(w.areasqkm * 247.1) : null, source: "NHD waterbody" };
+  }
+  const rivers = (fl || []).filter((x) => x.ftype === 460 || x.ftype === 336 || x.ftype === 558);
+  if ((area || []).some((x) => x.ftype === 460 || x.ftype === 336) || rivers.length) {
+    const r = rivers.length ? named(rivers) : {};
+    return { kind: "river", name: r.gnis_name || null, source: "NHD flowline" };
+  }
+  if ((wb || []).some((x) => x.ftype === 466)) return { kind: "pond", name: named(wb).gnis_name || null, source: "NHD swamp/marsh" };
+  return { kind: null, name: null };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
   if (req.method !== "GET") return json({ error: "GET only" }, 405, 0);
@@ -128,6 +157,12 @@ Deno.serve(async (req) => {
       if (!isFinite(lat) || !isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return json({ error: "bad now" }, 400, 0);
       const [coops, buoy, usgs] = await Promise.all([coopsNow(lat, lng).catch(() => null), buoyNow(lat, lng).catch(() => null), usgsNow(lat, lng).catch(() => null)]);
       return json({ fetched: new Date().toISOString(), coops, buoy, usgs }, 200, 300);
+    }
+    const water = u.searchParams.get("water");
+    if (water) {
+      const [lat, lng] = water.split(",").map(Number);
+      if (!isFinite(lat) || !isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return json({ error: "bad water" }, 400, 0);
+      return json(await waterKind(+lat.toFixed(5), +lng.toFixed(5)), 200, 86400);
     }
     const near = u.searchParams.get("nearest");
     if (near) {
