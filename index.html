@@ -2176,7 +2176,7 @@ function applyHash() {
     if (!eligible(spot()).find(s => s.id === id)) { const sp = spots().find(x => SPMAP[id].waters.includes(x.water)); if (sp) state.spotId = sp.id; }
     history.replaceState(null, '', location.pathname + location.search); render(); window.scrollTo(0, 0); return;
   }
-  const map = { forecast: 'forecast', marine: 'forecast', boating: 'forecast', species: 'species', regulations: 'species', rules: 'species', log: 'log', catchlog: 'log', fishid: 'log', settings: 'settings' };
+  const map = { forecast: 'forecast', marine: 'forecast', boating: 'forecast', species: 'species', regulations: 'species', rules: 'species', log: 'log', catchlog: 'log', fishid: 'log', settings: 'settings', ...(WEB ? { map: 'map' } : {}) };
   if (!map[h]) return;
   state.tab = map[h]; render();
   if (h === 'marine' || h === 'boating') setTimeout(() => { const el = document.getElementById('marine'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 300);
@@ -2465,9 +2465,9 @@ function mountMap() {
     MAP.el = document.createElement('div'); MAP.el.id = 'leafmap';
     slot.appendChild(MAP.el);
     const m = MAP.map = L.map(MAP.el, { zoomControl: true, attributionControl: true });
-    const usgs = L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryTopo/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: 'USGS The National Map' });
+    const usgs = L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: 'USGS The National Map' });
     const topo = L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: 'USGS The National Map' });
-    usgs.addTo(m); L.control.layers({ 'Satellite + labels': usgs, 'Topo': topo }, null, { position: 'topright' }).addTo(m);
+    usgs.addTo(m); L.control.layers({ 'Satellite': usgs, 'Topo': topo }, null, { position: 'topright' }).addTo(m);
     m.on('contextmenu', e => { openAddSpot(); setTimeout(() => draftSpot(e.latlng.lat, e.latlng.lng, 'My spot'), 50); });
     m.on('popupopen', e => { const b = e.popup.getElement().querySelector('[data-gospot]'); if (b) b.addEventListener('click', () => { state.tab = 'forecast'; state.spotId = b.dataset.gospot; state.settings.spotId = b.dataset.gospot; state.day0 = midnight(Date.now()); Store.saveSettings(); render(); window.scrollTo(0, 0); }); });
   } else slot.appendChild(MAP.el);
