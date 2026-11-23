@@ -2434,10 +2434,10 @@ function viewForecastCheck() {
 // ---------- Map ----------
 var MAP = { el: null, map: null, layers: {}, loaded: false, loading: false, show: { spots: true, catches: true, heat: false }, sp: 'all', fitDone: false };
 function loadLeaflet() {
-  if (MAP.loaded || MAP.loading) return; MAP.loading = true;
-  const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; css.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY='; css.crossOrigin = ''; document.head.appendChild(css);
-  const js = document.createElement('script'); js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; js.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo='; js.crossOrigin = '';
-  js.onload = () => { MAP.loaded = true; MAP.loading = false; render(); }; js.onerror = () => { MAP.loading = false; MAP.failed = true; render(); };
+  if (MAP.loaded || MAP.loading || MAP.failed) return; MAP.loading = true;
+  const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(css);
+  const js = document.createElement('script'); js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+  js.onload = () => { MAP.loading = false; if (window.L) MAP.loaded = true; else MAP.failed = true; render(); }; js.onerror = () => { MAP.loading = false; MAP.failed = true; render(); };
   document.head.appendChild(js);
 }
 function viewMap() {
