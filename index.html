@@ -1204,6 +1204,25 @@ const Cloud = {
   async saveSettings(body) { const { error } = await this.sb.from('forecast_settings').upsert({ user_id: this.user.id, data: body, updated_at: new Date().toISOString() }); if (error) throw error; },
 };
 
+// ---- Right now: live gauges, buoys and stream gauges (via the Supabase proxy) ----
+function natNow(sp) {
+  if (!sp || sp.lat == null) return null;
+  const k = sp.lat.toFixed(3) + ',' + sp.lng.toFixed(3), c = NAT.now && NAT.now[k];
+  NAT.now = NAT.now || {};
+  if (!c || c.at < Date.now() - 10 * 60e3) once('now:' + k, async () => {
+    const j = await getJSON(`${TIDE_API}?now=${sp.lat.toFixed(4)},${sp.lng.toFixed(4)}`);
+    NAT.now[k] = { data: j, at: Date.now() };
+  });
+  return c ? c.data : null;
+}
+function liveWaterTemp(sp) {
+  const n = natNow(sp); if (!n) return null;
+  const fresh = ['fresh', 'greatlakes'].includes(sp.water);
+  const opts = fresh ? [n.usgs && n.usgs.waterTempF && [n.usgs.waterTempF.v, n.usgs.name], n.buoy && n.buoy.waterTempF != null && [n.buoy.waterTempF, n.buoy.name]]
+    : [n.coops && n.coops.waterTempF && [n.coops.waterTempF.v, n.coops.name], n.buoy && n.buoy.waterTempF != null && n.buoy.km < 60 && [n.buoy.waterTempF, n.buoy.name], n.usgs && n.usgs.waterTempF && n.usgs.km < 15 && [n.usgs.waterTempF.v, n.usgs.name]];
+  const hit = opts.find(Boolean); return hit ? { v: Math.round(hit[0]), src: hit[1] } : null;
+}
+
 // ===== UI =====
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1250,6 +1269,7 @@ function cond(t0 = state.day0) {
       if ((raw.wind === undefined || raw.wind === '' || raw.wind === null) && a.wind != null && windSrc !== 'nws') { out.wind = a.wind; out.windSrc = 'auto'; }
       if ((raw.wtemp === undefined || raw.wtemp === '') && a.wtemp != null) { out.wtemp = a.wtemp; out.auto.wtemp = a.wsrc; }
     }
+    if ((raw.wtemp === undefined || raw.wtemp === '') && t0 === midnight(Date.now())) { const lw = liveWaterTemp(sp); if (lw) { out.wtemp = lw.v; out.auto.wtemp = 'live: ' + lw.src; } }
     if (out.wtemp === '' && sp.lat != null) { // rough fallback by latitude
       const m = new Date(t0 + 43200e3).getMonth(), salt = !['fresh', 'greatlakes'].includes(sp.water);
       out.wtemp = Math.round(Math.max(36, Math.min(88, WATER_TEMP[salt ? 'salt' : 'fresh'][m] - (sp.lat - 30.3) * 1.4))); out.auto.wtemp = 'typical for the season';
@@ -1423,6 +1443,7 @@ function viewForecast() {
   ${wins.map(w => `<div class="win"><b>${fmtT(w.a)} – ${fmtT(w.b)}</b> ${badge(w.peak)}<div class="small muted">${esc(w.why.join(' · ') || 'best overlap of factors')}</div></div>`).join('')}
   <div class="chartwrap" id="chartwrap">${chartSVG(day, r)}</div><div class="readout" id="readout">Tap or drag on the chart for details.</div>
   <div class="legend"><span><i style="background:var(--accent)"></i>Bite score</span>${day.ext.length ? '<span><i style="background:var(--tide);opacity:.5"></i>Tide</span>' : ''}<span><i style="background:var(--accent2);opacity:.35"></i>Major solunar</span><span><i style="background:var(--accent2);opacity:.15"></i>Minor</span><span><i style="background:#000;opacity:.35"></i>Night</span></div></div>`;
+  if (WEB) html += viewNow();
   html += viewPickSpot();
   // other species
   if (state.spId === 'auto') {
@@ -1508,7 +1529,7 @@ function viewConditions(c) {
   const month = new Date(state.day0 + 43200e3).getMonth(), salt = spot().water !== 'fresh';
   return `<div class="card"><h2>Conditions for ${fmtD(state.day0)}</h2><div class="small muted">${WEB ? 'Wind fills in from the NWS marine forecast. Enter the barometer trend, sky, clarity and water temp from your weather app' : 'Live weather can’t load inside this page, so enter what the forecast says'} — the scores update right away.</div>
    <div class="row"><div><label>Barometer</label>${opt('cPress', c.pressure, [['ff', 'Falling fast (front coming)'], ['f', 'Falling'], ['s', 'Steady'], ['r', 'Rising'], ['pf', 'Rising, post-front bluebird']])}</div></div>
-   <div class="row"><div><label>Wind (mph)${c.windSrc === 'nws' ? ' · from NWS' : ''}</label><input id="cWind" type="number" inputmode="numeric" min="0" max="60" value="${c.windSrc === 'manual' ? esc(c.wind) : ''}" placeholder="${c.windSrc === 'nws' ? esc(c.wind) + ' (NWS forecast)' : '10'}"></div><div><label>Water temp °F</label><input id="cTemp" type="number" inputmode="numeric" placeholder="~${WATER_TEMP[salt ? 'salt' : 'fresh'][month]} typical" value="${esc(c.wtemp)}"></div></div>
+   <div class="row"><div><label>Wind (mph)${c.windSrc === 'nws' ? ' · from NWS' : c.windSrc === 'auto' ? ' · forecast' : ''}</label><input id="cWind" type="number" inputmode="numeric" min="0" max="60" value="${c.windSrc === 'manual' ? esc(c.wind) : ''}" placeholder="${c.windSrc === 'nws' ? esc(c.wind) + ' (NWS forecast)' : c.windSrc === 'auto' ? esc(c.wind) + ' (forecast)' : '10'}"></div><div><label>Water temp °F${c.auto && c.auto.wtemp ? ' · auto' : ''}</label><input id="cTemp" type="number" inputmode="numeric" placeholder="${c.auto && c.auto.wtemp ? esc(c.wtemp) + ' (' + esc(c.auto.wtemp) + ')' : '~' + WATER_TEMP[salt ? 'salt' : 'fresh'][month] + ' typical'}" value="${c.auto && c.auto.wtemp ? '' : esc(c.wtemp)}"></div></div>
    <div class="row"><div><label>Sky</label>${opt('cSky', c.sky, [['sun', 'Sunny'], ['partly', 'Partly cloudy'], ['overcast', 'Overcast'], ['rain', 'Rain / storms']])}</div><div><label>Water clarity</label>${opt('cClar', c.clarity, [['clear', 'Clear'], ['stained', 'Stained'], ['muddy', 'Muddy']])}</div></div>
    <h3>Check live</h3>${WEB ? webLiveLinks() : `<div class="small">
    <a href="https://www.weather.gov/jax/" target="_blank" rel="noopener">NWS Jacksonville forecast &amp; marine</a> ·
@@ -2098,5 +2119,38 @@ document.addEventListener('click', e => {
       length: d.length || '', weight: d.weight || '', notes: d.species === 'other' && d.name ? d.name : '', idBy: d.name ? { name: d.name, conf: d.conf } : null, lat: d.lat != null ? +d.lat.toFixed(5) : null, lng: d.lng != null ? +d.lng.toFixed(5) : null }, true);
   }
 });
+
+// ---- "Right now" card ----
+const compass = d => d == null ? '' : ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'][Math.round(d / 22.5) % 16];
+const ago = t => { const m = Math.round((Date.now() - t) / 60000); return m < 2 ? 'just now' : m < 60 ? m + ' min ago' : Math.round(m / 60) + ' h ago'; };
+const utc = s => Date.parse(s.includes('T') ? s : s.replace(' ', 'T') + ':00Z');
+function viewNow() {
+  const sp = spot(); if (sp.lat == null) return '';
+  if (state.day0 !== midnight(Date.now())) return '';
+  const n = natNow(sp);
+  if (!n) return `<div class="card"><h2>Right now</h2><div class="small muted">Loading live gauges and buoys…</div></div>`;
+  const rows = [];
+  const kv = (big, label, sub) => `<div class="kv"><b>${big}</b><span>${label}${sub ? '<br>' + sub : ''}</span></div>`;
+  const c = n.coops, b = n.buoy, u = n.usgs;
+  if (c && c.waterLevel) {
+    const dv = c.waterLevel.predicted != null ? c.waterLevel.ft - c.waterLevel.predicted : null;
+    rows.push(kv(`${c.waterLevel.ft.toFixed(1)} ft`, 'Water level now', dv != null && Math.abs(dv) >= 0.2 ? `<span style="color:var(--accent2)">${dv > 0 ? '+' : ''}${dv.toFixed(1)} ft vs. predicted</span>` : dv != null ? 'on prediction' : ''));
+  }
+  const wt = liveWaterTemp(sp); if (wt) rows.push(kv(`${wt.v}°F`, 'Water temp', esc(wt.src)));
+  const w = c && c.wind ? { mph: c.wind.mph, g: c.wind.gustMph, dir: c.wind.dir } : b && b.windMph != null ? { mph: b.windMph, g: b.gustMph, dir: compass(b.windDeg) } : null;
+  if (w) rows.push(kv(`${Math.round(w.mph)} mph`, 'Wind ' + esc(w.dir || ''), w.g ? 'gusts ' + Math.round(w.g) : ''));
+  if (b && b.waveFt != null) rows.push(kv(`${b.waveFt} ft`, 'Waves', `${b.periodS ? b.periodS + ' s period · ' : ''}${esc(b.name)}`));
+  const pres = c && c.pressureMb ? c.pressureMb.v : b && b.pressureMb; if (pres) rows.push(kv(`${(pres * 0.02953).toFixed(2)} in`, 'Barometer', b && b.pressureTendMb != null ? `${b.pressureTendMb > 0 ? 'rising' : b.pressureTendMb < 0 ? 'falling' : 'steady'} ${Math.abs(b.pressureTendMb).toFixed(1)} mb/3h` : ''));
+  if (u && u.flowCfs) rows.push(kv(`${Math.round(u.flowCfs.v).toLocaleString()} cfs`, 'River flow', esc(u.name)));
+  if (u && u.gageFt && (sp.water === 'fresh' || !c)) rows.push(kv(`${u.gageFt.v.toFixed(2)} ft`, 'Gage height', esc(u.name)));
+  if (!rows.length) return `<div class="card"><h2>Right now</h2><div class="small muted">No live gauges or buoys reporting near this spot.</div></div>`;
+  const times = [c && c.waterLevel && utc(c.waterLevel.t), b && utc(b.t), u && (u.flowCfs || u.gageFt) && Date.parse((u.flowCfs || u.gageFt).t)].filter(Boolean);
+  const dv = c && c.waterLevel && c.waterLevel.predicted != null ? c.waterLevel.ft - c.waterLevel.predicted : 0;
+  const note = Math.abs(dv) >= 0.5 ? `<div class="alert" style="margin-top:8px">Water is running ${Math.abs(dv).toFixed(1)} ft ${dv > 0 ? 'higher' : 'lower'} than predicted — wind${sp.water === 'inshore' ? ' or river flow' : ''} is ${dv > 0 ? 'pushing water in; flats and grass flood earlier and deeper' : 'holding water out; flats drain earlier'}.</div>` : '';
+  const links = [c && `<a href="https://tidesandcurrents.noaa.gov/stationhome.html?id=${esc(c.id)}" target="_blank" rel="noopener">NOAA ${esc(c.name)}</a>`, b && `<a href="https://www.ndbc.noaa.gov/station_page.php?station=${esc(b.id)}" target="_blank" rel="noopener">Buoy ${esc(b.id)}</a>`, u && `<a href="https://waterdata.usgs.gov/monitoring-location/${esc(u.id)}/" target="_blank" rel="noopener">USGS gauge</a>`, `<a href="https://radar.weather.gov/" target="_blank" rel="noopener">Radar</a>`].filter(Boolean).join(' · ');
+  return `<div class="card"><div class="hrow"><h2 style="flex:1;margin:0">Right now</h2><span class="small muted">${times.length ? 'updated ' + ago(Math.max(...times)) : ''}</span></div>
+   <div class="grid2" style="margin-top:8px">${rows.join('')}</div>${note}<div class="note">Live readings from the nearest NOAA gauge${b ? ', NDBC buoy' : ''}${u ? ' and USGS stream gauge' : ''}. ${links}</div></div>`;
+}
+setInterval(() => { if (document.visibilityState === 'visible' && state.tab === 'forecast' && state.day0 === midnight(Date.now())) render(); }, 10 * 60e3);
 </script>
 </body></html>
