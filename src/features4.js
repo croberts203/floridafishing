@@ -122,7 +122,7 @@ function crewCard() {
   return `<div class="card"><div class="hrow"><h2 style="flex:1;margin:0">👥 ${esc(c.name)}</h2>${CREW.list.length > 1 ? `<select id="crPick">${CREW.list.map(x => `<option value="${x.id}"${x.id === c.id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select>` : ''}</div>
    <div class="small muted">Invite code <b class="code">${esc(c.code)}</b> <a href="#" data-crinvite="1">share invite</a> · ${CREW.members.length} member${CREW.members.length === 1 ? '' : 's'} · <a href="#" data-crreload="1">refresh</a></div>
    ${rows.length ? `<h3>Last 30 days</h3>${rows.map(([u, b], i) => `<div class="kvrow"><span>${['🥇', '🥈', '🥉'][i] || i + 1 + '.'} ${esc(crewName(u))}</span><b>${b.n} fish${b.big ? ` · biggest ${b.big}"` : ''}</b></div>`).join('')}` : ''}
-   <div class="row" style="margin-top:8px"><button class="btn sm" data-crplan="1">📅 Share a trip plan</button><button class="btn sm ghost" data-trip="1">Trip report</button></div>
+   <div class="row" style="margin-top:8px"><button class="btn sm" data-crplan="1">📅 Share a trip plan</button>${featOn('trip') ? '<button class="btn sm ghost" data-trip="1">Trip report</button>' : ''}</div>
    <h3>Crew feed</h3>${CREW.posts.length ? CREW.posts.slice(0, 40).map(post).join('') : '<div class="small muted">Nothing shared yet. When you log a catch you can share it with the crew.</div>'}
    <details style="margin-top:10px"><summary class="small">Join or start another crew · leave</summary>${join}<div class="row"><button class="btn sm ghost" data-crleave="1">Leave ${esc(c.name)}</button></div></details></div>`;
 }

@@ -138,6 +138,9 @@ nav button{min-width:0}
 .code{letter-spacing:2px;font-family:ui-monospace,Menlo,monospace}
 .kvrow{display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-size:14px}
 .rpin{width:24px;height:24px;border-radius:50%;background:#fff;color:#123;display:grid;place-items:center;font-size:13px;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.featrow{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-top:1px solid rgba(255,255,255,.07);margin:0;font-weight:400}
+.featrow input{width:auto;margin-top:3px}.featrow span{display:flex;flex-direction:column}
+.featprompt{border-color:var(--accent)}
 </style></head>
 <body>
 <header><div class="hrow"><span id="logo"></span><h1>Fish Bite Forecast<small>Bites · tides · marine</small></h1><div class="seg" id="flyseg"></div></div></header>
@@ -1843,7 +1846,8 @@ function toast(m) { const el = $('#toast'); el.textContent = m; el.style.display
 function render() {
   const lg = document.getElementById("logo"); if (lg && !lg.innerHTML) lg.innerHTML = Art.logo;
   $('#flyseg').innerHTML = `<button class="${!state.fly ? 'on' : ''}" data-fly="0">Conventional</button><button class="${state.fly ? 'on' : ''}" data-fly="1">Fly</button>`;
-  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === state.tab));
+  if (WEB && !featOn('map') && state.tab === 'map') state.tab = 'forecast';
+  document.querySelectorAll('nav button').forEach(b => { b.classList.toggle('on', b.dataset.tab === state.tab); if (WEB && b.dataset.tab === 'map') b.style.display = featOn('map') ? '' : 'none'; });
   const m = $('main');
   if (state.tab === 'forecast') m.innerHTML = viewForecast();
   else if (state.tab === 'species') m.innerHTML = viewSpecies();
@@ -1881,7 +1885,7 @@ function viewForecast() {
   if (!res.length) return topControls() + `<div class="card">No species profiles for this water type.</div>`;
   const r = chosen(res), [rt] = Engine.rating(r.day);
   const wins = Engine.windows(r, day);
-  let html = (WEB ? offlineBanner() + welcomeCard() : '') + topControls();
+  let html = (WEB ? offlineBanner() + welcomeCard() + featurePrompt() : '') + topControls();
   // alerts
   const alerts = [];
   const tailR = res.find(x => x.sp.id === 'redfish' && x.tail);
@@ -1895,35 +1899,36 @@ function viewForecast() {
   if (c.pressure === 'pf') alerts.push(`<b>Post-front:</b> bluebird skies after a front usually slow the bite. Fish slower, deeper, and target the warmest part of the day.`);
   html += alerts.map(x => `<div class="alert">${x}</div>`).join('');
   // hero
-  html += `<div class="card"><div class="banner">${Art.scene(r.sp.id, sp.water, { night: false })}<div class="cap">${esc(WATER_LABEL[sp.water] || '')}</div></div><div class="hrow"><div style="flex:1"><div class="muted small">${fmtD(state.day0)} · ${esc(sp.name)}</div><h2 style="margin:2px 0 0">${esc(r.sp.name)}${state.fly ? ' on fly' : ''}</h2></div>${WEB ? '<button class="bell" data-albell="1" title="Set a bite alert" aria-label="Set a bite alert">🔔</button>' : ''}${badge(r.day)}</div>
+  html += `<div class="card"><div class="banner">${Art.scene(r.sp.id, sp.water, { night: false })}<div class="cap">${esc(WATER_LABEL[sp.water] || '')}</div></div><div class="hrow"><div style="flex:1"><div class="muted small">${fmtD(state.day0)} · ${esc(sp.name)}</div><h2 style="margin:2px 0 0">${esc(r.sp.name)}${state.fly ? ' on fly' : ''}</h2></div>${WEB && featOn('alerts') ? '<button class="bell" data-albell="1" title="Set a bite alert" aria-label="Set a bite alert">🔔</button>' : ''}${badge(r.day)}</div>
   <div class="small muted" style="margin-top:4px">${rt} · season ${Math.round(r.season * 10)}/10 · water ~${Math.round(r.wt)}°F${r.pat ? ` · tuned by your ${r.pat.n} logged catches` : ''}</div>
-  ${WEB && state.fly ? flyBench(r.sp.id, true) : ''}
+  ${WEB && state.fly && featOn('flybench') ? flyBench(r.sp.id, true) : ''}
   ${WEB && (c.flowTxt || c.windTxt) ? `<div class="small" style="margin-top:6px">${c.flowTxt ? '🌊 ' + esc(c.flowTxt) + '<br>' : ''}${c.windTxt ? '💨 ' + esc(c.windTxt) : ''}</div>` : ''}
   ${wins.map(w => `<div class="win"><b>${fmtT(w.a)} – ${fmtT(w.b)}</b> ${badge(w.peak)}<div class="small muted">${esc(w.why.join(' · ') || 'best overlap of factors')}</div></div>`).join('')}
-  ${WEB ? colorCard(r, sp, c) : ''}
+  ${WEB && featOn('colors') ? colorCard(r, sp, c) : ''}
   <div class="chartwrap" id="chartwrap">${chartSVG(day, r)}</div><div class="readout" id="readout">Tap or drag on the chart for details.</div>
   <div class="legend"><span><i style="background:var(--accent)"></i>Bite score</span>${day.ext.length ? '<span><i style="background:var(--tide);opacity:.5"></i>Tide</span>' : ''}<span><i style="background:var(--accent2);opacity:.35"></i>Major solunar</span><span><i style="background:var(--accent2);opacity:.15"></i>Minor</span><span><i style="background:#000;opacity:.35"></i>Night</span></div></div>`;
-  if (WEB) html += viewNow();
-  html += viewPickSpot();
-  if (WEB) html += viewWeek();
+  if (WEB && featOn('now')) html += viewNow();
+  if (!WEB || featOn('pickspot')) html += viewPickSpot();
+  if (WEB && featOn('week')) html += viewWeek();
   // other species
-  if (state.spId === 'auto') {
+  if (state.spId === 'auto' && (!WEB || featOn('others'))) {
     html += `<div class="card"><h2>Other good bets</h2>${res.slice(1, 6).map(x => `<div class="pick" data-sp="${x.sp.id}">${Art.fish(x.sp.id, { w: 70, cls: 'thumb' })}<div class="nm"><b>${esc(x.sp.name)}</b><span class="small muted">best ${fmtT(x.bestStart)} – ${fmtT(x.bestEnd)}</span></div>${badge(x.day)}</div>`).join('')}<div class="note">Tap a species to forecast it.</div></div>`;
   }
   // tides
-  if (day.ext.length) {
+  if (day.ext.length && (!WEB || featOn('tides'))) {
     html += `<div class="card"><h2>Tides <span class="small muted">· ${esc(sp.src || '')}</span></h2><div class="tides">${day.ext.map(e => `<div class="tide">${e.type === 'H' ? '▲ High' : '▼ Low'} <b>${fmtT(e.t)}</b> · ${e.h.toFixed(1)} ft</div>`).join('')}</div><div class="note">${WEB && sp.station ? `NOAA tide predictions for <a href="https://tidesandcurrents.noaa.gov/noaatidepredictions.html?id=${esc(sp.station.id)}" target="_blank" rel="noopener">${esc(sp.station.name)} (${esc(sp.station.id)})</a>, heights in feet above MLLW. Wind and river flow can shift real water levels.` : 'Predicted from NOAA Mayport (8720218) tide harmonics; times are usually within ~15 min, heights within ~0.5 ft. Wind and river flow can shift real water levels.'}</div></div>`;
   }
   // sun & moon
   const maj = day.majors.filter(t => t >= state.day0 && t < state.day0 + 864e5).sort((x, y) => x - y);
   const mins = day.minors.filter(t => t >= state.day0 && t < state.day0 + 864e5).sort((x, y) => x - y);
+  if (!WEB || featOn('solunar'))
   html += `<div class="card"><h2>Sun, moon & solunar</h2><div class="grid2">
    <div class="kv"><b>${fmtT(a.sunrise)}</b><span>Sunrise (first light ${fmtT(a.dawn)})</span></div><div class="kv"><b>${fmtT(a.sunset)}</b><span>Sunset (last light ${fmtT(a.dusk)})</span></div>
    <div class="kv"><b>${esc(a.phaseName)}</b><span>${Math.round(a.illum * 100)}% illuminated</span></div><div class="kv"><b>${fmtT(a.moonrise)} / ${fmtT(a.moonset)}</b><span>Moonrise / moonset</span></div></div>
    <div style="margin-top:8px">${maj.map(t => `<span class="tag hot">Major ${fmtT(t - 3600e3)}–${fmtT(t + 3600e3)}</span>`).join('')}${mins.map(t => `<span class="tag">Minor ${fmtT(t - 2700e3)}–${fmtT(t + 2700e3)}</span>`).join('')}</div>
    <div class="note">Majors are when the moon is overhead or underfoot; minors are moonrise and moonset. ${Math.min(day.dFull, day.dNew) < 3 ? 'Near a new or full moon these periods tend to be stronger.' : ''}</div></div>`;
-  html += viewMarine();
-  html += regsCard(r.sp, sp);
+  if (!WEB || featOn('marine')) html += viewMarine();
+  if (!WEB || featOn('rules')) html += regsCard(r.sp, sp);
   // conditions
   html += viewConditions(c);
   return html;
@@ -1992,7 +1997,7 @@ function viewConditions(c) {
    <div class="row"><div><label>Barometer</label>${opt('cPress', c.pressure, [['ff', 'Falling fast (front coming)'], ['f', 'Falling'], ['s', 'Steady'], ['r', 'Rising'], ['pf', 'Rising, post-front bluebird']])}</div></div>
    <div class="row"><div><label>Wind (mph)${c.windSrc === 'nws' ? ' · from NWS' : c.windSrc === 'auto' ? ' · forecast' : ''}</label><input id="cWind" type="number" inputmode="numeric" min="0" max="60" value="${c.windSrc === 'manual' ? esc(c.wind) : ''}" placeholder="${c.windSrc === 'nws' ? esc(c.wind) + ' (NWS forecast)' : c.windSrc === 'auto' ? esc(c.wind) + ' (forecast)' : '10'}"></div><div><label>Water temp °F${c.auto && c.auto.wtemp ? ' · auto' : ''}</label><input id="cTemp" type="number" inputmode="numeric" placeholder="${c.auto && c.auto.wtemp ? esc(c.wtemp) + ' (' + esc(c.auto.wtemp) + ')' : '~' + WATER_TEMP[salt ? 'salt' : 'fresh'][month] + ' typical'}" value="${c.auto && c.auto.wtemp ? '' : esc(c.wtemp)}"></div></div>
    <div class="row"><div><label>Sky</label>${opt('cSky', c.sky, [['sun', 'Sunny'], ['partly', 'Partly cloudy'], ['overcast', 'Overcast'], ['rain', 'Rain / storms']])}</div><div><label>Water clarity</label>${opt('cClar', WEB && c.auto && c.auto.clarity ? '' : c.clarity, [...(WEB ? [['', 'Auto' + (c.auto && c.auto.clarity ? ' (' + c.clarity + ')' : '')]] : []), ['clear', 'Clear'], ['stained', 'Stained'], ['muddy', 'Muddy']])}${WEB && c.auto && c.auto.clarity ? `<div class="small muted">${esc(c.auto.clarity)}</div>` : ''}}</div></div>
-   ${WEB ? facingRow(c) + '<div class="row"><button class="btn sm ghost" data-watercheck="1">📷 Check the water (light &amp; clarity from a photo)</button></div>' : ''}
+   ${WEB ? facingRow(c) + (featOn('watercheck') ? '<div class="row"><button class="btn sm ghost" data-watercheck="1">📷 Check the water (light &amp; clarity from a photo)</button></div>' : '') : ''}
    <h3>Check live</h3>${WEB ? webLiveLinks() : `<div class="small">
    <a href="https://www.weather.gov/jax/" target="_blank" rel="noopener">NWS Jacksonville forecast &amp; marine</a> ·
    <a href="https://www.ndbc.noaa.gov/station_page.php?station=mypf1" target="_blank" rel="noopener">Mayport gauge (pressure, water temp)</a> ·
@@ -2090,8 +2095,8 @@ function viewLog() {
   html += `<div class="card"><h2>Your numbers</h2><div class="grid2"><div class="kv"><b>${state.catches.reduce((a, c) => a + (+c.count || 1), 0)}</b><span>Fish logged</span></div><div class="kv"><b>${Object.keys(bySp).length}</b><span>Species</span></div></div>
    <div style="margin-top:8px"><button class="chip ${state.logFilter === 'all' ? 'on' : ''}" data-lf="all">All</button>${Object.entries(bySp).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<button class="chip ${state.logFilter === k ? 'on' : ''}" data-lf="${esc(k)}">${esc(SPMAP[k] ? SPMAP[k].name : k)} · ${n}</button>`).join('')}</div>
    ${state.logFilter !== 'all' ? patternView(state.logFilter) : '<div class="note">Pick a species to see when and how you catch it. With 5+ catches of a species, its forecast is tuned to your own pattern (turn off in Settings).</div>'}
-   ${state.catches.length ? `<div style="margin-top:10px"><button class="btn sm ghost" data-csv="1">Copy log as CSV</button>${WEB ? ' <button class="btn sm ghost" data-trip="1">📝 Trip report</button>' : ''}</div>` : ''}</div>`;
-  if (WEB) html += crewCard() + viewForecastCheck();
+   ${state.catches.length ? `<div style="margin-top:10px"><button class="btn sm ghost" data-csv="1">Copy log as CSV</button>${WEB && featOn('trip') ? ' <button class="btn sm ghost" data-trip="1">📝 Trip report</button>' : ''}</div>` : ''}</div>`;
+  if (WEB) html += (featOn('crew') ? crewCard() : '') + (featOn('forecastcheck') ? viewForecastCheck() : '');
   html += `<div class="card">${cs.length ? cs.map(c => `<div class="catch" data-edit="${esc(c.id)}">${WEB ? photoTag(c) : ''}<div class="ic${Art.has(c.species) ? ' art' : ''}">${Art.has(c.species) ? Art.fish(c.species, { w: 64 }) : (c.method === 'fly' ? 'F' : '•')}${c.count > 1 ? `<span class="cnt">×${c.count}</span>` : ''}</div><div class="tx"><b>${esc(SPMAP[c.species] ? SPMAP[c.species].name : c.species)}</b>${c.length ? ` · ${esc(c.length)}"` : ''}${c.weight ? ` · ${esc(c.weight)} lb` : ''}
      <div class="small muted">${fmtD(c.ts)} ${fmtT(c.ts)} · ${esc((spots().find(s => s.id === c.spot) || {}).name || c.spotName || '')}${c.lat != null ? ` · <a href="https://maps.apple.com/?ll=${c.lat},${c.lng}&q=Catch" target="_blank" rel="noopener">📍 map</a>` : ''}</div>
      <div class="small">${[c.bait, c.method === 'fly' ? 'on fly' : '', c.kept ? 'kept' : 'released'].filter(Boolean).map(esc).join(' · ')}</div>
@@ -2208,7 +2213,7 @@ confidence is 0–1. Only give estimated_length_in when a ruler or measuring boa
 // ===== Settings =====
 function viewSettings() {
   const sps = spots();
-  return `${WEB ? alertsCard() + mySpotsCard() + offlineCard() + '<div class="card"><h2>Tips</h2><div class="small">Step-by-step tips show the first time you open each screen.</div><div class="row" style="margin-top:8px"><button class="btn ghost" data-tipsagain="1">💡 Show tips again</button></div><h2 style="margin-top:16px">Privacy</h2><div class="small muted">To see how many people use the app and which shops and clubs send them, it counts visits and features used with a random ID kept in this browser — no names, emails, IP addresses or locations. Browsers set to “Do Not Track” send nothing. Your spots, catches and settings stay on this device, or in your account if you sign in.</div></div>' : ''}<div class="card"><h2>Tide offsets by spot${WEB ? ' (Jacksonville examples)' : ''}</h2><div class="small muted">Times shift the Mayport prediction (minutes, + is later); ratios scale heights. Presets come from NOAA subordinate stations. Adjust any spot to match what you see on the water.</div>
+  return `${WEB ? (featOn('alerts') ? alertsCard() : '') + mySpotsCard() + featureCard() + offlineCard() + '<div class="card"><h2>Tips</h2><div class="small">Step-by-step tips show the first time you open each screen.</div><div class="row" style="margin-top:8px"><button class="btn ghost" data-tipsagain="1">💡 Show tips again</button></div><h2 style="margin-top:16px">Privacy</h2><div class="small muted">To see how many people use the app and which shops and clubs send them, it counts visits and features used with a random ID kept in this browser — no names, emails, IP addresses or locations. Browsers set to “Do Not Track” send nothing. Your spots, catches and settings stay on this device, or in your account if you sign in.</div></div>' : ''}<div class="card"><h2>Tide offsets by spot${WEB ? ' (Jacksonville examples)' : ''}</h2><div class="small muted">Times shift the Mayport prediction (minutes, + is later); ratios scale heights. Presets come from NOAA subordinate stations. Adjust any spot to match what you see on the water.</div>
   ${sps.filter(s => s.tide).map(s => `<div class="spotrow"><b>${esc(s.name)}</b> <span class="small muted">${esc(s.src || 'custom')}</span>
    <div class="g4" style="margin-top:6px"><div><label>High +min</label><input data-off="${esc(s.id)}" data-k="hi" type="number" inputmode="numeric" value="${s.tide.hi}"></div><div><label>Low +min</label><input data-off="${esc(s.id)}" data-k="lo" type="number" inputmode="numeric" value="${s.tide.lo}"></div><div><label>High ×</label><input data-off="${esc(s.id)}" data-k="hr" type="number" inputmode="decimal" step="0.01" value="${s.tide.hr}"></div><div><label>Low ×</label><input data-off="${esc(s.id)}" data-k="lr" type="number" inputmode="decimal" step="0.01" value="${s.tide.lr}"></div></div>
    ${s.custom ? `<button class="btn sm danger" style="margin-top:8px" data-rmspot="${esc(s.id)}">Remove spot</button>` : ''}</div>`).join('')}
@@ -2849,7 +2854,7 @@ function colorCard(r, sp, c) {
    <div class="cchips">${p.list.map(chip).join('')}</div>
    ${p.bait ? `<div class="small muted">${esc(r.sp.name)} are mostly caught on natural bait — colors matter less than fresh bait on the bottom.</div>` : ''}${p.tip ? `<div class="small muted">${esc(p.tip.trim())}</div>` : ''}
    ${c.auto && c.auto.clarity && !/photo/.test(c.auto.clarity) ? `<div class="small muted">Water clarity ${esc(c.auto.clarity)}.</div>` : ''}
-   <div class="row" style="margin-top:6px"><button class="btn sm ghost" data-watercheck="1">📷 Check the water now</button></div></div>`;
+   ${featOn('watercheck') ? '<div class="row" style="margin-top:6px"><button class="btn sm ghost" data-watercheck="1">📷 Check the water now</button></div>' : ''}</div>`;
 }
 
 // ---------- Wind direction: is it blowing onto the shore you fish? ----------
@@ -3012,7 +3017,7 @@ function crewCard() {
   return `<div class="card"><div class="hrow"><h2 style="flex:1;margin:0">👥 ${esc(c.name)}</h2>${CREW.list.length > 1 ? `<select id="crPick">${CREW.list.map(x => `<option value="${x.id}"${x.id === c.id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select>` : ''}</div>
    <div class="small muted">Invite code <b class="code">${esc(c.code)}</b> <a href="#" data-crinvite="1">share invite</a> · ${CREW.members.length} member${CREW.members.length === 1 ? '' : 's'} · <a href="#" data-crreload="1">refresh</a></div>
    ${rows.length ? `<h3>Last 30 days</h3>${rows.map(([u, b], i) => `<div class="kvrow"><span>${['🥇', '🥈', '🥉'][i] || i + 1 + '.'} ${esc(crewName(u))}</span><b>${b.n} fish${b.big ? ` · biggest ${b.big}"` : ''}</b></div>`).join('')}` : ''}
-   <div class="row" style="margin-top:8px"><button class="btn sm" data-crplan="1">📅 Share a trip plan</button><button class="btn sm ghost" data-trip="1">Trip report</button></div>
+   <div class="row" style="margin-top:8px"><button class="btn sm" data-crplan="1">📅 Share a trip plan</button>${featOn('trip') ? '<button class="btn sm ghost" data-trip="1">Trip report</button>' : ''}</div>
    <h3>Crew feed</h3>${CREW.posts.length ? CREW.posts.slice(0, 40).map(post).join('') : '<div class="small muted">Nothing shared yet. When you log a catch you can share it with the crew.</div>'}
    <details style="margin-top:10px"><summary class="small">Join or start another crew · leave</summary>${join}<div class="row"><button class="btn sm ghost" data-crleave="1">Leave ${esc(c.name)}</button></div></details></div>`;
 }
@@ -3212,6 +3217,62 @@ async function runWaterCheck(file) {
 document.addEventListener('change', e => { if (e.target.id === 'wcFile' && e.target.files[0]) runWaterCheck(e.target.files[0]); });
 document.addEventListener('click', e => { if (e.target.closest('[data-watercheck]')) { e.preventDefault(); waterSheet(); } });
 
+// ===== Choose your features: each person switches off what they don't use; those cards, buttons and tips disappear =====
+var FEATURES = [
+  { g: 'Forecast screen', k: 'colors', name: 'Lure & fly colors', help: 'Color picks for the light and water' },
+  { g: 'Forecast screen', k: 'watercheck', name: 'Check the water (photo)', help: 'Measure light and clarity with your camera' },
+  { g: 'Forecast screen', k: 'now', name: 'Right now', help: 'Live water level, temperature, buoys and river gauges' },
+  { g: 'Forecast screen', k: 'pickspot', name: 'Pick a spot', help: 'Ranks your spots for the day' },
+  { g: 'Forecast screen', k: 'week', name: 'Week planner', help: 'The next 7 days for all your spots' },
+  { g: 'Forecast screen', k: 'others', name: 'Other good bets', help: 'Other species biting at this spot' },
+  { g: 'Forecast screen', k: 'tides', name: 'Tide table', help: '' },
+  { g: 'Forecast screen', k: 'solunar', name: 'Sun, moon & solunar', help: '' },
+  { g: 'Forecast screen', k: 'marine', name: 'Marine forecast & advisories', help: 'Seas, wind and small craft advisories — for boaters' },
+  { g: 'Forecast screen', k: 'rules', name: 'Fishing rules', help: 'Size, bag limits and seasons' },
+  { g: 'Forecast screen', k: 'flybench', name: 'Fly recipes (Fly Bench)', help: 'Flies to tie for the fish you’re after' },
+  { g: 'More', k: 'alerts', name: 'Bite alerts', help: 'Notifications when your spot is about to fire' },
+  { g: 'More', k: 'map', name: 'Map', help: 'Your spots, catches, hot spots and boat ramps' },
+  { g: 'More', k: 'crew', name: 'Fishing crew', help: 'Share catches and plans with friends' },
+  { g: 'More', k: 'trip', name: 'Trip reports', help: '' },
+  { g: 'More', k: 'forecastcheck', name: 'Forecast report card', help: 'How well the forecast matched your catches' },
+  { g: 'More', k: 'tips', name: 'First-time tips', help: 'Step-by-step pointers on each screen' },
+];
+function featOn(k) { const f = (state.settings && state.settings.features) || {}; return f[k] !== false; }
+function featureSheet(first) {
+  const groups = [...new Set(FEATURES.map(f => f.g))];
+  $('#sheet').innerHTML = `<div class="in"><div class="hrow"><h2 style="flex:1;margin:0">${first ? 'Make it yours' : 'Choose your features'}</h2><button class="btn sm ghost" data-close="1">Close</button></div>
+   <div class="small muted" style="margin:6px 0 4px">Untick anything you don’t use and it disappears from the app. You can change this anytime in Settings.</div>
+   <div class="row" style="margin:6px 0"><button class="btn sm ghost" data-featall="1">All on</button><button class="btn sm ghost" data-featbasic="1">Just the basics</button></div>
+   ${groups.map(g => `<h3>${esc(g)}</h3>${FEATURES.filter(f => f.g === g).map(f => `<label class="featrow"><input type="checkbox" data-feat="${f.k}" ${featOn(f.k) ? 'checked' : ''}><span><b>${esc(f.name)}</b>${f.help ? `<span class="small muted">${esc(f.help)}</span>` : ''}</span></label>`).join('')}`).join('')}
+   <div class="row" style="margin-top:12px"><button class="btn" data-featsave="1">Save</button></div></div>`;
+  $('#sheet').classList.add('on');
+}
+function featureCard() {
+  const off = FEATURES.filter(f => !featOn(f.k)).length;
+  return `<div class="card"><h2>Your features</h2><div class="small">${off ? `${off} feature${off === 1 ? ' is' : 's are'} switched off.` : 'Everything is switched on.'} Hide what you don’t use to keep the app simple.</div><div class="row" style="margin-top:8px"><button class="btn ghost" data-featopen="1">☑️ Choose features</button></div></div>`;
+}
+// offered once, after the welcome
+function featurePrompt() {
+  if (state.settings.featPrompted || !(state.settings.welcomed || (state.settings.mySpots || []).length)) return '';
+  return `<div class="card featprompt"><div class="hrow"><div style="flex:1"><b>Make it yours</b><div class="small muted">Pick the features you want — hide the rest.</div></div><button class="btn sm" data-featopen="1" data-first="1">Choose</button><button class="btn sm ghost" data-featskip="1">Not now</button></div></div>`;
+}
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-featopen],[data-featsave],[data-featall],[data-featbasic],[data-featskip]'); if (!t) return;
+  e.preventDefault();
+  if (t.dataset.featopen) { state.settings.featPrompted = true; Store.saveSettings(); return featureSheet(!!t.dataset.first); }
+  if (t.dataset.featskip) { state.settings.featPrompted = true; Store.saveSettings(); return render(); }
+  const boxes = [...document.querySelectorAll('[data-feat]')];
+  if (t.dataset.featall) return boxes.forEach(b => b.checked = true);
+  if (t.dataset.featbasic) { const keep = ['colors', 'tides', 'solunar', 'rules', 'map', 'tips']; return boxes.forEach(b => b.checked = keep.includes(b.dataset.feat)); }
+  if (t.dataset.featsave) {
+    const f = {}; boxes.forEach(b => { if (!b.checked) f[b.dataset.feat] = false; });
+    state.settings.features = f; Store.saveSettings();
+    if (!featOn('map') && state.tab === 'map') state.tab = 'forecast';
+    $('#sheet').classList.remove('on'); toast('Saved'); render();
+    if (window.Stats) Stats.track('features_set');
+  }
+});
+
 /* First-time tips: a short step-by-step walkthrough that dims the screen, highlights one thing at a time and points at it.
    Tour.run(id, steps, {force})  steps: [{ el: "css selector" | Element | null, title, text, place: "auto"|"above"|"below" }]
      • Runs once per id (remembered on this device) unless force is true. Steps whose element isn't on screen are skipped;
@@ -3342,7 +3403,7 @@ var TOURS = {
 function tourFor(name, opt) { if (!WEB || !window.Tour || !TOURS[name]) return; Tour.later('ff.' + name, TOURS[name](), opt); }
 // after each screen draws, show its tips the first time
 function toursAfterRender() {
-  if (!WEB || !window.Tour || Tour.active() || document.querySelector('#sheet.on')) return;
+  if (!WEB || !window.Tour || !featOn('tips') || Tour.active() || document.querySelector('#sheet.on')) return;
   if (state.tab === 'forecast') { if (!Tour.seen('ff.forecast')) tourFor('forecast', { delay: 1200 }); }
   else if (state.tab === 'map') tourFor('map', { delay: 900 });
   else if (state.tab === 'log') { tourFor('log'); if (Tour.seen('ff.log') && document.querySelector('.code')) tourFor('crew'); }

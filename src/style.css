@@ -132,3 +132,6 @@ nav button{min-width:0}
 .code{letter-spacing:2px;font-family:ui-monospace,Menlo,monospace}
 .kvrow{display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-size:14px}
 .rpin{width:24px;height:24px;border-radius:50%;background:#fff;color:#123;display:grid;place-items:center;font-size:13px;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.featrow{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-top:1px solid rgba(255,255,255,.07);margin:0;font-weight:400}
+.featrow input{width:auto;margin-top:3px}.featrow span{display:flex;flex-direction:column}
+.featprompt{border-color:var(--accent)}

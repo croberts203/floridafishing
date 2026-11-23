@@ -82,7 +82,7 @@ function colorCard(r, sp, c) {
    <div class="cchips">${p.list.map(chip).join('')}</div>
    ${p.bait ? `<div class="small muted">${esc(r.sp.name)} are mostly caught on natural bait — colors matter less than fresh bait on the bottom.</div>` : ''}${p.tip ? `<div class="small muted">${esc(p.tip.trim())}</div>` : ''}
    ${c.auto && c.auto.clarity && !/photo/.test(c.auto.clarity) ? `<div class="small muted">Water clarity ${esc(c.auto.clarity)}.</div>` : ''}
-   <div class="row" style="margin-top:6px"><button class="btn sm ghost" data-watercheck="1">📷 Check the water now</button></div></div>`;
+   ${featOn('watercheck') ? '<div class="row" style="margin-top:6px"><button class="btn sm ghost" data-watercheck="1">📷 Check the water now</button></div>' : ''}</div>`;
 }
 
 // ---------- Wind direction: is it blowing onto the shore you fish? ----------

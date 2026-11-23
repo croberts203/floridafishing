@@ -45,7 +45,7 @@ var TOURS = {
 function tourFor(name, opt) { if (!WEB || !window.Tour || !TOURS[name]) return; Tour.later('ff.' + name, TOURS[name](), opt); }
 // after each screen draws, show its tips the first time
 function toursAfterRender() {
-  if (!WEB || !window.Tour || Tour.active() || document.querySelector('#sheet.on')) return;
+  if (!WEB || !window.Tour || !featOn('tips') || Tour.active() || document.querySelector('#sheet.on')) return;
   if (state.tab === 'forecast') { if (!Tour.seen('ff.forecast')) tourFor('forecast', { delay: 1200 }); }
   else if (state.tab === 'map') tourFor('map', { delay: 900 });
   else if (state.tab === 'log') { tourFor('log'); if (Tour.seen('ff.log') && document.querySelector('.code')) tourFor('crew'); }
