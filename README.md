@@ -1,4 +1,4 @@
-# Jax Bite Forecast — app.floridafishing.com
+# Jax Bite Forecast — app.fishforecast.net
 
 Fishing bite forecast for Jacksonville, Florida: species-by-species bite scores, tides (NOAA Mayport harmonics), sun/moon/solunar, live NWS small craft advisory and seas, a spot picker, Florida regulations, fly-fishing mode and an on-device catch log.
 
