@@ -160,6 +160,7 @@ async function saveAlert() {
   const row = { spot: alertSpot(sp), species: $('#alSp').value, min_score: +$('#alMin').value, days: $('#alDays').value, sca: !!($('#alSca') && $('#alSca').checked), fly: !!($('#alFly') && $('#alFly').checked) };
   const { error } = await Cloud.sb.from('forecast_alerts').insert(row);
   if (error) { toast('Couldn’t save the alert'); return; }
+  Stats.track('alert_on');
   $('#sheet').classList.remove('on'); toast('Alert saved'); ALERT.uid = undefined; loadAlerts();
   if (!ALERT.push) enablePush();
 }

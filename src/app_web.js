@@ -5,7 +5,7 @@ const waterSel = (cls, v, extra = '') => `<select class="${cls}" ${extra}>${WATE
 function saveMySpots(list) { state.settings.mySpots = list; Store.saveSettings(); dayCache.clear(); }
 
 // ---- Storage: Supabase account when signed in, this phone otherwise ----
-Store.init = async function () { this.fallback(); render(); applyHash(); await Cloud.init(); };
+Store.init = async function () { if (window.Stats) Stats.init('forecast', SB_URL, SB_KEY); this.fallback(); render(); applyHash(); await Cloud.init(); };
 {
   const localSettings = Store.saveSettings.bind(Store);
   Store.saveSettings = function () {
@@ -229,6 +229,7 @@ document.addEventListener('click', async e => {
     t.disabled = true;
     try {
       const r = d.signin ? await Cloud.sb.auth.signInWithPassword({ email, password: pass }) : await Cloud.sb.auth.signUp({ email, password: pass, options: { emailRedirectTo: location.origin + '/' } });
+      if (!r.error && d.signup && window.Stats) Stats.track('signup');
       if (r.error) toast(r.error.message); else if (d.signup && !r.data.session) toast('Check your email to confirm, then sign in');
     } finally { t.disabled = false; }
     return;
@@ -348,7 +349,7 @@ async function runPhotoLog(file) {
 document.addEventListener('change', e => { if (e.target.id === 'plFile' && e.target.files && e.target.files[0]) runPhotoLog(e.target.files[0]); });
 document.addEventListener('click', e => {
   const t = e.target.closest('button'); if (!t) return;
-  if (t.dataset.photolog) { openPhotoLog(); return; }
+  if (t.dataset.photolog) { Stats.track('photo_log'); openPhotoLog(); return; }
   if (t.dataset.photocontinue && photoDraft) {
     const d = photoDraft;
     openCatch({ id: 'c_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ts: d.ts, species: d.species || '', spot: d.spot, method: state.fly ? 'fly' : 'conv', count: 1, kept: false,

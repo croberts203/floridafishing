@@ -1852,6 +1852,7 @@ function render() {
   else m.innerHTML = viewSettings();
   if (state.tab === 'forecast') bindChart();
   if (WEB && state.tab === 'map') mountMap();
+  if (WEB && window.Stats && state.tab !== 'forecast') Stats.track('tab_' + state.tab);
   if (WEB) { toursAfterRender(); if (state.tab === 'forecast') watchConditions(); }
 }
 
@@ -2147,6 +2148,7 @@ async function saveCatchForm() {
   const ok = await Store.saveCatch(out);
   btn.disabled = false; btn.textContent = 'Save catch';
   if (ok && shareCrew) crewShareCatch(out, shareSpot);
+  if (ok && WEB) Stats.track('catch_logged');
   if (ok) { $('#sheet').classList.remove('on'); toast('Catch saved'); if (!Store.db || Store.localLog) render(); }
 }
 function csv() {
@@ -2206,7 +2208,7 @@ confidence is 0–1. Only give estimated_length_in when a ruler or measuring boa
 // ===== Settings =====
 function viewSettings() {
   const sps = spots();
-  return `${WEB ? alertsCard() + mySpotsCard() + offlineCard() + '<div class="card"><h2>Tips</h2><div class="small">Step-by-step tips show the first time you open each screen.</div><div class="row" style="margin-top:8px"><button class="btn ghost" data-tipsagain="1">💡 Show tips again</button></div></div>' : ''}<div class="card"><h2>Tide offsets by spot${WEB ? ' (Jacksonville examples)' : ''}</h2><div class="small muted">Times shift the Mayport prediction (minutes, + is later); ratios scale heights. Presets come from NOAA subordinate stations. Adjust any spot to match what you see on the water.</div>
+  return `${WEB ? alertsCard() + mySpotsCard() + offlineCard() + '<div class="card"><h2>Tips</h2><div class="small">Step-by-step tips show the first time you open each screen.</div><div class="row" style="margin-top:8px"><button class="btn ghost" data-tipsagain="1">💡 Show tips again</button></div><h2 style="margin-top:16px">Privacy</h2><div class="small muted">To see how many people use the app and which shops and clubs send them, it counts visits and features used with a random ID kept in this browser — no names, emails, IP addresses or locations. Browsers set to “Do Not Track” send nothing. Your spots, catches and settings stay on this device, or in your account if you sign in.</div></div>' : ''}<div class="card"><h2>Tide offsets by spot${WEB ? ' (Jacksonville examples)' : ''}</h2><div class="small muted">Times shift the Mayport prediction (minutes, + is later); ratios scale heights. Presets come from NOAA subordinate stations. Adjust any spot to match what you see on the water.</div>
   ${sps.filter(s => s.tide).map(s => `<div class="spotrow"><b>${esc(s.name)}</b> <span class="small muted">${esc(s.src || 'custom')}</span>
    <div class="g4" style="margin-top:6px"><div><label>High +min</label><input data-off="${esc(s.id)}" data-k="hi" type="number" inputmode="numeric" value="${s.tide.hi}"></div><div><label>Low +min</label><input data-off="${esc(s.id)}" data-k="lo" type="number" inputmode="numeric" value="${s.tide.lo}"></div><div><label>High ×</label><input data-off="${esc(s.id)}" data-k="hr" type="number" inputmode="decimal" step="0.01" value="${s.tide.hr}"></div><div><label>Low ×</label><input data-off="${esc(s.id)}" data-k="lr" type="number" inputmode="decimal" step="0.01" value="${s.tide.lr}"></div></div>
    ${s.custom ? `<button class="btn sm danger" style="margin-top:8px" data-rmspot="${esc(s.id)}">Remove spot</button>` : ''}</div>`).join('')}
@@ -2459,6 +2461,7 @@ async function saveAlert() {
   const row = { spot: alertSpot(sp), species: $('#alSp').value, min_score: +$('#alMin').value, days: $('#alDays').value, sca: !!($('#alSca') && $('#alSca').checked), fly: !!($('#alFly') && $('#alFly').checked) };
   const { error } = await Cloud.sb.from('forecast_alerts').insert(row);
   if (error) { toast('Couldn’t save the alert'); return; }
+  Stats.track('alert_on');
   $('#sheet').classList.remove('on'); toast('Alert saved'); ALERT.uid = undefined; loadAlerts();
   if (!ALERT.push) enablePush();
 }
@@ -3038,15 +3041,16 @@ function crewPlanSheet() {
 document.addEventListener('click', async e => {
   const d = e.target.closest('[data-prepoffline],[data-trip],[data-trshare],[data-trcopy],[data-trcrew],[data-crjoin],[data-crnew],[data-crinvite],[data-crreload],[data-crleave],[data-crdel],[data-crplan],[data-cpsend]'); if (!d) return;
   const x = d.dataset; e.preventDefault();
-  if (x.prepoffline) return prepOffline(d);
+  if (x.prepoffline) { Stats.track('offline_saved'); return prepOffline(d); }
+  if (x.trip) Stats.track('trip_report');
   if (x.trip) return tripSheet(state.day0 <= midnight(Date.now()) ? state.day0 : midnight(Date.now()), state.spotId);
   const tr = $('#sheet')._tr;
   if (x.trshare && tr) { if (navigator.share) { try { await navigator.share({ title: 'Trip report', text: tr.text }); } catch (er) { } } else { await navigator.clipboard.writeText(tr.text); toast('Copied'); } return; }
   if (x.trcopy && tr) { try { await navigator.clipboard.writeText(tr.text); toast('Copied'); } catch (er) { toast('Couldn’t copy'); } return; }
   if (x.trcrew && tr) { const big = tr.tr.list[0] || {}; const { error } = await Cloud.sb.from('forecast_crew_posts').insert({ crew_id: CREW.cur, kind: 'catch', data: { species: tr.tr.fish + ' fish', count: 0, text: tr.text, thumb: big.photoThumb && big.photoThumb.length < 15000 ? big.photoThumb : undefined } }); toast(error ? error.message : 'Posted to crew'); if (!error) { $('#sheet').classList.remove('on'); crewLoad(true); } return; }
   const name = (($('#crName') || {}).value || '').trim(); if (name) { state.settings.crewName = name; Store.saveSettings(); }
-  if (x.crjoin) { const code = ($('#crCode').value || '').trim(); if (!code) return toast('Enter the invite code'); const { data, error } = await Cloud.sb.rpc('forecast_join_crew', { invite: code, my_name: name || 'Angler' }); if (error) return toast(error.message); CREW.cur = data.id; toast('Joined ' + data.name); return crewLoad(true); }
-  if (x.crnew) { const n = ($('#crNew').value || '').trim(); if (!n) return toast('Name the crew'); const { data, error } = await Cloud.sb.rpc('forecast_create_crew', { crew_name: n, my_name: name || 'Me' }); if (error) return toast(error.message); CREW.cur = data.id; toast('Crew started — invite code ' + data.code); return crewLoad(true); }
+  if (x.crjoin) { const code = ($('#crCode').value || '').trim(); if (!code) return toast('Enter the invite code'); const { data, error } = await Cloud.sb.rpc('forecast_join_crew', { invite: code, my_name: name || 'Angler' }); if (error) return toast(error.message); CREW.cur = data.id; Stats.track('crew_join'); toast('Joined ' + data.name); return crewLoad(true); }
+  if (x.crnew) { const n = ($('#crNew').value || '').trim(); if (!n) return toast('Name the crew'); const { data, error } = await Cloud.sb.rpc('forecast_create_crew', { crew_name: n, my_name: name || 'Me' }); if (error) return toast(error.message); CREW.cur = data.id; Stats.track('crew_create'); toast('Crew started — invite code ' + data.code); return crewLoad(true); }
   const c = CREW.list.find(y => y.id === CREW.cur);
   if (x.crinvite && c) { const t = `Join my fishing crew "${c.name}" on Fish Bite Forecast: open https://fishforecast.net/#crew=${c.code} (sign in, then Catch log → Join).`; if (navigator.share) { try { await navigator.share({ text: t }); } catch (er) { } } else { await navigator.clipboard.writeText(t); toast('Invite copied'); } return; }
   if (x.crreload) return crewLoad(true);
@@ -3087,7 +3091,7 @@ async function drawRamps() {
     const g = L.layerGroup();
     lists.flat().forEach(r => L.marker([r.lat, r.lng], { icon: L.divIcon({ html: '<div class="rpin">⛵</div>', className: 'mpinwrap', iconSize: [24, 24], iconAnchor: [12, 12] }) })
       .bindPopup(`<b>${esc(r.name)}</b>${r.fee === 'yes' ? '<br>Fee' : r.fee === 'no' ? '<br>Free' : ''}<br><a href="https://maps.apple.com/?daddr=${r.lat},${r.lng}" target="_blank" rel="noopener">Directions</a> · <span class="small muted">© OpenStreetMap</span>`).addTo(g));
-    MAP.layers.ramps = g.addTo(m);
+    MAP.layers.ramps = g.addTo(m); Stats.track('ramps');
     if (!lists.flat().length) toast('No boat ramps mapped here');
   } finally { RAMPS.busy = false; }
 }
@@ -3162,6 +3166,7 @@ function waterSheet() {
   tourFor('water', { delay: 350 });
 }
 async function runWaterCheck(file) {
+  Stats.track('water_check');
   const out = $('#wcOut'), sp = spot(), res = { t: Date.now() };
   $('#wcPrev').src = URL.createObjectURL(file); $('#wcPrev').style.display = 'block';
   const ex = await readExposure(file);
@@ -3354,6 +3359,50 @@ function watchConditions() {
 }
 document.addEventListener('click', e => { if (e.target.closest('[data-tipsagain]')) { e.preventDefault(); Tour.reset(); toast('Tips will show again on each screen'); state.tab = 'forecast'; render(); window.scrollTo(0, 0); } });
 
+/* Privacy-friendly usage counting, shared by fishforecast.net and Fly Bench (keep both copies identical).
+   • A random device id lives in this browser only. No names, emails, IP addresses or locations are sent.
+   • Browsers with "Do Not Track" or Global Privacy Control turned on send nothing.
+   • Invite links (?r=shop-name) are remembered on first visit so a shop, club or creator gets credit.
+   Stats.init(app, url, key)  — call once; records one "visit" per day.   Stats.track("event_name") — a feature was used. */
+(function () {
+  if (window.Stats) return;
+  var APP = null, URL_ = null, KEY = null, off = false, recent = {};
+  function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+  function rid() { var a = new Uint8Array(10); (window.crypto || {}).getRandomValues ? crypto.getRandomValues(a) : a.forEach(function (_, i) { a[i] = Math.random() * 256; }); return Array.from(a, function (b) { return (b % 36).toString(36); }).join(""); }
+  function device() { var d = ls("stats.device"); if (!d || !/^[a-z0-9]{8,32}$/.test(d)) { d = rid() + rid(); d = d.slice(0, 16); ls("stats.device", d); } return d; }
+  function platform() { var u = navigator.userAgent; return /iPhone|iPad|iPod/.test(u) || (/Macintosh/.test(u) && navigator.maxTouchPoints > 1) ? "ios" : /Android/.test(u) ? "android" : /Windows/.test(u) ? "windows" : /Mac OS X/.test(u) ? "mac" : "other"; }
+  function installed() { try { return matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; } catch (e) { return false; } }
+  function ref() {
+    try {
+      var p = new URLSearchParams(location.search), r = (p.get("r") || p.get("ref") || "").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 32);
+      if (r.length >= 2) {
+        if (!ls("stats.ref")) ls("stats.ref", r);
+        p.delete("r"); p.delete("ref"); var q = p.toString();
+        history.replaceState(history.state, "", location.pathname + (q ? "?" + q : "") + location.hash);
+      }
+    } catch (e) { }
+    var v = ls("stats.ref"); return v && /^[a-z0-9-]{2,32}$/.test(v) ? v : null;
+  }
+  function send(event) {
+    if (off || !APP) return;
+    var body = JSON.stringify({ app: APP, device: device(), event: event, ref: ref(), platform: platform(), installed: installed() });
+    try { fetch(URL_ + "/rest/v1/app_events", { method: "POST", keepalive: true, headers: { apikey: KEY, Authorization: "Bearer " + KEY, "Content-Type": "application/json", Prefer: "return=minimal" }, body: body }).catch(function () { }); } catch (e) { }
+  }
+  function track(event) {
+    event = String(event || "").toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 32); if (event.length < 2) return;
+    var now = Date.now(); if (recent[event] && now - recent[event] < 30000) return; recent[event] = now;
+    send(event);
+  }
+  function init(app, url, key) {
+    APP = app; URL_ = url; KEY = key;
+    off = navigator.doNotTrack === "1" || window.doNotTrack === "1" || navigator.globalPrivacyControl === true || /[?&]demo\b/.test(location.search) || /^(localhost|127\.)/.test(location.hostname);
+    ref();
+    var today = new Date().toISOString().slice(0, 10);
+    if (ls("stats.visit." + app) !== today) { ls("stats.visit." + app, today); send("visit"); }
+  }
+  window.Stats = { init: init, track: track, off: function () { return off; } };
+})();
+
 // ===== Website-only UI: spots anywhere in the US, accounts, nationwide marine & rules =====
 function natState(sp) { const p = sp && sp.lat != null ? natPoint(sp) : null; return p ? p.state : null; }
 const WATER_OPTS = [['fresh', 'Fresh water (lake, river, pond)'], ['greatlakes', 'Great Lakes'], ['inshore', 'Inshore salt / brackish (bay, river mouth, flats)'], ['surf', 'Surf / beach'], ['nearshore', 'Nearshore (boat, within ~10 mi)'], ['offshore', 'Offshore']];
@@ -3361,7 +3410,7 @@ const waterSel = (cls, v, extra = '') => `<select class="${cls}" ${extra}>${WATE
 function saveMySpots(list) { state.settings.mySpots = list; Store.saveSettings(); dayCache.clear(); }
 
 // ---- Storage: Supabase account when signed in, this phone otherwise ----
-Store.init = async function () { this.fallback(); render(); applyHash(); await Cloud.init(); };
+Store.init = async function () { if (window.Stats) Stats.init('forecast', SB_URL, SB_KEY); this.fallback(); render(); applyHash(); await Cloud.init(); };
 {
   const localSettings = Store.saveSettings.bind(Store);
   Store.saveSettings = function () {
@@ -3585,6 +3634,7 @@ document.addEventListener('click', async e => {
     t.disabled = true;
     try {
       const r = d.signin ? await Cloud.sb.auth.signInWithPassword({ email, password: pass }) : await Cloud.sb.auth.signUp({ email, password: pass, options: { emailRedirectTo: location.origin + '/' } });
+      if (!r.error && d.signup && window.Stats) Stats.track('signup');
       if (r.error) toast(r.error.message); else if (d.signup && !r.data.session) toast('Check your email to confirm, then sign in');
     } finally { t.disabled = false; }
     return;
@@ -3704,7 +3754,7 @@ async function runPhotoLog(file) {
 document.addEventListener('change', e => { if (e.target.id === 'plFile' && e.target.files && e.target.files[0]) runPhotoLog(e.target.files[0]); });
 document.addEventListener('click', e => {
   const t = e.target.closest('button'); if (!t) return;
-  if (t.dataset.photolog) { openPhotoLog(); return; }
+  if (t.dataset.photolog) { Stats.track('photo_log'); openPhotoLog(); return; }
   if (t.dataset.photocontinue && photoDraft) {
     const d = photoDraft;
     openCatch({ id: 'c_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ts: d.ts, species: d.species || '', spot: d.spot, method: state.fly ? 'fly' : 'conv', count: 1, kept: false,

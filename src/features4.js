@@ -151,15 +151,16 @@ function crewPlanSheet() {
 document.addEventListener('click', async e => {
   const d = e.target.closest('[data-prepoffline],[data-trip],[data-trshare],[data-trcopy],[data-trcrew],[data-crjoin],[data-crnew],[data-crinvite],[data-crreload],[data-crleave],[data-crdel],[data-crplan],[data-cpsend]'); if (!d) return;
   const x = d.dataset; e.preventDefault();
-  if (x.prepoffline) return prepOffline(d);
+  if (x.prepoffline) { Stats.track('offline_saved'); return prepOffline(d); }
+  if (x.trip) Stats.track('trip_report');
   if (x.trip) return tripSheet(state.day0 <= midnight(Date.now()) ? state.day0 : midnight(Date.now()), state.spotId);
   const tr = $('#sheet')._tr;
   if (x.trshare && tr) { if (navigator.share) { try { await navigator.share({ title: 'Trip report', text: tr.text }); } catch (er) { } } else { await navigator.clipboard.writeText(tr.text); toast('Copied'); } return; }
   if (x.trcopy && tr) { try { await navigator.clipboard.writeText(tr.text); toast('Copied'); } catch (er) { toast('Couldn’t copy'); } return; }
   if (x.trcrew && tr) { const big = tr.tr.list[0] || {}; const { error } = await Cloud.sb.from('forecast_crew_posts').insert({ crew_id: CREW.cur, kind: 'catch', data: { species: tr.tr.fish + ' fish', count: 0, text: tr.text, thumb: big.photoThumb && big.photoThumb.length < 15000 ? big.photoThumb : undefined } }); toast(error ? error.message : 'Posted to crew'); if (!error) { $('#sheet').classList.remove('on'); crewLoad(true); } return; }
   const name = (($('#crName') || {}).value || '').trim(); if (name) { state.settings.crewName = name; Store.saveSettings(); }
-  if (x.crjoin) { const code = ($('#crCode').value || '').trim(); if (!code) return toast('Enter the invite code'); const { data, error } = await Cloud.sb.rpc('forecast_join_crew', { invite: code, my_name: name || 'Angler' }); if (error) return toast(error.message); CREW.cur = data.id; toast('Joined ' + data.name); return crewLoad(true); }
-  if (x.crnew) { const n = ($('#crNew').value || '').trim(); if (!n) return toast('Name the crew'); const { data, error } = await Cloud.sb.rpc('forecast_create_crew', { crew_name: n, my_name: name || 'Me' }); if (error) return toast(error.message); CREW.cur = data.id; toast('Crew started — invite code ' + data.code); return crewLoad(true); }
+  if (x.crjoin) { const code = ($('#crCode').value || '').trim(); if (!code) return toast('Enter the invite code'); const { data, error } = await Cloud.sb.rpc('forecast_join_crew', { invite: code, my_name: name || 'Angler' }); if (error) return toast(error.message); CREW.cur = data.id; Stats.track('crew_join'); toast('Joined ' + data.name); return crewLoad(true); }
+  if (x.crnew) { const n = ($('#crNew').value || '').trim(); if (!n) return toast('Name the crew'); const { data, error } = await Cloud.sb.rpc('forecast_create_crew', { crew_name: n, my_name: name || 'Me' }); if (error) return toast(error.message); CREW.cur = data.id; Stats.track('crew_create'); toast('Crew started — invite code ' + data.code); return crewLoad(true); }
   const c = CREW.list.find(y => y.id === CREW.cur);
   if (x.crinvite && c) { const t = `Join my fishing crew "${c.name}" on Fish Bite Forecast: open https://fishforecast.net/#crew=${c.code} (sign in, then Catch log → Join).`; if (navigator.share) { try { await navigator.share({ text: t }); } catch (er) { } } else { await navigator.clipboard.writeText(t); toast('Invite copied'); } return; }
   if (x.crreload) return crewLoad(true);
@@ -200,7 +201,7 @@ async function drawRamps() {
     const g = L.layerGroup();
     lists.flat().forEach(r => L.marker([r.lat, r.lng], { icon: L.divIcon({ html: '<div class="rpin">⛵</div>', className: 'mpinwrap', iconSize: [24, 24], iconAnchor: [12, 12] }) })
       .bindPopup(`<b>${esc(r.name)}</b>${r.fee === 'yes' ? '<br>Fee' : r.fee === 'no' ? '<br>Free' : ''}<br><a href="https://maps.apple.com/?daddr=${r.lat},${r.lng}" target="_blank" rel="noopener">Directions</a> · <span class="small muted">© OpenStreetMap</span>`).addTo(g));
-    MAP.layers.ramps = g.addTo(m);
+    MAP.layers.ramps = g.addTo(m); Stats.track('ramps');
     if (!lists.flat().length) toast('No boat ramps mapped here');
   } finally { RAMPS.busy = false; }
 }

@@ -68,6 +68,7 @@ function waterSheet() {
   tourFor('water', { delay: 350 });
 }
 async function runWaterCheck(file) {
+  Stats.track('water_check');
   const out = $('#wcOut'), sp = spot(), res = { t: Date.now() };
   $('#wcPrev').src = URL.createObjectURL(file); $('#wcPrev').style.display = 'block';
   const ex = await readExposure(file);
