@@ -1901,8 +1901,29 @@ function saveDraft() {
   state.spotId = sp.id; state.settings.spotId = sp.id; state.spId = 'auto';
   $('#sheet').classList.remove('on'); toast('Spot saved'); render(); window.scrollTo(0, 0);
 }
+// Explain why location failed and how to fix it, instead of a two-second toast.
+function geoHelp(err) {
+  const ua = navigator.userAgent, ios = /iPhone|iPad|iPod/.test(ua), android = /Android/.test(ua);
+  let why, how;
+  if (!window.isSecureContext) {
+    why = 'Phones only share GPS with sites opened over a secure <b>https://</b> address. This page was opened without one.';
+    how = 'fishforecast.net is still finishing its security certificate; location will work as soon as the site opens at <b>https://fishforecast.net</b>. Until then, use <b>Search a place</b>.';
+  } else if (err && err.code === 1) {
+    why = 'Location permission is turned off for this site.';
+    how = ios ? '<b>iPhone:</b> Settings → Privacy &amp; Security → Location Services → turn it on, then Safari Websites (or Chrome) → <b>While Using</b>. In Safari, tap <b>aA</b> in the address bar → Website Settings → Location → <b>Allow</b>. Reload the page.'
+      : android ? '<b>Android Chrome:</b> tap the icon left of the address → Permissions → Location → <b>Allow</b>. Also check Settings → Location is on and Chrome has location permission. Reload the page.'
+      : 'Click the icon left of the address bar → Site settings → Location → <b>Allow</b>, then reload.';
+  } else {
+    why = err && err.code === 3 ? 'GPS took too long to get a fix.' : 'Your device couldn’t determine a location.';
+    how = 'Make sure Location is on, step outside or near a window, and try again — or use <b>Search a place</b>.';
+  }
+  $('#sheet').innerHTML = `<div class="in"><div class="hrow"><h2 style="flex:1;margin:0">Location not available</h2><button class="btn sm ghost" data-close="1">Close</button></div>
+   <p class="small" style="margin-top:10px">${why}</p><p class="small">${how}</p>
+   <div class="row" style="margin-top:10px"><button class="btn" data-addspot2="1">Search a place</button><button class="btn ghost" data-close="1">OK</button></div></div>`;
+  $('#sheet').classList.add('on');
+}
 locateMe = function () {
-  if (!navigator.geolocation) { toast('Location isn’t available on this device'); return; }
+  if (!navigator.geolocation || !window.isSecureContext) { geoHelp(null); return; }
   toast('Finding you…');
   navigator.geolocation.getCurrentPosition(async pos => {
     const me = [pos.coords.latitude, pos.coords.longitude];
@@ -1911,7 +1932,7 @@ locateMe = function () {
     for (const s of spots()) { if (s.lat == null) continue; const d = distKm(me, [s.lat, s.lng]); if (!best || d < best.d) best = { s, d }; }
     if (best && best.d < 3) { state.spotId = best.s.id; state.settings.spotId = best.s.id; Store.saveSettings(); toast(`At ${best.s.name}`); render(); return; }
     openAddSpot(); await draftSpot(me[0], me[1], 'My spot');
-  }, err => toast(err.code === 1 ? 'Location permission was denied' : 'Couldn’t get your location'), { enableHighAccuracy: true, timeout: 15000, maximumAge: 120000 });
+  }, err => geoHelp(err), { enableHighAccuracy: true, timeout: 15000, maximumAge: 120000 });
 };
 function mySpotsCard() {
   const mine = state.settings.mySpots || [];
@@ -1975,8 +1996,8 @@ document.addEventListener('click', async e => {
   const d = t.dataset;
   if (d.addspot2) { e.preventDefault(); openAddSpot(); return; }
   if (d.gpsspot) {
-    if (!navigator.geolocation) { toast('Location isn’t available'); return; }
-    navigator.geolocation.getCurrentPosition(p => draftSpot(p.coords.latitude, p.coords.longitude, 'My spot'), () => toast('Couldn’t get your location'), { enableHighAccuracy: true, timeout: 15000 });
+    if (!navigator.geolocation || !window.isSecureContext) { geoHelp(null); return; }
+    navigator.geolocation.getCurrentPosition(p => draftSpot(p.coords.latitude, p.coords.longitude, 'My spot'), err => geoHelp(err), { enableHighAccuracy: true, timeout: 15000 });
     return;
   }
   if (d.placego) {
