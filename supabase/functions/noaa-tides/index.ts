@@ -119,30 +119,43 @@ async function usgsNow(lat: number, lng: number) {
 }
 
 // ---- lake or river? (USGS National Hydrography Dataset, high resolution) ----
+// Fetch nearby lake/pond polygons, stream lines and river-channel polygons once, then measure the
+// distance from the point to each so the water you're actually standing at wins.
 const NHD = "https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer";
-async function nhdQuery(layer: number, lat: number, lng: number, meters: number) {
-  const q = new URLSearchParams({ geometry: `${lng},${lat}`, geometryType: "esriGeometryPoint", inSR: "4326", spatialRel: "esriSpatialRelIntersects",
-    distance: String(meters), units: "esriSRUnit_Meter", outFields: "*", returnGeometry: "false", f: "json" });
-  const r = await fetch(`${NHD}/${layer}/query?${q}`, { signal: AbortSignal.timeout(12000) });
-  const j = await r.json();
-  return (j.features || []).map((f: any) => { const a: Record<string, any> = {}; for (const k in f.attributes) a[k.toLowerCase()] = f.attributes[k]; return a; });
+async function nhdGeo(layer: number, lat: number, lng: number, meters: number) {
+  const q = new URLSearchParams({ geometry: `${lng},${lat}`, geometryType: "esriGeometryPoint", inSR: "4326", outSR: "4326", spatialRel: "esriSpatialRelIntersects",
+    distance: String(meters), units: "esriSRUnit_Meter", outFields: "gnis_name,ftype,areasqkm", returnGeometry: "true", maxAllowableOffset: "0.0001", geometryPrecision: "6", f: "json" });
+  const r = await fetch(`${NHD}/${layer}/query?${q}`, { signal: AbortSignal.timeout(25000) });
+  const j = await r.json(); if (j.error) throw new Error("nhd " + j.error.code);
+  return (j.features || []).map((f: any) => { const a: Record<string, any> = {}; for (const k in f.attributes) a[k.toLowerCase()] = f.attributes[k]; return { a, g: f.geometry || {} }; });
+}
+function measure(lat: number, lng: number) {
+  const kx = Math.cos(lat * Math.PI / 180) * 111320, ky = 110540;
+  const P = (c: number[]) => [(c[0] - lng) * kx, (c[1] - lat) * ky];
+  const seg = (a: number[], b: number[]) => { const dx = b[0] - a[0], dy = b[1] - a[1], l = dx * dx + dy * dy; let t = l ? -(a[0] * dx + a[1] * dy) / l : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(a[0] + t * dx, a[1] + t * dy); };
+  const lineDist = (paths: number[][][]) => { let d = Infinity; for (const p of paths || []) for (let i = 1; i < p.length; i++) d = Math.min(d, seg(P(p[i - 1]), P(p[i]))); return d; };
+  const polyDist = (rings: number[][][]) => { let inside = false; for (const r of rings || []) for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const a = P(r[i]), b = P(r[j]); if ((a[1] > 0) !== (b[1] > 0) && 0 < (b[0] - a[0]) * (0 - a[1]) / (b[1] - a[1]) + a[0]) inside = !inside; } return inside ? 0 : lineDist(rings); };
+  return { lineDist, polyDist };
 }
 async function waterKind(lat: number, lng: number) {
-  const [wb, area, fl] = await Promise.all([nhdQuery(12, lat, lng, 120), nhdQuery(9, lat, lng, 60), nhdQuery(6, lat, lng, 150)].map((p) => p.catch(() => null)));
-  if (!wb && !area && !fl) return { kind: null, name: null, error: "lookup unavailable" };
-  const named = (l: any[]) => l.find((x) => x.gnis_name) || l[0];
-  const lakes = (wb || []).filter((x) => x.ftype === 390 || x.ftype === 436);
-  if (lakes.length) {
-    const w = named(lakes.sort((a, b) => (b.areasqkm || 0) - (a.areasqkm || 0)));
-    const kind = w.ftype === 436 ? "reservoir" : (w.areasqkm || 0) < 0.05 ? "pond" : "lake";
-    return { kind, name: w.gnis_name || null, acres: w.areasqkm ? Math.round(w.areasqkm * 247.1) : null, source: "NHD waterbody" };
-  }
-  const rivers = (fl || []).filter((x) => x.ftype === 460 || x.ftype === 336 || x.ftype === 558);
-  if ((area || []).some((x) => x.ftype === 460 || x.ftype === 336) || rivers.length) {
-    const r = rivers.length ? named(rivers) : {};
-    return { kind: "river", name: r.gnis_name || null, source: "NHD flowline" };
-  }
-  if ((wb || []).some((x) => x.ftype === 466)) return { kind: "pond", name: named(wb).gnis_name || null, source: "NHD swamp/marsh" };
+  const [wb, fl, ar] = await Promise.all([nhdGeo(12, lat, lng, 150), nhdGeo(6, lat, lng, 150), nhdGeo(9, lat, lng, 60)].map((p) => p.catch(() => null)));
+  if (!wb && !fl && !ar) return { kind: null, name: null, error: "lookup unavailable" };
+  const { lineDist, polyDist } = measure(lat, lng);
+  const lakes = (wb || []).filter((x) => x.a.ftype === 390 || x.a.ftype === 436).map((x) => ({ ...x.a, d: polyDist(x.g.rings) }));
+  const marsh = (wb || []).filter((x) => x.a.ftype === 466).map((x) => ({ ...x.a, d: polyDist(x.g.rings) }));
+  const streams = (fl || []).filter((x) => x.a.ftype === 460 || x.a.ftype === 336).map((x) => ({ ...x.a, d: lineDist(x.g.paths) }));
+  const paths = (fl || []).filter((x) => x.a.ftype === 558).map((x) => ({ ...x.a, d: lineDist(x.g.paths) }));
+  const channels = (ar || []).filter((x) => x.a.ftype === 460 || x.a.ftype === 336).map((x) => ({ ...x.a, d: polyDist(x.g.rings) }));
+  const near = (l: any[]) => l.slice().sort((a, b) => a.d - b.d)[0];
+  const lake = (w: any) => ({ kind: w.ftype === 436 ? "reservoir" : (w.areasqkm || 0) < 0.05 ? "pond" : "lake", name: w.gnis_name || null, acres: w.areasqkm ? Math.round(w.areasqkm * 247.1) : null, withinM: Math.round(w.d), source: "NHD waterbody" });
+  const riverName = () => (near(streams.concat(paths).filter((x) => x.gnis_name)) || {}).gnis_name || null;
+  const inside = lakes.filter((l) => l.d === 0).sort((a, b) => (a.areasqkm || 0) - (b.areasqkm || 0));
+  if (inside.length) return lake(inside[0]);                                   // on a mapped lake or pond
+  if (channels.some((c) => c.d === 0)) return { kind: "river", name: riverName(), withinM: 0, source: "NHD river channel" };
+  const L = near(lakes), S = near(streams.concat(channels)), M = near(marsh);
+  if (L && (!S || L.d <= S.d + 5)) return lake(L);                             // closest water wins; near-ties go to the lake
+  if (S) return { kind: "river", name: S.gnis_name || riverName(), withinM: Math.round(S.d), source: "NHD stream" };
+  if (M) return { kind: "pond", name: M.gnis_name || null, withinM: Math.round(M.d), source: "NHD swamp/marsh" };
   return { kind: null, name: null };
 }
 
@@ -162,7 +175,8 @@ Deno.serve(async (req) => {
     if (water) {
       const [lat, lng] = water.split(",").map(Number);
       if (!isFinite(lat) || !isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return json({ error: "bad water" }, 400, 0);
-      return json(await waterKind(+lat.toFixed(5), +lng.toFixed(5)), 200, 86400);
+      const w: any = await waterKind(+lat.toFixed(5), +lng.toFixed(5));
+      return json(w, 200, w.error ? 0 : w.kind ? 86400 : 600);
     }
     const near = u.searchParams.get("nearest");
     if (near) {

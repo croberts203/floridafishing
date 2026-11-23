@@ -125,6 +125,7 @@ a.btn{display:inline-block;text-align:center;text-decoration:none;box-sizing:bor
 .cphoto{width:64px;height:48px;object-fit:cover;border-radius:8px;flex:0 0 auto;margin-right:8px;cursor:pointer}
 .photofield{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.photofield img{width:96px;height:72px;object-fit:cover;border-radius:8px}.filebtn{cursor:pointer;display:inline-block}
 nav button{min-width:0}
+.minimap{height:240px;border-radius:12px;overflow:hidden;margin-top:6px;background:#0d2230}.dpin{font-size:26px;line-height:1;filter:drop-shadow(0 2px 2px rgba(0,0,0,.6))}
 </style></head>
 <body>
 <header><div class="hrow"><span id="logo"></span><h1>Fish Bite Forecast<small>Bites · tides · marine</small></h1><div class="seg" id="flyseg"></div></div></header>
@@ -1539,13 +1540,15 @@ function liveWaterTemp(sp) {
 // ---- Lake, pond, reservoir or river? (USGS National Hydrography Dataset via our proxy) ----
 const FW_LABEL = { lake: 'Lake', pond: 'Pond', reservoir: 'Reservoir', river: 'River / creek' };
 function fwLookup(lat, lng) {
-  const k = lat.toFixed(4) + ',' + lng.toFixed(4); NAT.fw = NAT.fw || lsGet('ff.fw', {});
-  if (NAT.fw[k]) return NAT.fw[k];
+  const k = lat.toFixed(5) + ',' + lng.toFixed(5); NAT.fw = NAT.fw || lsGet('ff.fw', {});
+  const hit = NAT.fw[k];
+  if (hit && (hit.kind || Date.now() - (hit.t || 0) < 864e5)) return hit; // re-check "nothing found" after a day
   once('fw:' + k, async () => {
     const j = await getJSON(`${TIDE_API}?water=${k}`);
-    if (j.error && j.kind == null) return; // try again later
-    NAT.fw[k] = { kind: j.kind || null, name: j.name || null, acres: j.acres || null }; lsSet('ff.fw', NAT.fw);
+    if (j.error && j.kind == null) return; // service busy: try again later
+    NAT.fw[k] = { kind: j.kind || null, name: j.name || null, acres: j.acres || null, withinM: j.withinM ?? null, t: Date.now() }; lsSet('ff.fw', NAT.fw);
   });
+  if (hit) return hit;
   return null;
 }
 // what the app uses: your choice for the spot, else what the map says
@@ -2589,6 +2592,66 @@ document.addEventListener('click', e => {
   if (t.dataset.patternson) { e.preventDefault(); state.settings.usePatterns = true; Store.saveSettings(); dayCache.clear(); CHECK.key = null; render(); toast('Learning from your catches'); }
 }, true);
 
+// ---------- Precise GPS: keep listening until the fix is sharp, then let the angler nudge the pin ----------
+function getFix(onProgress, wantM = 10, maxMs = 20000) {
+  return new Promise((resolve, reject) => {
+    let best = null, done = false, lastErr = null, id = null;
+    const finish = () => { if (done) return; done = true; if (id != null) navigator.geolocation.clearWatch(id); clearTimeout(tm); best ? resolve(best) : reject(lastErr || { code: 3 }); };
+    const tm = setTimeout(finish, maxMs);
+    id = navigator.geolocation.watchPosition(p => {
+      const c = { lat: p.coords.latitude, lng: p.coords.longitude, acc: Math.round(p.coords.accuracy) };
+      if (!best || c.acc < best.acc) { best = c; onProgress && onProgress(c); }
+      if (c.acc <= wantM) finish();
+    }, e => { lastErr = e; if (e.code === 1) { best = null; finish(); } }, { enableHighAccuracy: true, maximumAge: 0, timeout: maxMs });
+  });
+}
+function gpsStatus(c) { return c.acc <= 10 ? `GPS ±${c.acc} m — good` : c.acc <= 30 ? `GPS ±${c.acc} m — getting sharper…` : `GPS ±${c.acc} m — waiting for a better fix… (step into the open if you can)`; }
+// a small satellite map with a draggable pin, used when adding or adjusting a spot
+var PIN = { map: null, marker: null };
+function pinMap(boxId, lat, lng, onMove) {
+  const box = document.getElementById(boxId); if (!box) return;
+  loadLeaflet();
+  if (!window.L) { if (MAP.failed) { box.style.display = 'none'; return; } setTimeout(() => pinMap(boxId, lat, lng, onMove), 300); return; }
+  if (PIN.map) { PIN.map.remove(); PIN.map = null; }
+  const m = PIN.map = L.map(box, { zoomControl: true, attributionControl: false }).setView([lat, lng], 17);
+  L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, maxNativeZoom: 16 }).addTo(m);
+  L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSHydroCached/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, maxNativeZoom: 16, opacity: .55 }).addTo(m);
+  const icon = L.divIcon({ html: '<div class="dpin">📍</div>', className: 'mpinwrap', iconSize: [30, 30], iconAnchor: [15, 28] });
+  PIN.marker = L.marker([lat, lng], { draggable: true, icon }).addTo(m);
+  const moved = ll => { onMove(+ll.lat.toFixed(5), +ll.lng.toFixed(5)); };
+  PIN.marker.on('dragend', () => moved(PIN.marker.getLatLng()));
+  m.on('click', e => { PIN.marker.setLatLng(e.latlng); moved(e.latlng); });
+  setTimeout(() => m.invalidateSize(), 60);
+}
+function movePinSheet(id) {
+  const sp = (state.settings.mySpots || []).find(s => s.id === id); if (!sp) return;
+  let pos = { lat: sp.lat, lng: sp.lng };
+  $('#sheet').innerHTML = `<div class="in"><div class="hrow"><h2 style="flex:1;margin:0">Adjust ${esc(sp.name)}</h2><button class="btn sm ghost" data-close="1">Close</button></div>
+   <div class="small muted" style="margin-top:6px">Drag the pin (or tap the map) onto the exact water you fish.</div>
+   <div id="mvMap" class="minimap"></div><div class="small" id="mvInfo">${sp.lat.toFixed(5)}, ${sp.lng.toFixed(5)}</div>
+   <div class="row" style="margin-top:10px"><button class="btn ghost" data-mvgps="1">📍 Use my GPS</button><button class="btn" data-mvsave="1">Save position</button></div></div>`;
+  $('#sheet').classList.add('on');
+  const show = (lat, lng) => { pos = { lat, lng }; $('#mvInfo').textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`; };
+  pinMap('mvMap', sp.lat, sp.lng, show);
+  $('#sheet')._mv = { id, get pos() { return pos; }, set: show };
+}
+document.addEventListener('click', async e => {
+  const t = e.target.closest('[data-movespot],[data-mvsave],[data-mvgps],[data-usespot]'); if (!t) return;
+  const d = t.dataset;
+  if (d.movespot) { movePinSheet(d.movespot); return; }
+  if (d.mvgps) {
+    t.disabled = true; const info = $('#mvInfo');
+    try { const c = await getFix(c => { info.textContent = gpsStatus(c); }); $('#sheet')._mv.set(c.lat, c.lng); if (PIN.marker) { PIN.marker.setLatLng([c.lat, c.lng]); PIN.map.setView([c.lat, c.lng], 17); } info.textContent += ` · ${gpsStatus(c)}`; }
+    catch (err) { geoHelp(err); } t.disabled = false; return;
+  }
+  if (d.mvsave) {
+    const mv = $('#sheet')._mv, p = mv.pos;
+    const list = (state.settings.mySpots || []).map(s => s.id === mv.id ? (() => { const n = { ...s, lat: +p.lat.toFixed(5), lng: +p.lng.toFixed(5) }; delete n.fw; return n; })() : s);
+    saveMySpots(list); $('#sheet').classList.remove('on'); toast('Spot moved'); render(); return;
+  }
+  if (d.usespot) { e.preventDefault(); state.spotId = d.usespot; state.settings.spotId = d.usespot; Store.saveSettings(); $('#sheet').classList.remove('on'); render(); window.scrollTo(0, 0); }
+});
+
 // ===== Website-only UI: spots anywhere in the US, accounts, nationwide marine & rules =====
 function natState(sp) { const p = sp && sp.lat != null ? natPoint(sp) : null; return p ? p.state : null; }
 const WATER_OPTS = [['fresh', 'Fresh water (lake, river, pond)'], ['greatlakes', 'Great Lakes'], ['inshore', 'Inshore salt / brackish (bay, river mouth, flats)'], ['surf', 'Surf / beach'], ['nearshore', 'Nearshore (boat, within ~10 mi)'], ['offshore', 'Offshore']];
@@ -2640,27 +2703,37 @@ function openAddSpot() {
    <div id="placeRes"></div><div id="spotDraft"></div></div>`;
   $('#sheet').classList.add('on');
 }
-async function draftSpot(lat, lng, name) {
+async function draftSpot(lat, lng, name, acc, nearSpot) {
   $('#spotDraft').innerHTML = '<div class="muted" style="margin-top:10px">Looking up the nearest tide station…</div>';
   let st = []; try { st = await nearestStations(lat, lng); } catch (e) { }
   const near = st[0], guess = near && near.km < 8 ? 'inshore' : 'fresh';
-  addDraft = { lat, lng, name, stations: st };
+  addDraft = { lat, lng, name, stations: st, acc };
   $('#spotDraft').innerHTML = `<label>Spot name</label><input id="dName" value="${esc(name)}">
+   ${nearSpot ? `<div class="note">You have <b>${esc(nearSpot.s.name)}</b> saved ${nearSpot.d < 1000 ? Math.round(nearSpot.d) + ' m' : (nearSpot.d / 1000).toFixed(1) + ' km'} away. <a href="#" data-usespot="${esc(nearSpot.s.id)}">Use it instead</a></div>` : ''}
+   <label>Pin — drag it onto the exact water</label><div id="dMap" class="minimap"></div>
+   <div class="small muted" id="dPos">${lat.toFixed(5)}, ${lng.toFixed(5)}${acc ? ` · ${gpsStatus({ acc })}` : ''}</div>
    <label>What kind of water?</label>${waterSel('', guess, 'id="dWater"')}
    <div id="dFw" class="small" style="margin-top:6px"></div>
    <div class="note">${near ? `Nearest NOAA tide station: <b>${esc(near.name)}</b> (${near.km} km). It’s used for salt water spots.` : 'No NOAA tide station found nearby.'}</div>
    <div style="margin-top:12px"><button class="btn" data-savespot="1">Save spot</button></div>`;
   draftWaterType(lat, lng);
+  let tmr = null;
+  pinMap('dMap', lat, lng, (la, ln) => {
+    addDraft.lat = la; addDraft.lng = ln; addDraft.fw = null; addDraft.moved = true;
+    $('#dPos').textContent = `${la.toFixed(5)}, ${ln.toFixed(5)} · placed by hand`;
+    clearTimeout(tmr); tmr = setTimeout(() => draftWaterType(la, ln), 500);
+  });
 }
 async function draftWaterType(lat, lng) {
   const box = $('#dFw'); if (!box) return;
   box.textContent = 'Checking the USGS map for a lake or river here…';
-  let j = null; try { j = await getJSON(`${TIDE_API}?water=${lat.toFixed(4)},${lng.toFixed(4)}`); } catch (e) { }
+  let j = null; try { j = await getJSON(`${TIDE_API}?water=${lat.toFixed(5)},${lng.toFixed(5)}`); } catch (e) { }
+  if (!addDraft || Math.abs(addDraft.lat - lat) > 1e-6 || Math.abs(addDraft.lng - lng) > 1e-6) return; // pin moved since
   if (!$('#dFw') || !addDraft) return;
-  if (!j || !j.kind) { box.textContent = j && !j.error ? 'No lake or river on the USGS map right here — you can set it after saving.' : ''; return; }
+  if (!j || !j.kind) { box.textContent = j && !j.error ? 'No mapped lake or stream within 150 m — very small ponds and creeks often aren’t on the USGS map. Drag the pin onto the water, or set the type after saving.' : ''; return; }
   addDraft.fw = { kind: j.kind, name: j.name || null, acres: j.acres || null };
-  NAT.fw = NAT.fw || {}; NAT.fw[lat.toFixed(4) + ',' + lng.toFixed(4)] = addDraft.fw; lsSet('ff.fw', NAT.fw);
-  box.innerHTML = `Looks like <b>${esc(j.name || 'unnamed water')}</b> — ${FW_LABEL[j.kind].toLowerCase()}${j.acres ? `, ${j.acres.toLocaleString()} acres` : ''}.`;
+  NAT.fw = NAT.fw || {}; NAT.fw[lat.toFixed(5) + ',' + lng.toFixed(5)] = addDraft.fw; lsSet('ff.fw', NAT.fw);
+  box.innerHTML = `Looks like <b>${esc(j.name || 'unnamed water')}</b> — ${FW_LABEL[j.kind].toLowerCase()}${j.acres ? `, ${j.acres.toLocaleString()} acres` : ''}${j.withinM ? ` (mapped water ${j.withinM <= 25 ? 'within 25 m' : 'about ' + j.withinM + ' m away'})` : ''}.`;
   if ($('#dWater').value !== 'fresh' && !(((addDraft.stations || [])[0] || {}).km < 8)) $('#dWater').value = 'fresh';
   const nm = $('#dName'); if (j.name && (!nm.value || /^(my spot|my location)$/i.test(nm.value) || /^-?\d/.test(nm.value))) nm.value = j.name;
 }
@@ -2668,7 +2741,7 @@ function saveDraft() {
   if (!addDraft) return;
   const water = $('#dWater').value, name = $('#dName').value.trim() || addDraft.name || 'My spot';
   const near = (addDraft.stations || [])[0];
-  const sp = { id: 'm_' + Date.now().toString(36), name, lat: +addDraft.lat.toFixed(4), lng: +addDraft.lng.toFixed(4), water, group: 'My spots' };
+  const sp = { id: 'm_' + Date.now().toString(36), name, lat: +addDraft.lat.toFixed(5), lng: +addDraft.lng.toFixed(5), water, group: 'My spots' };
   if (water === 'fresh' && addDraft.fw) sp.fw = addDraft.fw;
   if (near && near.km < 60 && !['fresh', 'greatlakes'].includes(water)) sp.station = { id: near.id, name: near.name, km: near.km };
   saveMySpots([sp].concat(state.settings.mySpots || []));
@@ -2698,15 +2771,16 @@ function geoHelp(err) {
 }
 locateMe = function () {
   if (!navigator.geolocation || !window.isSecureContext) { geoHelp(null); return; }
-  toast('Finding you…');
-  navigator.geolocation.getCurrentPosition(async pos => {
-    const me = [pos.coords.latitude, pos.coords.longitude];
-    state.geo = { lat: me[0], lng: me[1], acc: pos.coords.accuracy, t: Date.now() };
+  openAddSpot(); const box = $('#spotDraft'); box.innerHTML = '<div class="small" id="gpsProg" style="margin-top:10px">Getting a GPS fix…</div>';
+  getFix(c => { const el = $('#gpsProg'); if (el) el.textContent = gpsStatus(c); }).then(async c => {
+    state.geo = { ...c, t: Date.now() };
+    // only snap to a saved spot if you're really at it (ponds and creeks can be close together)
     let best = null;
-    for (const s of spots()) { if (s.lat == null) continue; const d = distKm(me, [s.lat, s.lng]); if (!best || d < best.d) best = { s, d }; }
-    if (best && best.d < 3) { state.spotId = best.s.id; state.settings.spotId = best.s.id; Store.saveSettings(); toast(`At ${best.s.name}`); render(); return; }
-    openAddSpot(); await draftSpot(me[0], me[1], 'My spot');
-  }, err => geoHelp(err), { enableHighAccuracy: true, timeout: 15000, maximumAge: 120000 });
+    for (const sp of spots()) { if (sp.lat == null) continue; const d = distKm([c.lat, c.lng], [sp.lat, sp.lng]) * 1000; if (!best || d < best.d) best = { s: sp, d }; }
+    const near = Math.min(300, Math.max(80, c.acc * 2));
+    if (best && best.d <= near) { state.spotId = best.s.id; state.settings.spotId = best.s.id; Store.saveSettings(); $('#sheet').classList.remove('on'); toast(`At ${best.s.name} (GPS ±${c.acc} m)`); render(); window.scrollTo(0, 0); return; }
+    await draftSpot(c.lat, c.lng, 'My spot', c.acc, best && best.d < 3000 ? best : null);
+  }).catch(err => { $('#sheet').classList.remove('on'); geoHelp(err); });
 };
 function mySpotsCard() {
   const mine = state.settings.mySpots || [];
@@ -2714,7 +2788,7 @@ function mySpotsCard() {
    ${mine.length ? mine.map(s => `<div class="spotrow"><b>${esc(s.name)}</b> <span class="small muted">${s.lat.toFixed(3)}, ${s.lng.toFixed(3)}${natState(s) ? ' · ' + esc(natState(s)) : ''}</span>
      <label>Water</label>${waterSel('', s.water, `data-spotwater="${esc(s.id)}"`)}
      ${s.water === 'fresh' ? fwLine(s) : ''}${['fresh', 'greatlakes'].includes(s.water) ? '' : `<div class="small" style="margin-top:6px">Tide station: <b>${s.station ? esc(s.station.name) + (s.station.km != null ? ` (${s.station.km} km)` : '') : 'none'}</b> <a href="#" data-stations="${esc(s.id)}">change</a></div><div id="stl_${esc(s.id)}"></div>`}
-     <button class="btn sm danger" style="margin-top:8px" data-delspot="${esc(s.id)}">Remove</button></div>`).join('') : '<div class="small muted" style="margin-top:6px">No spots yet — add your home water with GPS or search.</div>'}</div>`;
+     <div class="row" style="margin-top:8px"><button class="btn sm ghost" data-movespot="${esc(s.id)}">📍 Adjust pin</button><button class="btn sm danger" data-delspot="${esc(s.id)}">Remove</button></div></div>`).join('') : '<div class="small muted" style="margin-top:6px">No spots yet — add your home water with GPS or search.</div>'}</div>`;
 }
 function welcomeCard() {
   if ((state.settings.mySpots || []).length || state.settings.welcomed) return '';
@@ -2771,7 +2845,8 @@ document.addEventListener('click', async e => {
   if (d.addspot2) { e.preventDefault(); openAddSpot(); return; }
   if (d.gpsspot) {
     if (!navigator.geolocation || !window.isSecureContext) { geoHelp(null); return; }
-    navigator.geolocation.getCurrentPosition(p => draftSpot(p.coords.latitude, p.coords.longitude, 'My spot'), err => geoHelp(err), { enableHighAccuracy: true, timeout: 15000 });
+    $('#spotDraft').innerHTML = '<div class="small" id="gpsProg" style="margin-top:10px">Getting a GPS fix…</div>';
+    getFix(c => { const el = $('#gpsProg'); if (el) el.textContent = gpsStatus(c); }).then(c => draftSpot(c.lat, c.lng, 'My spot', c.acc)).catch(err => geoHelp(err));
     return;
   }
   if (d.placego) {
@@ -2874,7 +2949,7 @@ async function runPhotoLog(file) {
   show();
   if (d.lat == null && navigator.geolocation && Math.abs(Date.now() - d.ts) < 3 * 3600e3) {
     lines.push('📍 Getting your position…'); show();
-    await new Promise(res => navigator.geolocation.getCurrentPosition(p => { d.lat = p.coords.latitude; d.lng = p.coords.longitude; d.posSrc = 'GPS'; res(); }, () => res(), { enableHighAccuracy: true, timeout: 12000, maximumAge: 120000 }));
+    try { const c = await getFix(null, 20, 10000); d.lat = c.lat; d.lng = c.lng; d.posSrc = 'GPS'; d.acc = c.acc; } catch (e) { }
     lines.pop();
   }
   lines.push(d.lat != null ? `📍 Location: <b>${d.lat.toFixed(4)}, ${d.lng.toFixed(4)}</b> (${d.posSrc === 'photo' ? 'from photo' : 'your GPS'})` : '📍 No location in the photo — the catch goes to your selected spot.');
