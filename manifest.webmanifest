@@ -1,6 +1,6 @@
 {
-  "name": "Jax Bite Forecast",
-  "short_name": "Jax Bite",
+  "name": "Fish Bite Forecast",
+  "short_name": "Fish Bite",
   "description": "Fishing bite forecast, tides, marine conditions, regulations and catch log for Jacksonville, Florida.",
   "start_url": "./",
   "scope": "./",
