@@ -4118,7 +4118,8 @@ document.addEventListener('click', e => {
 });
 
 // ---- "Right now" card ----
-const compass = d => d == null ? '' : ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'][Math.round(d / 22.5) % 16];
+// a function declaration (not const) so it is hoisted: windEffect() in features3.js calls it during the first render, before this line runs
+function compass(d) { return d == null ? '' : ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'][Math.round(d / 22.5) % 16]; }
 const ago = t => { const m = Math.round((Date.now() - t) / 60000); return m < 2 ? 'just now' : m < 60 ? m + ' min ago' : Math.round(m / 60) + ' h ago'; };
 const utc = s => Date.parse(s.includes('T') ? s : s.replace(' ', 'T') + ':00Z');
 function viewNow() {
