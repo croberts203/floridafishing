@@ -3140,18 +3140,29 @@ function myShopLine(item) {
    <div class="small muted" style="margin-top:4px">Ask for: ${esc(item)}</div><span hidden data-shopitem="${esc(q)}"></span>`;
 }
 function shopDistMi(a, b) { return Math.round(distKm([a.lat, a.lng], [b.lat, b.lng]) * 0.621371); }
+// Shops we know about, shown first; OpenStreetMap results fill in the rest.
+const CURATED_SHOPS = [
+  { name: 'Black Fly Outfitters', addr: '11702 Beach Blvd #109, Jacksonville, FL 32246', phone: '(904) 646-0007', lat: 30.2866, lng: -81.5306, web: '', kind: 'fishing' },
+  { name: 'Bass Pro Shops St. Augustine', addr: '355 World Commerce Pkwy, St. Augustine, FL 32092', phone: '(904) 815-6100', lat: 29.9886, lng: -81.4637, web: 'https://stores.basspro.com/us/fl/st.-augustine/355-world-commerce-parkway.html', kind: 'fishing' },
+  { name: 'Fishbites Trading Post', addr: '170 Nix Boat Yard Rd, St. Augustine, FL 32084', phone: '(904) 217-8012', lat: 29.8840, lng: -81.3320, web: '', kind: 'fishing' },
+  { name: 'Beamish Custom Tackle', addr: '76 Dockside Dr Ste 111, St. Augustine, FL 32084', phone: '(904) 342-7101', lat: 29.8655, lng: -81.3070, web: '', kind: 'fishing' },
+  { name: 'Orlando Outfitters', addr: '2814 Corrine Dr, Orlando, FL 32803', phone: '(407) 896-8220', lat: 28.5700, lng: -81.3480, web: 'https://orlandooutfitters.com', kind: 'fishing' },
+  { name: 'Rivers & Glen Trading Co.', addr: '24 E Broughton St, Savannah, GA 31401', phone: '(912) 349-2352', lat: 32.0790, lng: -81.0910, web: 'https://www.riversandglen.com', kind: 'fishing' },
+];
 async function shopSearch(center, mi) {
   const m = Math.round(mi * 1609.34);
   const q = `[out:json][timeout:60];(nwr["shop"="fishing"](around:${m},${center.lat},${center.lng});nwr["shop"="outdoor"]["fishing"~"yes|tackle"](around:${m},${center.lat},${center.lng});nwr["shop"="sports"]["sport"~"fishing"](around:${m},${center.lat},${center.lng});nwr["shop"="hunting"](around:${m},${center.lat},${center.lng}););out center tags 200;`;
-  const r = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
-  if (!r.ok) throw new Error('Map search is busy, try again in a minute');
-  const j = await r.json(), seen = new Set();
+  const cur = CURATED_SHOPS.map(x => ({ ...x, dist: shopDistMi(center, x) })).filter(x => x.dist <= mi);
+  let r; try { r = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+  } catch (e) { r = null; }
+  if (!r || !r.ok) { if (cur.length) return cur.sort((a, b) => a.dist - b.dist); throw new Error('Map search is busy, try again in a minute'); }
+  const j = await r.json(), seen = new Set(cur.map(x => x.name.toLowerCase() + Math.round(x.lat * 100)));
   return (j.elements || []).map(e => {
     const t = e.tags || {}, lat = e.lat ?? (e.center && e.center.lat), lng = e.lon ?? (e.center && e.center.lon);
     const addr = [[t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' '), t['addr:city'], t['addr:state']].filter(Boolean).join(', ');
     return { name: t.name || t.brand || '', lat, lng, addr, phone: t.phone || t['contact:phone'] || '', web: t.website || t['contact:website'] || '', kind: t.shop };
   }).filter(x => x.name && x.lat != null && !seen.has(x.name.toLowerCase() + Math.round(x.lat * 100)) && seen.add(x.name.toLowerCase() + Math.round(x.lat * 100)))
-    .map(x => ({ ...x, dist: shopDistMi(center, x) })).filter(x => x.dist <= mi).sort((a, b) => (a.kind === 'fishing' ? 0 : 1) - (b.kind === 'fishing' ? 0 : 1) || a.dist - b.dist);
+    .map(x => ({ ...x, dist: shopDistMi(center, x) })).filter(x => x.dist <= mi).concat(cur).sort((a, b) => (a.kind === 'fishing' ? 0 : 1) - (b.kind === 'fishing' ? 0 : 1) || a.dist - b.dist);
 }
 function shopFindSheet() {
   const sp = spot(), center = sp && sp.lat != null ? { lat: sp.lat, lng: sp.lng } : state.settings.loc;
@@ -3170,7 +3181,10 @@ function shopFindSheet() {
 }
 async function shopRun() {
   const box = $('#sheet'), st = box._shop; if (!st) return;
-  const list = $('#shopList'); list.innerHTML = `<span class="muted">Searching within ${st.rad} miles…</span>`;
+  const list = $('#shopList');
+  const row = (x, i) => `<div class="pick" style="cursor:default"><div class="nm"><b>${esc(x.name)}</b><span class="small muted">${x.dist} mi${x.addr ? ' · ' + esc(x.addr) : ''}${x.phone ? ' · ' + esc(x.phone) : ''}</span></div><button class="btn sm" data-shoppick="${i}">Pick</button></div>`;
+  const quick = st.list = CURATED_SHOPS.map(x => ({ ...x, dist: shopDistMi(st.center, x) })).filter(x => x.dist <= st.rad).sort((a, b) => a.dist - b.dist);
+  list.innerHTML = (quick.length ? quick.map(row).join('') : '') + `<div class="muted" style="margin-top:6px">Searching the map within ${st.rad} miles for more…</div>`;
   const drawMap = items => {
     if (!window.L) { loadLeaflet(); setTimeout(() => window.L && box._shop === st && drawMap(items), 1500); return; }
     const el = $('#shopMap'); if (!el) return; if (st.map) st.map.remove();
@@ -3183,7 +3197,7 @@ async function shopRun() {
   try {
     const items = st.list = await shopSearch(st.center, st.rad);
     if (box._shop !== st) return;
-    list.innerHTML = items.length ? items.slice(0, 40).map((x, i) => `<div class="pick" style="cursor:default"><div class="nm"><b>${esc(x.name)}</b><span class="small muted">${x.dist} mi${x.addr ? ' · ' + esc(x.addr) : ''}${x.phone ? ' · ' + esc(x.phone) : ''}</span></div><button class="btn sm" data-shoppick="${i}">Pick</button></div>`).join('')
+    list.innerHTML = items.length ? items.slice(0, 40).map(row).join('')
       : `<div class="muted">No tackle shops mapped within ${st.rad} miles. Try a bigger radius, or add yours below.</div>`;
     drawMap(items);
   } catch (err) { list.innerHTML = `<div class="muted">${esc(err.message || 'Search failed')}. You can add your shop below.</div>`; drawMap([]); }
