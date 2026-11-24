@@ -146,6 +146,11 @@ nav button{min-width:0}
 .gearrow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}.gearrow:last-of-type{border-bottom:0}.gearbuy{flex:none;padding:7px 12px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);color:var(--accent);font-weight:700;font-size:13px;text-decoration:none}
 h1{overflow:hidden;text-overflow:ellipsis}.seg{flex:none}
 @media (max-width:400px){h1{font-size:16px}.seg button{padding-left:9px;padding-right:9px}}
+.howfish .chip,.howfish button.chip{margin:4px 4px 0 0}
+.howfish .chip.on{background:var(--accent);color:#06222a}
+.installcard{border-color:var(--accent)}
+.instep{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid rgba(255,255,255,.08)}
+.instep>span{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#06222a;display:grid;place-items:center;font-weight:700;flex:0 0 auto}
 </style></head>
 <body>
 <header><div class="hrow"><span id="logo"></span><h1>Fish Bite Forecast<small>Bites · tides · marine</small></h1><div class="seg" id="flyseg"></div></div></header>
@@ -760,7 +765,9 @@ function regJurisdiction(spot) {
   return 'Florida Atlantic state waters, Northeast Florida management regions';
 }
 
-// Saltwater rules for Georgia and the Carolinas (state waters). Checked 2026-11-23 against:
+// Saltwater rules for Georgia, the Carolinas and the Gulf states (state waters). Checked 2026-11-23 against:
+//  AL: outdooralabama.com size & creel page (2026) · MS: dmr.ms.gov recreational limits · LA: LDWF 2026 regulations (eRegulations, updated Oct 5 2026)
+//  TX: TPWD Outdoor Annual, valid Sep 1 2026 – Aug 31 2027
 //  GA: coastalgadnr.org/limits · SC: SCDNR 2026-27 guide (eregulations.com/southcarolina, updated Aug 11 2026; red drum law effective Jul 1 2026)
 //  NC: DMF Recreational Size and Bag Limits (effective Nov 1 2026). Rules change often — the app always links the agency page.
 // closed: [[startMonth, startDay, endMonth, endDay]] like regs.js; latMax/latMin limit a closure to part of the coast.
@@ -814,6 +821,57 @@ const SE_REGS = {
     striper: { size: 'Ocean: 28–31" TL slot', bag: 'Ocean: 1 per person', season: 'Albemarle Sound area currently closed; inland and ocean rules differ — check DMF', verify: true },
     mahi: { size: 'None', bag: '10 per person, 54 per trip', season: 'Open year-round' },
     seabass: { size: '13" TL minimum', bag: '7 per person south of Cape Hatteras; 15 north (May 1 – Dec 31)', season: 'Open (north of Hatteras: May 1 – Dec 31)' },
+  } },
+  AL: { agency: 'Alabama Marine Resources Division (ADCNR)', url: 'https://outdooralabama.com/fishing/saltwater-recreational-size-creel-limits', note: 'Saltwater fishing license required age 16+. Non-stainless circle hooks required for reef fish with natural bait.', sp: {
+    redfish: { size: '16–26" TL (slot)', bag: '3 per person', season: 'Open year-round', notes: 'No red drum over 26" may be kept (since 2025). Possession in federal waters prohibited.' },
+    trout: { size: '15–22" TL (slot)', bag: '6 per person, 1 may be over 22"', season: 'Open year-round' },
+    flounder: { size: '14" TL minimum', bag: '5 per person', season: 'Closed all of November', closed: [[11, 1, 11, 30]] },
+    sheepshead: { size: '12" FL minimum', bag: '8 per person', season: 'Open year-round' },
+    cobia: { size: '36" FL minimum', bag: '1 per person, 2 per boat', season: 'Open year-round' },
+    king: { size: '24" FL minimum', bag: '3 per person', season: 'Open year-round' },
+    spanish: { size: 'None', bag: '15 per person', season: 'Open year-round' },
+    tripletail: { size: '18" TL minimum', bag: '3 per person', season: 'Open year-round' },
+    pompano: { size: '12" TL minimum', bag: '3 per person', season: 'Open year-round' },
+    tarpon: { size: '60" TL minimum', bag: '$67 tag required for each tarpon kept', season: 'Open year-round', notes: 'Release tarpon you don’t tag.' },
+    striper: { size: '16" TL minimum', bag: '2 per person', season: 'Open year-round' },
+  } },
+  MS: { agency: 'Mississippi Department of Marine Resources', url: 'https://dmr.ms.gov/recreational-catch-limits/', note: 'Saltwater fishing license required. Recreationally caught seafood may not be sold.', sp: {
+    redfish: { size: '18–30" TL (slot)', bag: '3 per person, 1 may be over 30"', season: 'Open year-round' },
+    trout: { size: '15" TL minimum', bag: '15 per person', season: 'Open year-round' },
+    flounder: { size: '12" TL minimum', bag: '10 per person', season: 'Open year-round', verify: true },
+    sheepshead: { size: '14" TL minimum', bag: '15 per person', season: 'Open year-round' },
+    blackdrum: { size: 'None', bag: 'No limit', season: 'Open year-round' },
+    cobia: { size: '36" FL minimum', bag: '2 per person', season: 'Open year-round' },
+    king: { size: '24" FL minimum', bag: '3 per person', season: 'Follows federal openings — check gulfcouncil.org' },
+    spanish: { size: '12" FL minimum', bag: '15 per person', season: 'Open year-round' },
+    tripletail: { size: '18" TL minimum', bag: '3 per person', season: 'Open year-round' },
+    tarpon: { size: '75" FL minimum', bag: '1 per boat', season: 'Open year-round', notes: 'Don’t take a tarpon over 40" out of the water unless you’re keeping it within the limits.' },
+    pompano: { size: 'None', bag: 'No limit', season: 'Open year-round' },
+    mahi: { size: 'None', bag: 'No limit', season: 'Open year-round' },
+  } },
+  LA: { agency: 'Louisiana Dept. of Wildlife and Fisheries', url: 'https://www.wlf.louisiana.gov/page/recreational-fishing-regulations', note: 'Basic and saltwater licenses required. Captains and crew on charters may not keep red drum or speckled trout. A Recreational Offshore Landing Permit is needed for cobia, amberjack, mahi and other offshore species.', sp: {
+    redfish: { size: '18–27" TL (slot)', bag: '4 per person', season: 'Open year-round', notes: 'None over 27". Possession in federal waters prohibited.' },
+    trout: { size: '13–20" TL', bag: '15 per person, no more than 2 over 20"', season: 'Open year-round' },
+    flounder: { size: 'None', bag: '10 per person', season: 'No possession Oct 15 – Nov 30', closed: [[10, 15, 11, 30]] },
+    blackdrum: { size: '16" TL minimum', bag: '5 per person, only 1 over 27"', season: 'Open year-round' },
+    cobia: { size: '36" FL minimum', bag: '1 per person, 2 per boat', season: 'Open year-round', notes: 'Offshore landing permit (ROLP) required.' },
+    king: { size: '24" FL minimum', bag: '3 per person', season: 'Open year-round' },
+    spanish: { size: '12" FL minimum', bag: '15 per person', season: 'Open year-round' },
+    tripletail: { size: '18" TL minimum', bag: '5 per person', season: 'Open year-round' },
+  } },
+  TX: { agency: 'Texas Parks and Wildlife', url: 'https://tpwd.texas.gov/regulations/outdoor-annual/fishing/saltwater-fishing/bag-length-limits/', note: 'Fishing license with saltwater endorsement required. Possession limit is twice the daily bag unless noted. Rules shown are valid Sep 1, 2026 – Aug 31, 2027.', sp: {
+    redfish: { size: '20–28" TL (slot)', bag: '3 per person', season: 'Open year-round', notes: 'One red drum over 28" per license year with a Red Drum Tag (plus one with a Bonus Tag); tagged fish don’t count toward the bag.' },
+    trout: { size: '15–20" TL (slot)', bag: '3 per person', season: 'Open year-round', notes: 'One trout over 28" per license year with a Spotted Seatrout Tag (plus one with a Bonus Tag).' },
+    flounder: { size: '15" TL minimum', bag: '5 per person (possession = daily bag)', season: 'Closed Nov 1 – Dec 14', closed: [[11, 1, 12, 14]] },
+    blackdrum: { size: '14–30" TL (slot)', bag: '5 per person', season: 'Open year-round', notes: 'One black drum over 52" may be kept as part of the bag.' },
+    sheepshead: { size: '15" TL minimum', bag: '5 per person', season: 'Open year-round' },
+    cobia: { size: '40" TL minimum', bag: '1 per person', season: 'Open year-round' },
+    king: { size: '27" TL minimum', bag: '3 per person', season: 'Open year-round' },
+    spanish: { size: '14" TL minimum', bag: '15 per person', season: 'Open year-round' },
+    tripletail: { size: '17" TL minimum', bag: '3 per person', season: 'Open year-round' },
+    tarpon: { size: '85" TL minimum', bag: '1 per year with a tarpon tag', season: 'Open year-round' },
+    snook: { size: '24–28" TL (slot)', bag: '1 per person', season: 'Open year-round' },
+    striper: { size: '18" TL minimum', bag: '5 per person', season: 'Open year-round' },
   } },
 };
 function seClosed(rule, t, sp) {
@@ -1892,7 +1950,7 @@ function viewForecast() {
   if (!res.length) return topControls() + `<div class="card">No species profiles for this water type.</div>`;
   const r = chosen(res), [rt] = Engine.rating(r.day);
   const wins = Engine.windows(r, day);
-  let html = (WEB ? offlineBanner() + welcomeCard() + featurePrompt() : '') + topControls();
+  let html = (WEB ? offlineBanner() + welcomeCard() + howFishCard() + installCard() : '') + topControls();
   // alerts
   const alerts = [];
   const tailR = res.find(x => x.sp.id === 'redfish' && x.tail);
@@ -2220,7 +2278,7 @@ confidence is 0–1. Only give estimated_length_in when a ruler or measuring boa
 // ===== Settings =====
 function viewSettings() {
   const sps = spots();
-  return `${WEB ? (featOn('alerts') ? alertsCard() : '') + mySpotsCard() + featureCard() + offlineCard() + '<div class="card"><h2>Tips</h2><div class="small">Step-by-step tips show the first time you open each screen.</div><div class="row" style="margin-top:8px"><button class="btn ghost" data-tipsagain="1">💡 Show tips again</button></div><h2 style="margin-top:16px">Privacy</h2><div class="small muted">To see how many people use the app and which shops and clubs send them, it counts visits and features used with a random ID kept in this browser — no names, emails, IP addresses or locations. Browsers set to “Do Not Track” send nothing. Your spots, catches and settings stay on this device, or in your account if you sign in.</div></div>' : ''}<div class="card"><h2>Tide offsets by spot${WEB ? ' (Jacksonville examples)' : ''}</h2><div class="small muted">Times shift the Mayport prediction (minutes, + is later); ratios scale heights. Presets come from NOAA subordinate stations. Adjust any spot to match what you see on the water.</div>
+  return `${WEB ? (featOn('alerts') ? alertsCard() : '') + mySpotsCard() + featureCard() + offlineCard() + accountManageCard() + '<div class="card"><h2>Tips</h2><div class="small">Step-by-step tips show the first time you open each screen.</div><div class="row" style="margin-top:8px"><button class="btn ghost" data-tipsagain="1">💡 Show tips again</button></div><h2 style="margin-top:16px">Privacy</h2><div class="small muted">To see how many people use the app and which shops and clubs send them, it counts visits and features used with a random ID kept in this browser — no names, emails, IP addresses or locations. Browsers set to “Do Not Track” send nothing. Your spots, catches and settings stay on this device, or in your account if you sign in.</div></div>' : ''}<div class="card"><h2>Tide offsets by spot${WEB ? ' (Jacksonville examples)' : ''}</h2><div class="small muted">Times shift the Mayport prediction (minutes, + is later); ratios scale heights. Presets come from NOAA subordinate stations. Adjust any spot to match what you see on the water.</div>
   ${sps.filter(s => s.tide).map(s => `<div class="spotrow"><b>${esc(s.name)}</b> <span class="small muted">${esc(s.src || 'custom')}</span>
    <div class="g4" style="margin-top:6px"><div><label>High +min</label><input data-off="${esc(s.id)}" data-k="hi" type="number" inputmode="numeric" value="${s.tide.hi}"></div><div><label>Low +min</label><input data-off="${esc(s.id)}" data-k="lo" type="number" inputmode="numeric" value="${s.tide.lo}"></div><div><label>High ×</label><input data-off="${esc(s.id)}" data-k="hr" type="number" inputmode="decimal" step="0.01" value="${s.tide.hr}"></div><div><label>Low ×</label><input data-off="${esc(s.id)}" data-k="lr" type="number" inputmode="decimal" step="0.01" value="${s.tide.lr}"></div></div>
    ${s.custom ? `<button class="btn sm danger" style="margin-top:8px" data-rmspot="${esc(s.id)}">Remove spot</button>` : ''}</div>`).join('')}
@@ -2271,7 +2329,8 @@ document.addEventListener('change', e => {
   else if (id === 'datePick') { const [y, m, dd] = e.target.value.split('-').map(Number); if (y) { state.day0 = new Date(y, m - 1, dd).getTime(); render(); } }
   else if (['cPress', 'cWind', 'cTemp', 'cSky', 'cClar', 'cFace'].includes(id)) {
     const k = dkey(state.day0), c = { ...(state.settings.cond[dkey(state.day0)] || {}) };
-    c.pressure = $('#cPress').value; c.wind = $('#cWind').value === '' ? '' : +$('#cWind').value; c.wtemp = $('#cTemp').value; c.sky = $('#cSky').value; c.clarity = $('#cClar').value; if (WEB && $('#cFace')) { const f = $('#cFace').value, sid = spot().id; state.settings.facing = state.settings.facing || {}; if (f) state.settings.facing[sid] = f; else delete state.settings.facing[sid]; }
+    c.pressure = $('#cPress').value; c.wind = $('#cWind').value === '' ? '' : +$('#cWind').value; c.wtemp = $('#cTemp').value; c.sky = $('#cSky').value; c.clarity = $('#cClar').value; if (WEB && $('#cFace')) { const f = $('#cFace').value, sid = spot().id; state.settings.facing = state.settings.facing || {}; if (f) state.settings.facing[sid] = f; else delete state.settings.facing[sid];
+      if (Cloud.user && typeof ALERT !== 'undefined') (ALERT.rules || []).filter(r => r.spot && r.spot.id === sid).forEach(r => Cloud.sb.from('forecast_alerts').update({ spot: { ...r.spot, faces: f || null } }).eq('id', r.id).then(() => { r.spot.faces = f || null; })); }
     state.settings.cond = { ...state.settings.cond, [k]: c };
     // keep only the last ~60 days of condition entries
     const keys = Object.keys(state.settings.cond).sort(); while (keys.length > 60) delete state.settings.cond[keys.shift()];
@@ -2585,7 +2644,8 @@ function pushHelp(blocked) {
    <button class="btn" data-close="1" style="margin-top:8px">OK</button></div>`;
   $('#sheet').classList.add('on');
 }
-var alertSpot = sp => ({ id: sp.id, name: sp.name, water: sp.water, lat: sp.lat, lng: sp.lng, station: sp.station ? { id: sp.station.id, name: sp.station.name } : null });
+var alertSpot = sp => ({ id: sp.id, name: sp.name, water: sp.water, lat: sp.lat, lng: sp.lng, station: sp.station ? { id: sp.station.id, name: sp.station.name } : null,
+  faces: sp.faces || (state.settings.facing || {})[sp.id] || null, fwKind: sp.water === 'fresh' && typeof fwKindOf === 'function' ? fwKindOf(sp) || null : null });
 function openAlertForm(pre = {}) {
   const list = spots().filter(s => s.lat != null);
   const sp = list.find(s => s.id === (pre.spot || state.spotId)) || list[0];
@@ -3414,6 +3474,97 @@ document.addEventListener('click', e => {
     $('#sheet').classList.remove('on'); toast('Saved'); render();
     if (window.Stats) Stats.track('features_set');
   }
+});
+
+// ===== Account management, "Add to Home Screen" nudge, and the "How do you fish?" first question =====
+
+// ---------- Account: privacy policy and delete-account (the same account works in Fly Bench) ----------
+function accountManageCard() {
+  const priv = '<a href="/privacy.html" target="_blank" rel="noopener">Privacy policy</a>';
+  if (!Cloud.user) return `<div class="card"><h2>Account</h2><div class="small">You're using the app without an account — your spots and catches stay on this device. Sign in from the Catch log to sync them. One account works in both Fish Bite Forecast and <a href="https://app.flytyingrecipes.org" target="_blank" rel="noopener">Fly Bench</a>.</div><div class="small" style="margin-top:6px">${priv}</div></div>`;
+  return `<div class="card"><h2>Account</h2><div class="small">Signed in as <b>${esc(Cloud.user.email)}</b>. The same login works in <a href="https://app.flytyingrecipes.org" target="_blank" rel="noopener">Fly Bench</a>.</div>
+   <div class="small" style="margin-top:6px">${priv}</div>
+   <details style="margin-top:10px"><summary class="small">Delete my account</summary>
+    <div class="small" style="margin-top:6px">This permanently deletes your login and everything stored with it — in <b>both</b> apps: spots, catch log and photos, alerts, crews, and your Fly Bench recipes and materials. It can't be undone.</div>
+    <div class="row" style="margin-top:8px"><input id="delType" placeholder="Type DELETE" autocomplete="off"><button class="btn" style="background:var(--bad);color:#fff" data-delacct="1">Delete</button></div></details></div>`;
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-delacct]'); if (!b) return;
+  if (($('#delType').value || '').trim() !== 'DELETE') { toast('Type DELETE to confirm'); return; }
+  b.disabled = true; b.textContent = 'Deleting…';
+  try {
+    const { data: s } = await Cloud.sb.auth.getSession();
+    const r = await fetch(SB_URL + '/functions/v1/delete-account', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + s.session.access_token, apikey: SB_KEY }, body: JSON.stringify({ confirm: 'DELETE' }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.message || 'Delete failed');
+    await Cloud.sb.auth.signOut();
+    toast('Your account and its data were deleted');
+  } catch (err) { toast(err.message || 'Delete failed'); b.disabled = false; b.textContent = 'Delete'; }
+});
+
+// ---------- "Add to Home Screen": opens like an app, works offline, and on iPhone is needed for bite alerts ----------
+var INSTALL = { evt: null };
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); INSTALL.evt = e; if (state.tab === 'forecast') render(); });
+window.addEventListener('appinstalled', () => { if (window.Stats) Stats.track('installed'); state.settings.installNudge = Date.now() + 3650 * 864e5; Store.saveSettings(); });
+function isInstalled() { try { return matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; } catch (e) { return false; } }
+function visitDays() {
+  const today = dkey(midnight(Date.now())); let v = {};
+  try { v = JSON.parse(localStorage.getItem('ff.visitDays') || '{}'); } catch (e) { }
+  if (!v.last || v.last !== today) { v = { n: (v.n || 0) + 1, last: today }; try { localStorage.setItem('ff.visitDays', JSON.stringify(v)); } catch (e) { } }
+  return v.n;
+}
+function installCard() {
+  if (isInstalled() || (state.settings.installNudge || 0) > Date.now()) return '';
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+  const mobile = ios || /Android/.test(navigator.userAgent);
+  // wait until it's earned a spot: a second visit, a saved spot, or an alert turned on
+  if (visitDays() < 2 && !(state.settings.mySpots || []).length) return '';
+  if (!mobile && !INSTALL.evt) return '';
+  return `<div class="card installcard"><div class="hrow"><div style="flex:1"><b>📲 Put it on your home screen</b><div class="small muted">Opens like an app, works with no signal${ios ? ', and lets bite alerts reach your iPhone' : ''}.</div></div>
+   <button class="btn sm" data-install="1">${INSTALL.evt ? 'Install' : 'Show me'}</button><button class="btn sm ghost" data-installlater="1">Later</button></div></div>`;
+}
+function installSheet() {
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+  const steps = ios ? [['Tap the Share button', 'The square with an arrow ⬆️ — at the bottom of Safari (or top right on iPad). In Chrome it\'s at the top right.'], ['Choose “Add to Home Screen”', 'Scroll down the list if you don\'t see it.'], ['Tap “Add”', 'Fish Bite Forecast appears on your home screen. Open it from there from now on — alerts and offline work best that way.']]
+    : [['Open the browser menu', 'The ⋮ at the top right in Chrome.'], ['Tap “Install app” or “Add to Home screen”', ''], ['Tap “Install”', 'Open it from your home screen from now on.']];
+  $('#sheet').innerHTML = `<div class="in"><div class="hrow"><h2 style="flex:1;margin:0">Add to your home screen</h2><button class="btn sm ghost" data-close="1">Close</button></div>
+   ${steps.map(([t, d], i) => `<div class="instep"><span>${i + 1}</span><div><b>${t}</b>${d ? `<div class="small muted">${d}</div>` : ''}</div></div>`).join('')}</div>`;
+  $('#sheet').classList.add('on');
+}
+document.addEventListener('click', async e => {
+  const t = e.target.closest('[data-install],[data-installlater]'); if (!t) return;
+  if (t.dataset.installlater) { state.settings.installNudge = Date.now() + 21 * 864e5; Store.saveSettings(); render(); return; }
+  if (window.Stats) Stats.track('install_prompt');
+  if (INSTALL.evt) { INSTALL.evt.prompt(); const r = await INSTALL.evt.userChoice.catch(() => null); INSTALL.evt = null; if (r && r.outcome === 'accepted') { state.settings.installNudge = Date.now() + 3650 * 864e5; Store.saveSettings(); } render(); }
+  else installSheet();
+});
+
+// ---------- "How do you fish?" — one question that sets up the app (replaces the features checklist the first time) ----------
+function howFishCard() {
+  if (state.settings.featPrompted || !(state.settings.welcomed || (state.settings.mySpots || []).length)) return '';
+  const chip = (g, k, l) => `<button class="chip" data-hf="${g}:${k}">${l}</button>`;
+  return `<div class="card howfish"><b>How do you fish?</b> <span class="small muted">Tap all that fit — the app sets itself up.</span>
+   <div class="small muted" style="margin-top:8px">Where</div><div>${chip('w', 'salt', '🌊 Saltwater inshore & surf')}${chip('w', 'off', '🚤 Offshore')}${chip('w', 'lake', '🏞️ Lakes & ponds')}${chip('w', 'river', '🏔️ Rivers & streams')}</div>
+   <div class="small muted" style="margin-top:6px">From</div><div>${chip('f', 'bank', 'Bank, pier or wading')}${chip('f', 'boat', 'Boat or kayak')}</div>
+   <div class="small muted" style="margin-top:6px">With</div><div>${chip('g', 'conv', 'Lures & bait')}${chip('g', 'fly', 'Fly rod')}</div>
+   <div class="row" style="margin-top:10px"><button class="btn" data-hfdone="1">Set it up</button><button class="btn ghost" data-featopen="1">Choose features myself</button><button class="btn sm ghost" data-featskip="1">Skip</button></div></div>`;
+}
+document.addEventListener('click', e => {
+  const c = e.target.closest('[data-hf]'); if (c) { c.classList.toggle('on'); return; }
+  if (!e.target.closest('[data-hfdone]')) return;
+  const on = new Set([...document.querySelectorAll('[data-hf].on')].map(x => x.dataset.hf));
+  const salt = on.has('w:salt') || on.has('w:off'), fresh = on.has('w:lake') || on.has('w:river'), boat = on.has('f:boat') || on.has('w:off'), fly = on.has('g:fly'), conv = on.has('g:conv');
+  const f = {};
+  if (on.size) {
+    if (!boat) f.marine = false;                 // seas and small craft advisories are for boaters
+    if (!salt) { f.tides = false; f.marine = false; } // freshwater only
+    if (!fly) f.flybench = false;
+    if (!on.has('w:river') && !salt) f.now = false;   // live gauges matter for rivers and the coast
+  }
+  state.settings.features = f; state.settings.featPrompted = true; state.settings.howFish = [...on];
+  if (fly && !conv) { state.fly = true; state.settings.fly = true; }
+  Store.saveSettings(); toast('Set up — change anything in Settings → Your features'); render();
+  if (window.Stats) { Stats.track('howfish_set'); on.forEach(x => Stats.track('hf_' + x.replace(':', '_'))); }
 });
 
 /* First-time tips: a short step-by-step walkthrough that dims the screen, highlights one thing at a time and points at it.

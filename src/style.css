@@ -140,3 +140,8 @@ nav button{min-width:0}
 .gearrow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}.gearrow:last-of-type{border-bottom:0}.gearbuy{flex:none;padding:7px 12px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);color:var(--accent);font-weight:700;font-size:13px;text-decoration:none}
 h1{overflow:hidden;text-overflow:ellipsis}.seg{flex:none}
 @media (max-width:400px){h1{font-size:16px}.seg button{padding-left:9px;padding-right:9px}}
+.howfish .chip,.howfish button.chip{margin:4px 4px 0 0}
+.howfish .chip.on{background:var(--accent);color:#06222a}
+.installcard{border-color:var(--accent)}
+.instep{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid rgba(255,255,255,.08)}
+.instep>span{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#06222a;display:grid;place-items:center;font-weight:700;flex:0 0 auto}

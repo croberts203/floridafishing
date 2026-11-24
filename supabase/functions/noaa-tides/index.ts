@@ -152,6 +152,17 @@ function measure(lat: number, lng: number) {
   const polyDist = (rings: number[][][]) => { let inside = false; for (const r of rings || []) for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const a = P(r[i]), b = P(r[j]); if ((a[1] > 0) !== (b[1] > 0) && 0 < (b[0] - a[0]) * (0 - a[1]) / (b[1] - a[1]) + a[0]) inside = !inside; } return inside ? 0 : lineDist(rings); };
   return { lineDist, polyDist };
 }
+// Wide rivers: the named centerline can be hundreds of meters from the bank, so look further out for a name only.
+async function nameNear(lat: number, lng: number) {
+  try {
+    const q = new URLSearchParams({ geometry: `${lng},${lat}`, geometryType: "esriGeometryPoint", inSR: "4326", spatialRel: "esriSpatialRelIntersects", distance: "1500", units: "esriSRUnit_Meter",
+      where: "gnis_name IS NOT NULL AND ftype IN (460, 558)", outFields: "gnis_name", returnGeometry: "false", f: "json" });
+    const j = await (await fetch(`${NHD}/6/query?${q}`, { signal: AbortSignal.timeout(12000) })).json();
+    const n: Record<string, number> = {};
+    for (const f of j.features || []) { const k = f.attributes?.gnis_name || f.attributes?.GNIS_NAME; if (k) n[k] = (n[k] || 0) + 1; }
+    return Object.entries(n).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+  } catch { return null; }
+}
 async function waterKind(lat: number, lng: number) {
   const [wb, fl, ar] = await Promise.all([nhdGeo(12, lat, lng, 150), nhdGeo(6, lat, lng, 150), nhdGeo(9, lat, lng, 60)].map((p) => p.catch(() => null)));
   if (!wb && !fl && !ar) return { kind: null, name: null, error: "lookup unavailable" };
@@ -166,10 +177,10 @@ async function waterKind(lat: number, lng: number) {
   const riverName = () => (near(streams.concat(paths).filter((x) => x.gnis_name)) || {}).gnis_name || null;
   const inside = lakes.filter((l) => l.d === 0).sort((a, b) => (a.areasqkm || 0) - (b.areasqkm || 0));
   if (inside.length) return lake(inside[0]);                                   // on a mapped lake or pond
-  if (channels.some((c) => c.d === 0)) return { kind: "river", name: riverName(), withinM: 0, source: "NHD river channel" };
+  if (channels.some((c) => c.d === 0)) return { kind: "river", name: (channels.find((c) => c.d === 0 && c.gnis_name) || {}).gnis_name || riverName() || await nameNear(lat, lng), withinM: 0, source: "NHD river channel" };
   const L = near(lakes), S = near(streams.concat(channels)), M = near(marsh);
   if (L && (!S || L.d <= S.d + 5)) return lake(L);                             // closest water wins; near-ties go to the lake
-  if (S) return { kind: "river", name: S.gnis_name || riverName(), withinM: Math.round(S.d), source: "NHD stream" };
+  if (S) return { kind: "river", name: S.gnis_name || riverName() || await nameNear(lat, lng), withinM: Math.round(S.d), source: "NHD stream" };
   if (M) return { kind: "pond", name: M.gnis_name || null, withinM: Math.round(M.d), source: "NHD swamp/marsh" };
   return { kind: null, name: null };
 }

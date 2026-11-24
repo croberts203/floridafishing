@@ -218,7 +218,7 @@ function viewForecast() {
   if (!res.length) return topControls() + `<div class="card">No species profiles for this water type.</div>`;
   const r = chosen(res), [rt] = Engine.rating(r.day);
   const wins = Engine.windows(r, day);
-  let html = (WEB ? offlineBanner() + welcomeCard() + featurePrompt() : '') + topControls();
+  let html = (WEB ? offlineBanner() + welcomeCard() + howFishCard() + installCard() : '') + topControls();
   // alerts
   const alerts = [];
   const tailR = res.find(x => x.sp.id === 'redfish' && x.tail);
@@ -546,7 +546,7 @@ confidence is 0–1. Only give estimated_length_in when a ruler or measuring boa
 // ===== Settings =====
 function viewSettings() {
   const sps = spots();
-  return `${WEB ? (featOn('alerts') ? alertsCard() : '') + mySpotsCard() + featureCard() + offlineCard() + '<div class="card"><h2>Tips</h2><div class="small">Step-by-step tips show the first time you open each screen.</div><div class="row" style="margin-top:8px"><button class="btn ghost" data-tipsagain="1">💡 Show tips again</button></div><h2 style="margin-top:16px">Privacy</h2><div class="small muted">To see how many people use the app and which shops and clubs send them, it counts visits and features used with a random ID kept in this browser — no names, emails, IP addresses or locations. Browsers set to “Do Not Track” send nothing. Your spots, catches and settings stay on this device, or in your account if you sign in.</div></div>' : ''}<div class="card"><h2>Tide offsets by spot${WEB ? ' (Jacksonville examples)' : ''}</h2><div class="small muted">Times shift the Mayport prediction (minutes, + is later); ratios scale heights. Presets come from NOAA subordinate stations. Adjust any spot to match what you see on the water.</div>
+  return `${WEB ? (featOn('alerts') ? alertsCard() : '') + mySpotsCard() + featureCard() + offlineCard() + accountManageCard() + '<div class="card"><h2>Tips</h2><div class="small">Step-by-step tips show the first time you open each screen.</div><div class="row" style="margin-top:8px"><button class="btn ghost" data-tipsagain="1">💡 Show tips again</button></div><h2 style="margin-top:16px">Privacy</h2><div class="small muted">To see how many people use the app and which shops and clubs send them, it counts visits and features used with a random ID kept in this browser — no names, emails, IP addresses or locations. Browsers set to “Do Not Track” send nothing. Your spots, catches and settings stay on this device, or in your account if you sign in.</div></div>' : ''}<div class="card"><h2>Tide offsets by spot${WEB ? ' (Jacksonville examples)' : ''}</h2><div class="small muted">Times shift the Mayport prediction (minutes, + is later); ratios scale heights. Presets come from NOAA subordinate stations. Adjust any spot to match what you see on the water.</div>
   ${sps.filter(s => s.tide).map(s => `<div class="spotrow"><b>${esc(s.name)}</b> <span class="small muted">${esc(s.src || 'custom')}</span>
    <div class="g4" style="margin-top:6px"><div><label>High +min</label><input data-off="${esc(s.id)}" data-k="hi" type="number" inputmode="numeric" value="${s.tide.hi}"></div><div><label>Low +min</label><input data-off="${esc(s.id)}" data-k="lo" type="number" inputmode="numeric" value="${s.tide.lo}"></div><div><label>High ×</label><input data-off="${esc(s.id)}" data-k="hr" type="number" inputmode="decimal" step="0.01" value="${s.tide.hr}"></div><div><label>Low ×</label><input data-off="${esc(s.id)}" data-k="lr" type="number" inputmode="decimal" step="0.01" value="${s.tide.lr}"></div></div>
    ${s.custom ? `<button class="btn sm danger" style="margin-top:8px" data-rmspot="${esc(s.id)}">Remove spot</button>` : ''}</div>`).join('')}
@@ -597,7 +597,8 @@ document.addEventListener('change', e => {
   else if (id === 'datePick') { const [y, m, dd] = e.target.value.split('-').map(Number); if (y) { state.day0 = new Date(y, m - 1, dd).getTime(); render(); } }
   else if (['cPress', 'cWind', 'cTemp', 'cSky', 'cClar', 'cFace'].includes(id)) {
     const k = dkey(state.day0), c = { ...(state.settings.cond[dkey(state.day0)] || {}) };
-    c.pressure = $('#cPress').value; c.wind = $('#cWind').value === '' ? '' : +$('#cWind').value; c.wtemp = $('#cTemp').value; c.sky = $('#cSky').value; c.clarity = $('#cClar').value; if (WEB && $('#cFace')) { const f = $('#cFace').value, sid = spot().id; state.settings.facing = state.settings.facing || {}; if (f) state.settings.facing[sid] = f; else delete state.settings.facing[sid]; }
+    c.pressure = $('#cPress').value; c.wind = $('#cWind').value === '' ? '' : +$('#cWind').value; c.wtemp = $('#cTemp').value; c.sky = $('#cSky').value; c.clarity = $('#cClar').value; if (WEB && $('#cFace')) { const f = $('#cFace').value, sid = spot().id; state.settings.facing = state.settings.facing || {}; if (f) state.settings.facing[sid] = f; else delete state.settings.facing[sid];
+      if (Cloud.user && typeof ALERT !== 'undefined') (ALERT.rules || []).filter(r => r.spot && r.spot.id === sid).forEach(r => Cloud.sb.from('forecast_alerts').update({ spot: { ...r.spot, faces: f || null } }).eq('id', r.id).then(() => { r.spot.faces = f || null; })); }
     state.settings.cond = { ...state.settings.cond, [k]: c };
     // keep only the last ~60 days of condition entries
     const keys = Object.keys(state.settings.cond).sort(); while (keys.length > 60) delete state.settings.cond[keys.shift()];

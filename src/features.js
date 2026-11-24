@@ -138,7 +138,8 @@ function pushHelp(blocked) {
    <button class="btn" data-close="1" style="margin-top:8px">OK</button></div>`;
   $('#sheet').classList.add('on');
 }
-var alertSpot = sp => ({ id: sp.id, name: sp.name, water: sp.water, lat: sp.lat, lng: sp.lng, station: sp.station ? { id: sp.station.id, name: sp.station.name } : null });
+var alertSpot = sp => ({ id: sp.id, name: sp.name, water: sp.water, lat: sp.lat, lng: sp.lng, station: sp.station ? { id: sp.station.id, name: sp.station.name } : null,
+  faces: sp.faces || (state.settings.facing || {})[sp.id] || null, fwKind: sp.water === 'fresh' && typeof fwKindOf === 'function' ? fwKindOf(sp) || null : null });
 function openAlertForm(pre = {}) {
   const list = spots().filter(s => s.lat != null);
   const sp = list.find(s => s.id === (pre.spot || state.spotId)) || list[0];

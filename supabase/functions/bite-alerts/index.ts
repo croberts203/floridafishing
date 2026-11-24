@@ -44,12 +44,31 @@ const getJSON = async (u: string, h: Record<string, string> = {}) => { const r =
 function weather(lat: number, lng: number) {
   return once(`wx${lat.toFixed(2)},${lng.toFixed(2)}`, async () => {
     const base = `latitude=${lat}&longitude=${lng}&timezone=auto`;
-    const w = await getJSON(`https://api.open-meteo.com/v1/forecast?${base}&hourly=pressure_msl,wind_speed_10m,cloud_cover,precipitation_probability,temperature_2m&wind_speed_unit=mph&temperature_unit=fahrenheit&past_days=7&forecast_days=6`);
+    const w = await getJSON(`https://api.open-meteo.com/v1/forecast?${base}&hourly=pressure_msl,wind_speed_10m,wind_direction_10m,precipitation,cloud_cover,precipitation_probability,temperature_2m&wind_speed_unit=mph&temperature_unit=fahrenheit&past_days=7&forecast_days=6`);
     let sst = null; try { sst = (await getJSON(`https://marine-api.open-meteo.com/v1/marine?${base}&hourly=sea_surface_temperature&temperature_unit=fahrenheit&past_days=1&forecast_days=6`)).hourly; } catch (_) { /* inland */ }
     return { h: w.hourly, off: w.utc_offset_seconds as number, tz: w.timezone as string, sst };
   });
 }
-function cond(wx: any, water: string, key: string, prev: string, t0: number) {
+// Same rules as the app (features3.js): water clarity from rain/wind/river flow, wind onto or off the shore, river trend.
+const FACING: Record<string, number> = { N: 0, NE: 45, E: 90, SE: 135, S: 180, SW: 225, W: 270, NW: 315 };
+function windEffect(faces: string | null, dir: number | null, wind: number | null) {
+  if (!faces || FACING[faces] == null || dir == null || wind == null) return 1;
+  const diff = Math.abs(((dir - FACING[faces]) % 360 + 540) % 360 - 180);
+  if (diff <= 50 && wind >= 6 && wind <= 20) return 1.07;
+  if (diff <= 50 && wind > 20) return 0.95;
+  if (diff >= 130 && wind >= 12) return 0.97;
+  return 1;
+}
+function flowEffect(u: any) {
+  if (!u || !u.flowCfs || !u.flowWeek || !u.flowWeek.median || u.km > 25) return null;
+  const ratio = u.flowCfs.v / u.flowWeek.median, d1 = u.flowWeek.change24, rising = d1 != null && d1 > .1, falling = d1 != null && d1 < -.08;
+  const f = ratio >= 2 && rising ? .72 : ratio >= 1.4 && rising ? .85 : ratio >= 1.3 && falling ? 1.08 : ratio <= .55 ? .93 : 1;
+  return { ratio, f };
+}
+function riverNow(lat: number, lng: number) {
+  return once(`rv${lat.toFixed(2)},${lng.toFixed(2)}`, async () => (await getJSON(`${URL_}/functions/v1/noaa-tides?now=${lat},${lng}`)).usgs);
+}
+function cond(wx: any, water: string, key: string, prev: string, t0: number, extra: { faces?: string | null; fwKind?: string | null; river?: any } = {}) {
   const H = wx.h, avg = (a: number[]) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
   const pick = (arr: number[], day: string) => { const o: number[] = []; H.time.forEach((t: string, i: number) => { const hr = +t.slice(11, 13); if (t.slice(0, 10) === day && hr >= 6 && hr <= 18 && arr[i] != null) o.push(arr[i]); }); return o; };
   const pT = avg(pick(H.pressure_msl, key)), pY = avg(pick(H.pressure_msl, prev));
@@ -60,7 +79,18 @@ function cond(wx: any, water: string, key: string, prev: string, t0: number) {
   let wtemp: number | null = null;
   if (!["fresh", "greatlakes"].includes(water) && wx.sst?.sea_surface_temperature) { const v: number[] = []; wx.sst.time.forEach((t: string, i: number) => { if (t.slice(0, 10) === key && wx.sst.sea_surface_temperature[i] != null) v.push(wx.sst.sea_surface_temperature[i]); }); if (v.length) wtemp = Math.round(avg(v)!); }
   if (wtemp == null) { const v: number[] = []; H.time.forEach((t: string, i: number) => { const d = Date.parse(t + ":00Z") - wx.off * 1000; if (d < t0 + 864e5 && d >= t0 - 7 * 864e5 && H.temperature_2m[i] != null) v.push(H.temperature_2m[i]); }); if (v.length) wtemp = Math.round(Math.max(34, Math.min(90, avg(v)! * .9 + 6))); }
-  return { pressure, wind: wind == null ? 10 : Math.round(wind), sky, clarity: "stained", wtemp: wtemp ?? "" };
+  // rain in the 48 h before mid-morning, and the day's average wind direction
+  let rain48: number | null = null, windDir: number | null = null;
+  if (H.precipitation) { const end = t0 + 10 * 36e5; let s = 0, n = 0; H.time.forEach((t: string, i: number) => { const d = Date.parse(t + ":00Z") - wx.off * 1000; if (d <= end && d > end - 48 * 36e5 && H.precipitation[i] != null) { s += H.precipitation[i]; n++; } }); if (n > 12) rain48 = s; }
+  if (H.wind_direction_10m) { let x = 0, y = 0; H.time.forEach((t: string, i: number) => { const hr = +t.slice(11, 13), d = H.wind_direction_10m[i]; if (t.slice(0, 10) === key && hr >= 6 && hr <= 18 && d != null) { const w = H.wind_speed_10m[i] || 1; x += w * Math.cos(d * Math.PI / 180); y += w * Math.sin(d * Math.PI / 180); } }); if (x || y) windDir = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360; }
+  const fl = extra.river ? flowEffect(extra.river) : null;
+  let lvl = ({ offshore: 0, nearshore: 0, surf: 1, inshore: 1, greatlakes: 0, fresh: 1 } as Record<string, number>)[water] ?? 1;
+  if (rain48 != null && water !== "offshore") lvl += rain48 >= 25 ? 2 : rain48 >= 8 ? 1 : 0;
+  if (fl && fl.ratio >= 1.6) lvl += 1;
+  if (wind != null && ["surf", "inshore", "greatlakes"].includes(water) && wind >= 16) lvl += 1;
+  const clarity = ["clear", "stained", "muddy"][Math.max(0, Math.min(2, lvl))];
+  const windF = windEffect(extra.faces ?? null, windDir, wind);
+  return { pressure, wind: wind == null ? 10 : Math.round(wind), sky, clarity, wtemp: wtemp ?? "", windDir, windF: windF !== 1 ? windF : undefined, flowF: fl && fl.f !== 1 ? fl.f : undefined };
 }
 async function tides(station: string) {
   return once("tide" + station, async () => {
@@ -106,7 +136,8 @@ async function runRule(rule: any) {
     const key = ld.toISOString().slice(0, 10), prev = new Date(t0 + wx.off * 1000 - 43200e3).toISOString().slice(0, 10);
     if (sent["bite:" + key]) continue;
     const day = Engine.buildDay(t0, spot, { lat: sp.lat, lng: sp.lng });
-    const c = cond(wx, sp.water, key, prev, t0);
+    const river = k <= 1 && sp.water === "fresh" && sp.fwKind === "river" ? await riverNow(sp.lat, sp.lng).catch(() => null) : null;
+    const c = cond(wx, sp.water, key, prev, t0, { faces: sp.faces, fwKind: sp.fwKind, river });
     const pool = rule.species && rule.species !== "auto" ? [SPMAP[rule.species]].filter(Boolean) : SPECIES.filter((s: any) => speciesFits(s, spot));
     const res = pool.map((s: any) => Engine.scoreSpecies(day, s, c, { fly: !!rule.fly, region: regionOf(sp.lat, sp.lng, sp.water), usePatterns: rule.learn !== false, catches: mine })).sort((a: any, b: any) => b.day - a.day);
     const best = res[0]; if (!best || best.day < rule.min_score) continue;
