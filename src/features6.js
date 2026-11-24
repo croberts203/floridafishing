@@ -1,5 +1,6 @@
 // ===== Choose your features: each person switches off what they don't use; those cards, buttons and tips disappear =====
 var FEATURES = [
+  { g: 'Forecast screen', k: 'bestbet', name: "Today's best bet", help: 'Best catch, time, lure, color and your tackle shop' },
   { g: 'Forecast screen', k: 'colors', name: 'Lure & fly colors', help: 'Color picks for the light and water' },
   { g: 'Forecast screen', k: 'watercheck', name: 'Check the water (photo)', help: 'Measure light and clarity with your camera' },
   { g: 'Forecast screen', k: 'now', name: 'Right now', help: 'Live water level, temperature, buoys and river gauges' },
@@ -45,7 +46,7 @@ document.addEventListener('click', e => {
   if (t.dataset.featskip) { state.settings.featPrompted = true; Store.saveSettings(); return render(); }
   const boxes = [...document.querySelectorAll('[data-feat]')];
   if (t.dataset.featall) return boxes.forEach(b => b.checked = true);
-  if (t.dataset.featbasic) { const keep = ['colors', 'tides', 'solunar', 'rules', 'map', 'tips']; return boxes.forEach(b => b.checked = keep.includes(b.dataset.feat)); }
+  if (t.dataset.featbasic) { const keep = ['bestbet', 'colors', 'tides', 'solunar', 'rules', 'map', 'tips']; return boxes.forEach(b => b.checked = keep.includes(b.dataset.feat)); }
   if (t.dataset.featsave) {
     const f = {}; boxes.forEach(b => { if (!b.checked) f[b.dataset.feat] = false; });
     state.settings.features = f; Store.saveSettings();

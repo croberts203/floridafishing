@@ -219,6 +219,7 @@ function viewForecast() {
   const r = chosen(res), [rt] = Engine.rating(r.day);
   const wins = Engine.windows(r, day);
   let html = (WEB ? offlineBanner() + welcomeCard() + howFishCard() + installCard() : '') + topControls();
+  if (WEB && featOn('bestbet') && typeof bestBetCard === 'function') html += bestBetCard(r, sp, c, day, wins);
   // alerts
   const alerts = [];
   const tailR = res.find(x => x.sp.id === 'redfish' && x.tail);

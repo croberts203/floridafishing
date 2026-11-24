@@ -1,6 +1,6 @@
 // Offline support: cache the app shell, plus the last tides, weather, map code and map tiles you looked at,
 // so the forecast still works out on the water with no signal. Live data always tries the network first.
-const CACHE = 'fishforecast-v13', DATA = 'fishforecast-data-v1', TILES = 'fishforecast-tiles-v1';
+const CACHE = 'fishforecast-v14', DATA = 'fishforecast-data-v1', TILES = 'fishforecast-tiles-v1';
 const DATA_HOSTS = ['api.open-meteo.com', 'marine-api.open-meteo.com', 'unpkg.com', 'api.weather.gov'];
 const TILE_HOSTS = ['basemap.nationalmap.gov'];
 const isData = u => DATA_HOSTS.includes(u.hostname) || (u.hostname.endsWith('.supabase.co') && u.pathname.includes('/functions/v1/noaa-tides'));

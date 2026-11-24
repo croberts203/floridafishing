@@ -1951,7 +1951,7 @@ function viewForecast() {
   const r = chosen(res), [rt] = Engine.rating(r.day);
   const wins = Engine.windows(r, day);
   let html = (WEB ? offlineBanner() + welcomeCard() + howFishCard() + installCard() : '') + topControls();
-  if (!WEB || featOn('bestbet')) html += bestBetCard(r, sp, c, day, wins);
+  if (WEB && featOn('bestbet') && typeof bestBetCard === 'function') html += bestBetCard(r, sp, c, day, wins);
   // alerts
   const alerts = [];
   const tailR = res.find(x => x.sp.id === 'redfish' && x.tail);
@@ -3045,35 +3045,6 @@ function colorPicks(spc, sp, t, c) {
   const tint = c.tint && TINT_TIP[c.tint] ? ' ' + TINT_TIP[c.tint] : '';
   return { light, clarity, list: state.fly ? set.fly : set.pick, why: `${useWc ? 'measured: ' + wc.lightLabel : lightTxt}, ${clarity}${c.tint && c.tint !== 'clear' ? ' ' + c.tint : ''} water`, tip: (SPECIES_COLOR[spc.id] || '') + moon + tint, bait: !state.fly && BAIT_FIRST[spc.id] };
 }
-// ---------- Best bet summary: species, time, lure and color in one glance ----------
-const NATURAL_BAIT = /(live|fresh|cut |cut$|dead|shiner|minnow$|worms?$|nightcrawler|crawfish$|crickets?|mullet|menhaden|pogy|pinfish|fiddler|sand flea|squid|clam|chicken liver|dough|corn|bread|crabs?$|shrimp$|ballyhoo|bait)/i;
-function lurePick(spc, sp, t, day) {
-  const list = state.fly ? (spc.fly && spc.fly.flies) || [] : spc.bait || [];
-  if (!list.length) return null;
-  const a = day && day.ast, lowLight = a && a.sunrise && a.sunset && (Math.abs(t - a.sunrise) < 2 * 3600e3 || Math.abs(t - a.sunset) < 2 * 3600e3 || t < a.sunrise || t > a.sunset);
-  const art = list.filter(x => state.fly || !NATURAL_BAIT.test(x));
-  const pool = art.length ? art : list;
-  const top = /(topwater|popper|frog|walk|plug|spook|buzz|gurgler|deer-hair|foam|bug|slider)/i, deep = /(jig|bottom|deep|carolina|texas|drop|sinking|weighted|clouser|crab|leech|bucktail|plastic|worm)/i;
-  const pick = (lowLight ? pool.find(x => top.test(x)) : pool.find(x => deep.test(x))) || pool[0];
-  const why = lowLight && top.test(pick) ? 'low light — fish look up' : !lowLight && deep.test(pick) ? 'bright light — keep it low' : 'top pick for this species';
-  const bait = !state.fly ? list.find(x => NATURAL_BAIT.test(x) && x !== pick) : null;
-  return { pick, why, bait };
-}
-function bestBetCard(r, sp, c, day, wins) {
-  if (!r) return '';
-  const w = (wins || []).slice().sort((a, b) => b.peak - a.peak)[0];
-  const t = w ? w.pk || w.a : r.bestStart, lp = lurePick(r.sp, sp, t, day);
-  let col = null; try { const p = colorPicks(r.sp, sp, t, c); col = p && p.list && p.list[0] ? { c: p.list[0], why: p.why } : null; } catch (e) { }
-  const [rt] = Engine.rating(r.day);
-  const row = (ic, k, v, sub) => `<div class="kv" style="text-align:left"><span>${ic} ${k}</span><b style="font-size:1.05em">${v}</b>${sub ? `<span class="small muted">${sub}</span>` : ''}</div>`;
-  return `<div class="card" style="border:2px solid var(--accent)"><h2 style="margin:0 0 8px">Today's best bet</h2><div class="grid2">
-    ${row('🐟', 'Best catch', esc(r.sp.name), rt)}
-    ${row('⏰', 'Best time', w ? fmtT(w.a) + ' – ' + fmtT(w.b) : fmtT(r.bestStart) + ' – ' + fmtT(r.bestEnd), w && w.why && w.why.length ? esc(w.why.slice(0, 2).join(' · ')) : '')}
-    ${lp ? row('🪝', state.fly ? 'Fly' : 'Lure', esc(lp.pick), esc(lp.why) + (lp.bait ? ' · or ' + esc(lp.bait) : '')) : ''}
-    ${col ? row('🎨', 'Color', esc(col.c), esc(col.why || '')) : ''}
-  </div></div>`;
-}
-
 function colorCard(r, sp, c) {
   if (!r || !sp) return '';
   const wc = state.day0 === midnight(Date.now()) && typeof waterCheck === 'function' ? waterCheck(sp, 1.5) : null;
@@ -3123,6 +3094,111 @@ function facingRow(c) {
   const dirs = [['', 'Not set'], ['N', 'North'], ['NE', 'Northeast'], ['E', 'East'], ['SE', 'Southeast'], ['S', 'South'], ['SW', 'Southwest'], ['W', 'West'], ['NW', 'Northwest']];
   return `<div class="row"><div><label>Which way does this shore face? (looking out at the water)</label><select id="cFace">${dirs.map(([k, l]) => `<option value="${k}" ${k === cur ? 'selected' : ''}>${l}</option>`).join('')}</select><div class="small muted">${c.windDir != null ? `Forecast wind from the ${compass(c.windDir)}. ` : ''}Set this and wind blowing onto your bank (bait stacks up) or off it (calmer, clearer) counts in the score.</div></div></div>`;
 }
+
+// ---------- Today's best bet: species, time, lure and color in one glance ----------
+const NATURAL_BAIT = /(live|fresh|cut |cut$|dead|shiner|minnow$|worms?$|nightcrawler|crawfish$|crickets?|mullet|menhaden|pogy|pinfish|fiddler|sand flea|squid|clam|chicken liver|dough|corn|bread|crabs?$|shrimp$|ballyhoo|bait)/i;
+function lurePick(spc, sp, t, day) {
+  const list = state.fly ? (spc.fly && spc.fly.flies) || [] : spc.bait || [];
+  if (!list.length) return null;
+  const a = day && day.ast, lowLight = !!(a && a.sunrise && a.sunset && (Math.abs(t - a.sunrise) < 2 * 3600e3 || Math.abs(t - a.sunset) < 2 * 3600e3 || t < a.sunrise || t > a.sunset));
+  const art = list.filter(x => state.fly || !NATURAL_BAIT.test(x)), pool = art.length ? art : list;
+  const top = /(topwater|popper|frog|walk|plug|spook|buzz|gurgler|deer-hair|foam|bug|slider)/i, deep = /(jig|bottom|deep|carolina|texas|drop|sinking|weighted|clouser|crab|leech|bucktail|plastic|worm)/i;
+  const pick = (lowLight ? pool.find(x => top.test(x)) : pool.find(x => deep.test(x))) || pool[0];
+  const why = lowLight && top.test(pick) ? 'low light, fish look up' : !lowLight && deep.test(pick) ? 'bright light, keep it low' : 'top pick for this species';
+  const bait = !state.fly ? list.find(x => NATURAL_BAIT.test(x) && x !== pick) : null;
+  return { pick, why, bait };
+}
+function bestBetCard(r, sp, c, day, wins) {
+  if (!r) return '';
+  const w = (wins || []).slice().sort((a, b) => b.peak - a.peak)[0];
+  const t = w ? w.pk || w.a : r.bestStart, lp = lurePick(r.sp, sp, t, day);
+  let col = null; try { const p = colorPicks(r.sp, sp, t, c); col = p && p.list && p.list[0] ? { c: p.list[0], why: p.why } : null; } catch (e) { }
+  const [rt] = Engine.rating(r.day);
+  const row = (ic, k, v, sub) => `<div class="kv" style="text-align:left"><span>${ic} ${k}</span><b style="font-size:1.05em">${v}</b>${sub ? `<span class="small muted">${sub}</span>` : ''}</div>`;
+  return `<div class="card" style="border:2px solid var(--accent)"><h2 style="margin:0 0 8px">Today's best bet</h2><div class="grid2">
+    ${row('🐟', 'Best catch', esc(r.sp.name), rt)}
+    ${row('⏰', 'Best time', w ? fmtT(w.a) + ' – ' + fmtT(w.b) : fmtT(r.bestStart) + ' – ' + fmtT(r.bestEnd), w && w.why && w.why.length ? esc(w.why.slice(0, 2).join(' · ')) : '')}
+    ${lp ? row('🪝', state.fly ? 'Fly' : 'Lure', esc(lp.pick), esc(lp.why) + (lp.bait ? ' · or ' + esc(lp.bait) : '')) : ''}
+    ${col ? row('🎨', 'Color', esc(col.c), esc(col.why || '')) : ''}
+  </div>${lp ? myShopLine(lp.pick + (col ? ' in ' + col.c : '')) : ''}</div>`;
+}
+
+// ---------- My tackle shop: pick a preferred local store from a map search within a chosen radius ----------
+const SHOP_RADII = [20, 30, 50, 75, 100];
+const myShop = () => state.settings.myShop || null;
+const shopTel = s => String(s || '').replace(/[^0-9+]/g, '');
+function myShopLine(item) {
+  const s = myShop();
+  if (!s) return `<div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap"><button class="btn sm ghost" data-shopfind="1">🛒 Pick my tackle shop</button><span class="small muted" style="align-self:center">so you can ask them for ${esc(item)}</span></div>`;
+  const q = encodeURIComponent(item);
+  return `<div class="small" style="margin-top:10px"><b>🛒 Get it at ${esc(s.name)}</b>${s.dist != null ? ` <span class="muted">(${s.dist} mi)</span>` : ''}</div>
+   <div class="row" style="margin-top:6px;gap:8px;flex-wrap:wrap">
+    ${s.phone ? `<a class="btn sm" href="tel:${esc(shopTel(s.phone))}" data-shoplead="call">📞 Call to ask</a>` : ''}
+    ${s.web ? `<a class="btn sm ghost" href="${esc(s.web)}" target="_blank" rel="noopener" data-shoplead="web">🌐 Website</a>` : ''}
+    <a class="btn sm ghost" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(s.name + (s.addr ? ', ' + s.addr : ''))}" data-shoplead="directions">🧭 Directions</a>
+    <button class="btn sm ghost" data-shopfind="1">Change shop</button></div>
+   <div class="small muted" style="margin-top:4px">Ask for: ${esc(item)}</div><span hidden data-shopitem="${esc(q)}"></span>`;
+}
+function shopDistMi(a, b) { return Math.round(distKm([a.lat, a.lng], [b.lat, b.lng]) * 0.621371); }
+async function shopSearch(center, mi) {
+  const m = Math.round(mi * 1609.34);
+  const q = `[out:json][timeout:25];(nwr["shop"="fishing"](around:${m},${center.lat},${center.lng});nwr["shop"="outdoor"]["fishing"~"yes|tackle"](around:${m},${center.lat},${center.lng});nwr["shop"="sports"]["sport"~"fishing"](around:${m},${center.lat},${center.lng});nwr["shop"="hunting"](around:${m},${center.lat},${center.lng}););out center tags 200;`;
+  const r = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+  if (!r.ok) throw new Error('Map search is busy, try again in a minute');
+  const j = await r.json(), seen = new Set();
+  return (j.elements || []).map(e => {
+    const t = e.tags || {}, lat = e.lat ?? (e.center && e.center.lat), lng = e.lon ?? (e.center && e.center.lon);
+    const addr = [[t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' '), t['addr:city'], t['addr:state']].filter(Boolean).join(', ');
+    return { name: t.name || t.brand || '', lat, lng, addr, phone: t.phone || t['contact:phone'] || '', web: t.website || t['contact:website'] || '', kind: t.shop };
+  }).filter(x => x.name && x.lat != null && !seen.has(x.name.toLowerCase() + Math.round(x.lat * 100)) && seen.add(x.name.toLowerCase() + Math.round(x.lat * 100)))
+    .map(x => ({ ...x, dist: shopDistMi(center, x) })).filter(x => x.dist <= mi).sort((a, b) => (a.kind === 'fishing' ? 0 : 1) - (b.kind === 'fishing' ? 0 : 1) || a.dist - b.dist);
+}
+function shopFindSheet() {
+  const sp = spot(), center = sp && sp.lat != null ? { lat: sp.lat, lng: sp.lng } : state.settings.loc;
+  const rad = SHOP_RADII.includes(+state.settings.shopRadius) ? +state.settings.shopRadius : 30;
+  $('#sheet').innerHTML = `<div class="in"><div class="hrow"><h2 style="flex:1;margin:0">Pick my tackle shop</h2><button class="btn sm ghost" data-close="1">Close</button></div>
+   <div class="small muted" style="margin-top:6px">Fishing and tackle shops on the map around ${esc(sp ? sp.name : 'your area')}.</div>
+   <div class="row" style="margin:8px 0;gap:6px;flex-wrap:wrap">${SHOP_RADII.map(r => `<button class="chip ${r === rad ? 'on' : ''}" data-shoprad="${r}">${r} mi</button>`).join('')}</div>
+   <div id="shopMap" class="minimap"></div><div id="shopList" class="small"><span class="muted">Searching within ${rad} miles…</span></div>
+   <details style="margin-top:10px"><summary class="small">My shop isn't listed</summary>
+    <label>Shop name</label><input id="msName"><label>Phone</label><input id="msPhone" inputmode="tel"><label>Website (optional)</label><input id="msWeb" inputmode="url" placeholder="https://">
+    <button class="btn sm" style="margin-top:8px" data-shopmanual="1">Save as my shop</button></details>
+   ${myShop() ? '<button class="btn sm danger" style="margin-top:10px" data-shopclear="1">Remove my shop</button>' : ''}</div>`;
+  $('#sheet').classList.add('on');
+  const box = $('#sheet'); box._shop = { center, rad, list: [] };
+  shopRun();
+}
+async function shopRun() {
+  const box = $('#sheet'), st = box._shop; if (!st) return;
+  const list = $('#shopList'); list.innerHTML = `<span class="muted">Searching within ${st.rad} miles…</span>`;
+  const drawMap = items => {
+    if (!window.L) { loadLeaflet(); setTimeout(() => window.L && box._shop === st && drawMap(items), 1500); return; }
+    const el = $('#shopMap'); if (!el) return; if (st.map) st.map.remove();
+    const m = st.map = L.map(el, { zoomControl: true, attributionControl: false }).setView([st.center.lat, st.center.lng], 9);
+    L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16 }).addTo(m);
+    const circ = L.circle([st.center.lat, st.center.lng], { radius: st.rad * 1609.34, color: '#1f7a8c', weight: 2, fillOpacity: .06 }).addTo(m);
+    m.fitBounds(circ.getBounds());
+    items.forEach((x, i) => L.marker([x.lat, x.lng]).addTo(m).bindPopup(`<b>${esc(x.name)}</b><br>${x.dist} mi<br><button class="btn sm" data-shoppick="${i}">Make this my shop</button>`));
+  };
+  try {
+    const items = st.list = await shopSearch(st.center, st.rad);
+    if (box._shop !== st) return;
+    list.innerHTML = items.length ? items.slice(0, 40).map((x, i) => `<div class="pick" style="cursor:default"><div class="nm"><b>${esc(x.name)}</b><span class="small muted">${x.dist} mi${x.addr ? ' · ' + esc(x.addr) : ''}${x.phone ? ' · ' + esc(x.phone) : ''}</span></div><button class="btn sm" data-shoppick="${i}">Pick</button></div>`).join('')
+      : `<div class="muted">No tackle shops mapped within ${st.rad} miles. Try a bigger radius, or add yours below.</div>`;
+    drawMap(items);
+  } catch (err) { list.innerHTML = `<div class="muted">${esc(err.message || 'Search failed')}. You can add your shop below.</div>`; drawMap([]); }
+}
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-shopfind],[data-shoprad],[data-shoppick],[data-shopmanual],[data-shopclear],[data-shoplead]'); if (!t) return;
+  const d = t.dataset, box = $('#sheet');
+  if (d.shoplead) { try { const s = myShop(); if (WEB && typeof Cloud !== 'undefined' && Cloud.sb) Cloud.sb.from('shop_leads').insert({ shop_name: s && s.name, action: d.shoplead, item: decodeURIComponent((document.querySelector('[data-shopitem]') || {}).dataset?.shopitem || '') }).then(() => { }, () => { }); } catch (er) { } return; }
+  e.preventDefault();
+  if (d.shopfind) { shopFindSheet(); return; }
+  if (d.shoprad) { state.settings.shopRadius = +d.shoprad; Store.saveSettings(); box.querySelectorAll('[data-shoprad]').forEach(b => b.classList.toggle('on', b === t)); box._shop.rad = +d.shoprad; shopRun(); return; }
+  if (d.shoppick) { const x = box._shop && box._shop.list[+d.shoppick]; if (!x) return; state.settings.myShop = x; Store.saveSettings(); box.classList.remove('on'); toast(`${x.name} is your shop`); render(); return; }
+  if (d.shopmanual) { const name = $('#msName').value.trim(); if (!name) { toast('Enter the shop name'); return; } let web = $('#msWeb').value.trim(); if (web && !/^https?:\/\//.test(web)) web = 'https://' + web; state.settings.myShop = { name, phone: $('#msPhone').value.trim(), web, addr: '' }; Store.saveSettings(); box.classList.remove('on'); toast(`${name} is your shop`); render(); return; }
+  if (d.shopclear) { delete state.settings.myShop; Store.saveSettings(); box.classList.remove('on'); toast('Shop removed'); render(); return; }
+});
 
 // ===== Error reports, offline, trip report, fishing crew, boat ramps — website build =====
 
@@ -3450,7 +3526,7 @@ document.addEventListener('click', e => { if (e.target.closest('[data-watercheck
 
 // ===== Choose your features: each person switches off what they don't use; those cards, buttons and tips disappear =====
 var FEATURES = [
-  { g: 'Forecast screen', k: 'bestbet', name: "Today's best bet", help: 'Best catch, time, lure and color at the top' },
+  { g: 'Forecast screen', k: 'bestbet', name: "Today's best bet", help: 'Best catch, time, lure, color and your tackle shop' },
   { g: 'Forecast screen', k: 'colors', name: 'Lure & fly colors', help: 'Color picks for the light and water' },
   { g: 'Forecast screen', k: 'watercheck', name: 'Check the water (photo)', help: 'Measure light and clarity with your camera' },
   { g: 'Forecast screen', k: 'now', name: 'Right now', help: 'Live water level, temperature, buoys and river gauges' },
