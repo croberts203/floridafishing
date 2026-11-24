@@ -1951,6 +1951,7 @@ function viewForecast() {
   const r = chosen(res), [rt] = Engine.rating(r.day);
   const wins = Engine.windows(r, day);
   let html = (WEB ? offlineBanner() + welcomeCard() + howFishCard() + installCard() : '') + topControls();
+  if (!WEB || featOn('bestbet')) html += bestBetCard(r, sp, c, day, wins);
   // alerts
   const alerts = [];
   const tailR = res.find(x => x.sp.id === 'redfish' && x.tail);
@@ -3044,6 +3045,35 @@ function colorPicks(spc, sp, t, c) {
   const tint = c.tint && TINT_TIP[c.tint] ? ' ' + TINT_TIP[c.tint] : '';
   return { light, clarity, list: state.fly ? set.fly : set.pick, why: `${useWc ? 'measured: ' + wc.lightLabel : lightTxt}, ${clarity}${c.tint && c.tint !== 'clear' ? ' ' + c.tint : ''} water`, tip: (SPECIES_COLOR[spc.id] || '') + moon + tint, bait: !state.fly && BAIT_FIRST[spc.id] };
 }
+// ---------- Best bet summary: species, time, lure and color in one glance ----------
+const NATURAL_BAIT = /(live|fresh|cut |cut$|dead|shiner|minnow$|worms?$|nightcrawler|crawfish$|crickets?|mullet|menhaden|pogy|pinfish|fiddler|sand flea|squid|clam|chicken liver|dough|corn|bread|crabs?$|shrimp$|ballyhoo|bait)/i;
+function lurePick(spc, sp, t, day) {
+  const list = state.fly ? (spc.fly && spc.fly.flies) || [] : spc.bait || [];
+  if (!list.length) return null;
+  const a = day && day.ast, lowLight = a && a.sunrise && a.sunset && (Math.abs(t - a.sunrise) < 2 * 3600e3 || Math.abs(t - a.sunset) < 2 * 3600e3 || t < a.sunrise || t > a.sunset);
+  const art = list.filter(x => state.fly || !NATURAL_BAIT.test(x));
+  const pool = art.length ? art : list;
+  const top = /(topwater|popper|frog|walk|plug|spook|buzz|gurgler|deer-hair|foam|bug|slider)/i, deep = /(jig|bottom|deep|carolina|texas|drop|sinking|weighted|clouser|crab|leech|bucktail|plastic|worm)/i;
+  const pick = (lowLight ? pool.find(x => top.test(x)) : pool.find(x => deep.test(x))) || pool[0];
+  const why = lowLight && top.test(pick) ? 'low light — fish look up' : !lowLight && deep.test(pick) ? 'bright light — keep it low' : 'top pick for this species';
+  const bait = !state.fly ? list.find(x => NATURAL_BAIT.test(x) && x !== pick) : null;
+  return { pick, why, bait };
+}
+function bestBetCard(r, sp, c, day, wins) {
+  if (!r) return '';
+  const w = (wins || []).slice().sort((a, b) => b.peak - a.peak)[0];
+  const t = w ? w.pk || w.a : r.bestStart, lp = lurePick(r.sp, sp, t, day);
+  let col = null; try { const p = colorPicks(r.sp, sp, t, c); col = p && p.list && p.list[0] ? { c: p.list[0], why: p.why } : null; } catch (e) { }
+  const [rt] = Engine.rating(r.day);
+  const row = (ic, k, v, sub) => `<div class="kv" style="text-align:left"><span>${ic} ${k}</span><b style="font-size:1.05em">${v}</b>${sub ? `<span class="small muted">${sub}</span>` : ''}</div>`;
+  return `<div class="card" style="border:2px solid var(--accent)"><h2 style="margin:0 0 8px">Today's best bet</h2><div class="grid2">
+    ${row('🐟', 'Best catch', esc(r.sp.name), rt)}
+    ${row('⏰', 'Best time', w ? fmtT(w.a) + ' – ' + fmtT(w.b) : fmtT(r.bestStart) + ' – ' + fmtT(r.bestEnd), w && w.why && w.why.length ? esc(w.why.slice(0, 2).join(' · ')) : '')}
+    ${lp ? row('🪝', state.fly ? 'Fly' : 'Lure', esc(lp.pick), esc(lp.why) + (lp.bait ? ' · or ' + esc(lp.bait) : '')) : ''}
+    ${col ? row('🎨', 'Color', esc(col.c), esc(col.why || '')) : ''}
+  </div></div>`;
+}
+
 function colorCard(r, sp, c) {
   if (!r || !sp) return '';
   const wc = state.day0 === midnight(Date.now()) && typeof waterCheck === 'function' ? waterCheck(sp, 1.5) : null;
@@ -3420,6 +3450,7 @@ document.addEventListener('click', e => { if (e.target.closest('[data-watercheck
 
 // ===== Choose your features: each person switches off what they don't use; those cards, buttons and tips disappear =====
 var FEATURES = [
+  { g: 'Forecast screen', k: 'bestbet', name: "Today's best bet", help: 'Best catch, time, lure and color at the top' },
   { g: 'Forecast screen', k: 'colors', name: 'Lure & fly colors', help: 'Color picks for the light and water' },
   { g: 'Forecast screen', k: 'watercheck', name: 'Check the water (photo)', help: 'Measure light and clarity with your camera' },
   { g: 'Forecast screen', k: 'now', name: 'Right now', help: 'Live water level, temperature, buoys and river gauges' },
@@ -3465,7 +3496,7 @@ document.addEventListener('click', e => {
   if (t.dataset.featskip) { state.settings.featPrompted = true; Store.saveSettings(); return render(); }
   const boxes = [...document.querySelectorAll('[data-feat]')];
   if (t.dataset.featall) return boxes.forEach(b => b.checked = true);
-  if (t.dataset.featbasic) { const keep = ['colors', 'tides', 'solunar', 'rules', 'map', 'tips']; return boxes.forEach(b => b.checked = keep.includes(b.dataset.feat)); }
+  if (t.dataset.featbasic) { const keep = ['bestbet', 'colors', 'tides', 'solunar', 'rules', 'map', 'tips']; return boxes.forEach(b => b.checked = keep.includes(b.dataset.feat)); }
   if (t.dataset.featsave) {
     const f = {}; boxes.forEach(b => { if (!b.checked) f[b.dataset.feat] = false; });
     state.settings.features = f; Store.saveSettings();
