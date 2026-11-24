@@ -13,6 +13,7 @@ var FEATURES = [
   { g: 'Forecast screen', k: 'flybench', name: 'Fly recipes (Fly Bench)', help: 'Flies to tie for the fish you’re after' },
   { g: 'More', k: 'alerts', name: 'Bite alerts', help: 'Notifications when your spot is about to fire' },
   { g: 'More', k: 'map', name: 'Map', help: 'Your spots, catches, hot spots and boat ramps' },
+  { g: 'More', k: 'clean', name: 'Clean your catch', help: 'Fillet videos and gear for each fish' },
   { g: 'More', k: 'crew', name: 'Fishing crew', help: 'Share catches and plans with friends' },
   { g: 'More', k: 'trip', name: 'Trip reports', help: '' },
   { g: 'More', k: 'forecastcheck', name: 'Forecast report card', help: 'How well the forecast matched your catches' },
@@ -49,6 +50,7 @@ document.addEventListener('click', e => {
     const f = {}; boxes.forEach(b => { if (!b.checked) f[b.dataset.feat] = false; });
     state.settings.features = f; Store.saveSettings();
     if (!featOn('map') && state.tab === 'map') state.tab = 'forecast';
+    if (!featOn('clean') && state.tab === 'clean') state.tab = 'forecast';
     $('#sheet').classList.remove('on'); toast('Saved'); render();
     if (window.Stats) Stats.track('features_set');
   }

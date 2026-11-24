@@ -178,7 +178,8 @@ function render() {
   const lg = document.getElementById("logo"); if (lg && !lg.innerHTML) lg.innerHTML = Art.logo;
   $('#flyseg').innerHTML = `<button class="${!state.fly ? 'on' : ''}" data-fly="0">Conventional</button><button class="${state.fly ? 'on' : ''}" data-fly="1">Fly</button>`;
   if (WEB && !featOn('map') && state.tab === 'map') state.tab = 'forecast';
-  document.querySelectorAll('nav button').forEach(b => { b.classList.toggle('on', b.dataset.tab === state.tab); if (WEB && b.dataset.tab === 'map') b.style.display = featOn('map') ? '' : 'none'; });
+  if (WEB && !featOn('clean') && state.tab === 'clean') state.tab = 'forecast';
+  document.querySelectorAll('nav button').forEach(b => { b.classList.toggle('on', b.dataset.tab === state.tab); if (WEB && b.dataset.tab === 'map') b.style.display = featOn('map') ? '' : 'none'; if (WEB && b.dataset.tab === 'clean') b.style.display = featOn('clean') ? '' : 'none'; });
   const m = $('main');
   if (state.tab === 'forecast') m.innerHTML = viewForecast();
   else if (state.tab === 'species') m.innerHTML = viewSpecies();
