@@ -183,6 +183,7 @@ function render() {
   if (state.tab === 'forecast') m.innerHTML = viewForecast();
   else if (state.tab === 'species') m.innerHTML = viewSpecies();
   else if (state.tab === 'log') m.innerHTML = viewLog();
+  else if (state.tab === 'clean') { m.innerHTML = viewClean(); cleanCredits(); }
   else if (WEB && state.tab === 'map') m.innerHTML = viewMap();
   else m.innerHTML = viewSettings();
   if (state.tab === 'forecast') bindChart();
@@ -624,7 +625,7 @@ function applyHash() {
     if (!eligible(spot()).find(s => s.id === id)) { const sp = spots().find(x => SPMAP[id].waters.includes(x.water)); if (sp) state.spotId = sp.id; }
     history.replaceState(null, '', location.pathname + location.search); render(); window.scrollTo(0, 0); return;
   }
-  const map = { forecast: 'forecast', marine: 'forecast', boating: 'forecast', species: 'species', regulations: 'species', rules: 'species', log: 'log', catchlog: 'log', fishid: 'log', settings: 'settings', ...(WEB ? { map: 'map' } : {}) };
+  const map = { forecast: 'forecast', marine: 'forecast', boating: 'forecast', species: 'species', regulations: 'species', rules: 'species', clean: 'clean', fillet: 'clean', log: 'log', catchlog: 'log', fishid: 'log', settings: 'settings', ...(WEB ? { map: 'map' } : {}) };
   if (!map[h]) return;
   state.tab = map[h]; render();
   if (h === 'marine' || h === 'boating') setTimeout(() => { const el = document.getElementById('marine'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 300);
