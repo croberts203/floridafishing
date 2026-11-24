@@ -150,7 +150,7 @@ function bestBetCard(r, sp, c, day, wins) {
 }
 
 // ---------- My tackle shop: pick a preferred local store from a map search within a chosen radius ----------
-const SHOP_RADII = [20, 30, 50, 75, 100];
+const SHOP_RADII = [10, 20, 30, 50, 100, 150, 200];
 const myShop = () => state.settings.myShop || null;
 const shopTel = s => String(s || '').replace(/[^0-9+]/g, '');
 function myShopLine(item) {
@@ -168,7 +168,7 @@ function myShopLine(item) {
 function shopDistMi(a, b) { return Math.round(distKm([a.lat, a.lng], [b.lat, b.lng]) * 0.621371); }
 async function shopSearch(center, mi) {
   const m = Math.round(mi * 1609.34);
-  const q = `[out:json][timeout:25];(nwr["shop"="fishing"](around:${m},${center.lat},${center.lng});nwr["shop"="outdoor"]["fishing"~"yes|tackle"](around:${m},${center.lat},${center.lng});nwr["shop"="sports"]["sport"~"fishing"](around:${m},${center.lat},${center.lng});nwr["shop"="hunting"](around:${m},${center.lat},${center.lng}););out center tags 200;`;
+  const q = `[out:json][timeout:60];(nwr["shop"="fishing"](around:${m},${center.lat},${center.lng});nwr["shop"="outdoor"]["fishing"~"yes|tackle"](around:${m},${center.lat},${center.lng});nwr["shop"="sports"]["sport"~"fishing"](around:${m},${center.lat},${center.lng});nwr["shop"="hunting"](around:${m},${center.lat},${center.lng}););out center tags 200;`;
   const r = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
   if (!r.ok) throw new Error('Map search is busy, try again in a minute');
   const j = await r.json(), seen = new Set();
