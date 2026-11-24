@@ -62,6 +62,11 @@
         }
       ]
     ],
-    "owner": "croberts203s-team"
+    "owner": "croberts203s-team",
+    "extra": {
+      "eas": {
+        "projectId": "0572604f-c70c-4ed5-9cf7-b3421bad101f"
+      }
+    }
   }
 }
