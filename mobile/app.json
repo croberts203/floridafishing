@@ -1,0 +1,67 @@
+{
+  "expo": {
+    "name": "Fish Bite Forecast",
+    "slug": "fishbiteforecast",
+    "version": "1.0.0",
+    "scheme": "fishbiteforecast",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#0b1a24",
+    "ios": {
+      "bundleIdentifier": "net.fishforecast.app",
+      "buildNumber": "1",
+      "supportsTablet": true,
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Fish Bite Forecast lets you add photos of your catches.",
+        "NSPhotoLibraryAddUsageDescription": "Fish Bite Forecast can save photos of your catches."
+      }
+    },
+    "android": {
+      "package": "net.fishforecast.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0b1a24"
+      },
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Fish Bite Forecast uses the camera to take photos of your catches.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Fish Bite Forecast uses your location to show the bite forecast, tides and fishing rules where you are, and to tag catches."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#0b1a24"
+        }
+      ]
+    ],
+    "owner": "croberts203s-team"
+  }
+}
