@@ -11,6 +11,10 @@ const coreAfter = fs.readFileSync(path.join(root, 'supabase/functions/bite-alert
 for (const f of ['index.html', 'sw.js', 'manifest.webmanifest'])
   ok(fs.readFileSync(path.join(tmp, f), 'utf8') === fs.readFileSync(path.join(root, f), 'utf8'), `${f} matches src/ (edit src/ and run "node src/build.js", never the generated file)`);
 ok(coreBefore === coreAfter, 'supabase/functions/bite-alerts/core.js matches src/');
+execFileSync(process.execPath, [path.join(root, 'tackle/build.js'), path.join(tmp, 'tackle')]);
+const tk = fs.readFileSync(path.join(tmp, 'tackle/index.html'), 'utf8');
+ok(tk === fs.readFileSync(path.join(root, 'tackle/index.html'), 'utf8'), 'tackle/index.html matches tackle/src/ (run "node tackle/build.js")');
+try { [...tk.matchAll(/<script>([\s\S]*?)<\/script>/g)].forEach(m => new vm.Script(m[1])); ok(true, 'Tackle Box script parses'); } catch (e) { ok(false, 'Tackle Box script parses: ' + e.message); }
 const html = fs.readFileSync(path.join(tmp, 'index.html'), 'utf8');
 const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
 try { scripts.forEach(s => new vm.Script(s)); ok(scripts.length > 0, `page script parses (${Math.round(scripts.join('').length / 1024)} KB)`); } catch (e) { ok(false, 'page script parses: ' + e.message); }

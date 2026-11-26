@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1a24">
+<title>Tackle Box — Tie &amp; Tide</title>
+<meta name="description" content="Tackle Box by Tie &amp; Tide: keep track of your lures, rigs and gear, see what to pack for the fish you're after, and what to buy before the trip.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+:root{--bg:#0b1a24;--panel:#11263a;--panel2:#16304a;--line:#24435f;--text:#e8f0f6;--muted:#93a9bb;--accent:#f2b84b;--ink:#2a1d04;--teal:#3fd0b5;--bad:#e86a5c;--good:#66d17a;--r:14px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,Segoe UI,Roboto,sans-serif}
+body{padding:env(safe-area-inset-top) 0 calc(72px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;z-index:5;background:rgba(11,26,36,.94);backdrop-filter:blur(10px);padding:10px 14px 8px;border-bottom:1px solid var(--line)}
+.hrow{display:flex;align-items:center;gap:10px}
+#logo{display:flex}#logo svg{display:block}
+h1{font-size:18px;margin:0;flex:1;letter-spacing:.2px}
+h1 small{display:block;font-size:11.5px;color:var(--muted);font-weight:500}
+h2{font-size:16px;margin:0 0 8px}
+h3{font-size:12.5px;margin:14px 0 6px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+main{padding:12px 12px 20px;max-width:720px;margin:0 auto}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:13px;margin:0 0 12px}
+.muted{color:var(--muted)}.small{font-size:12.5px}
+select,input,textarea{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px;font:15px inherit;font-family:inherit;width:100%}
+textarea{min-height:60px;resize:vertical}
+label{font-size:12.5px;color:var(--muted);display:block;margin:10px 0 4px}
+button{font-family:inherit}
+.btn{border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:11px;padding:10px 14px;font:600 14px inherit;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--ink)}
+.btn.sm{padding:6px 10px;font-size:13px;border-radius:9px}
+.btn.bad{color:var(--bad)}
+.btn:disabled{opacity:.5}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--muted);border-radius:999px;padding:6px 11px;font:600 13px inherit;font-family:inherit;cursor:pointer;white-space:nowrap}
+.chip.on{background:var(--accent);border-color:var(--accent);color:var(--ink)}
+.wrap{flex-wrap:wrap;overflow:visible}
+.seg{display:inline-flex;background:var(--panel2);border-radius:999px;padding:3px;border:1px solid var(--line)}
+.seg button{border:0;background:none;color:var(--muted);padding:6px 12px;border-radius:999px;font:600 13px inherit;font-family:inherit;cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--ink)}
+.item{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.ic{width:38px;height:38px;border-radius:10px;background:var(--panel2);display:flex;align-items:center;justify-content:center;font-size:19px;flex:0 0 auto}
+.nm{flex:1;min-width:0;cursor:pointer}
+.nm b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px}
+.nm span{display:block;font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qty{display:flex;align-items:center;gap:4px}
+.qty button{width:32px;height:32px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font:700 17px inherit;cursor:pointer}
+.qty b{min-width:26px;text-align:center;font-size:16px}
+.nm .pill,.pill{display:inline-block;width:auto;font-size:11.5px;font-weight:700;border-radius:999px;padding:2px 8px;margin-left:6px;vertical-align:1px}
+.pill.low{background:rgba(232,106,92,.18);color:#ff9a8e}
+.pill.ok{background:rgba(102,209,122,.16);color:#8fe39f}
+.pill.miss{background:rgba(242,184,75,.16);color:var(--accent)}
+.search{position:relative;margin-bottom:8px}
+.search input{padding-left:36px}
+.search:before{content:"🔍";position:absolute;left:11px;top:9px;font-size:15px;opacity:.7}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:rgba(17,38,58,.97);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;min-width:0;border:0;background:none;color:var(--muted);padding:9px 0 8px;font:600 11.5px inherit;font-family:inherit;cursor:pointer;position:relative}
+nav button svg{display:block;margin:0 auto 2px;width:23px;height:23px}
+nav button.on{color:var(--accent)}
+nav .badge{position:absolute;top:4px;left:calc(50% + 8px);background:var(--bad);color:#fff;border-radius:999px;font-size:10.5px;min-width:17px;height:17px;line-height:17px;padding:0 4px}
+.fab{position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:6;border:0;background:var(--accent);color:var(--ink);border-radius:999px;padding:13px 18px;font:800 15px inherit;font-family:inherit;box-shadow:0 6px 20px rgba(0,0,0,.4);cursor:pointer}
+.sheet{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center}
+.sheet>div{background:var(--panel);border:1px solid var(--line);border-bottom:0;border-radius:18px 18px 0 0;width:100%;max-width:720px;max-height:92vh;overflow:auto;padding:16px 16px calc(18px + env(safe-area-inset-bottom))}
+.sheet .top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.sheet .top h2{flex:1;margin:0}
+.x{border:0;background:var(--panel2);color:var(--muted);width:32px;height:32px;border-radius:999px;font-size:17px;cursor:pointer}
+.toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#0f2232;border:1px solid var(--accent);color:var(--text);padding:10px 16px;border-radius:12px;z-index:40;font-size:14px;max-width:90vw;text-align:center}
+.empty{text-align:center;padding:26px 10px}
+.empty .big{font-size:44px}
+.rec{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.rec:first-of-type{border-top:0}
+.rec .nm{cursor:default}
+.rec .nm span{white-space:normal}
+.chk{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);cursor:pointer}
+.chk:first-of-type{border-top:0}
+.chk input{width:22px;height:22px;accent-color:var(--accent);flex:0 0 auto}
+.chk.done span{color:var(--muted);text-decoration:line-through}
+#scanner{position:fixed;inset:0;z-index:30;background:#000;display:flex;flex-direction:column}
+#scanner video{flex:1;width:100%;object-fit:cover;min-height:0}
+#scanner .frame{position:absolute;left:12%;right:12%;top:30%;height:22%;border:3px solid var(--accent);border-radius:14px;box-shadow:0 0 0 2000px rgba(0,0,0,.35)}
+#scanner .bar{background:var(--panel);padding:12px 14px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.linkcard{display:flex;gap:12px;align-items:center;text-decoration:none;color:var(--text);padding:10px 0;border-top:1px solid var(--line)}
+.linkcard:first-of-type{border-top:0}
+.appic{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:24px;flex:0 0 auto}
+a{color:var(--accent)}
+.hidden{display:none!important}
+.kit{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;cursor:pointer;background:var(--panel2)}
+.kit b{display:block}
+</style>
+</head>
+<body>
+<header><div class="hrow">
+<span id="logo"><svg class="logo" viewBox="0 0 40 40" width="34" height="34" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#123247" stroke="#f2b84b" stroke-width="1.5"/><path d="M5,30q4,-3 8,0t8,0t8,0t7,0" stroke="#3b8fd9" stroke-width="2" fill="none"/><path d="M10 17h20v8a2 2 0 0 1-2 2H12a2 2 0 0 1-2-2z" fill="#f2b84b"/><path d="M11 17l3-4h12l3 4z" fill="#d99a2b"/><rect x="17" y="10" width="6" height="3.4" rx="1.5" fill="none" stroke="#f2b84b" stroke-width="1.6"/><path d="M15 21.5c2-2 5-2 7 0-2 2-5 2-7 0z" fill="#123247"/><path d="M22 21.5l2.5-1.6v3.2z" fill="#123247"/></svg></span>
+<h1>Tackle Box<small>Lures · rigs · gear</small></h1><div class="seg" id="flyseg"><button data-fly="0">Conventional</button><button data-fly="1">Fly</button></div>
+</div></header>
+<main id="main"></main>
+<button class="fab" id="fab">＋ Add</button>
+<nav id="nav">
+<button data-tab="tackle" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 10h18v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 10l3-4h12l3 4"/><path d="M9 6V4h6v2"/><path d="M3 14h18"/></svg>My tackle</button>
+<button data-tab="pack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 9l1.5 1.5L12 8M8 15l1.5 1.5L12 14M14.5 9.5H17M14.5 15.5H17"/></svg>Pack</button>
+<button data-tab="shop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11h11l2-8H6.2"/><circle cx="9.5" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/></svg>Shopping<span class="badge hidden" id="shopBadge"></span></button>
+<button data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>Settings</button>
+</nav>
+<script>
+/*SCANNER*/
+</script>
+<script>
+"use strict";
+const SPECIES = /*SPECIES*/;
+const FLYSLUG = /*FLYSLUG*/;
+/*BRANDS*/
+const BRAND = Object.fromEntries(BRANDS.map(b=>[b.id,b]));
+const SB_URL = "https://rkxzfzzjzrnkiyopbdke.supabase.co", SB_KEY = "sb_publishable_ypQ91HrykMCwgI59OCRFYg_MFGOgzi9";
+
+/* ---------- tackle types ---------- */
+const CATS = [
+  ["hard","Hard baits","🐟"],["top","Topwater","💦"],["soft","Soft plastics","🪱"],["jig","Jigs","🎯"],["metal","Spoons & metal","🥄"],
+  ["spin","Spinners","🌀"],["rig","Rigs & floats","🎈"],["hook","Hooks","🪝"],["weight","Weights","⚓"],["line","Line & leader","🧵"],
+  ["term","Swivels & snaps","🔗"],["fly","Flies","🪰"],["scent","Scented & stored bait","🧪"],["tool","Tools & gear","🔧"],["other","Other","📦"]];
+const CAT = Object.fromEntries(CATS.map(c=>[c[0],{id:c[0],name:c[1],ic:c[2]}]));
+// [id, category, label, pattern that finds it in a bait/lure description or an item name]
+const KINDS = [
+  ["walker","top","Walk-the-dog topwater",/walk|walker|spook|pencil/],
+  ["popper","top","Popper",/popper|chugg|gurgler/],
+  ["frog","top","Frog",/frog/],
+  ["buzz","top","Buzzbait",/buzz/],
+  ["topwater","top","Topwater plug",/topwater|surface plug|prop ?bait/],
+  ["twitch","hard","Twitchbait / jerkbait",/twitch|jerk|mirr?olure|suspending|x-?rap/],
+  ["crank","hard","Crankbait",/crank/],
+  ["glide","hard","Glide / hard swimbait",/glide|large swimbait|hard swim/],
+  ["blade","hard","Blade bait",/blade bait|vib/],
+  ["stick","hard","Stickbait / minnow plug",/stickbait|sp minnow|swimmer|minnow plug|rapala|bomber/],
+  ["paddle","soft","Paddle-tail / soft swimbait",/paddle|soft-plastic shad|swimbait|shad tail|swim shad/],
+  ["shrimpi","soft","Shrimp imitation",/shrimp[- ]imitation|d\.?o\.?a|vudu|gulp!? ?(alive )?shrimp|savage shrimp|shrimp lure/],
+  ["worm","soft","Plastic worm / stick worm",/plastic worm|texas|senko|stick ?worm|\bned\b|finesse worm|trick worm/],
+  ["grub","soft","Grub",/grub/],
+  ["tube","soft","Tube",/tube/],
+  ["eel","soft","Soft-plastic eel",/soft-plastic eel|plastic eel/],
+  ["gulp","soft","Gulp! / scented soft plastic",/gulp|sandworm/],
+  ["softgen","soft","Soft plastic (any)",/soft plastic|soft-plastic|creature|craw bait/],
+  ["bucktail","jig","Bucktail jig",/bucktail/],
+  ["jighead","jig","Jig head",/jig head|jighead|leadhead|jig &|jig and/],
+  ["pompjig","jig","Pompano jig",/pompano jig/],
+  ["bonejig","jig","Bonefish jig",/bonefish jig/],
+  ["togjig","jig","Tog jig",/tog jig/],
+  ["vjig","jig","Vertical / butterfly jig",/vertical jig|butterfly|large jig|speed jig/],
+  ["smalljig","jig","Small jig / shad dart",/tiny jig|small jigs?|1\/16 oz jig|shad dart|crappie jig|jig & minnow|marabou/],
+  ["swimjig","jig","Swim jig",/swim jig/],
+  ["spoon","metal","Spoon",/spoon|deadly dick|johnson|kastmaster/],
+  ["gotcha","metal","Gotcha plug",/gotcha/],
+  ["diamond","metal","Diamond jig",/diamond jig/],
+  ["epoxy","metal","Epoxy jig / small metal",/epoxy|small metal|albie snax/],
+  ["iron","metal","Iron (surface / yo-yo)",/\biron\b/],
+  ["inline","spin","Inline spinner",/inline spinner|spinner \(river\)|^spinner$|small spinner|rooster|mepps|panther martin/],
+  ["spinnerbait","spin","Spinnerbait",/spinnerbait/],
+  ["beetle","spin","Beetle Spin",/beetle spin/],
+  ["harness","spin","Crawler harness",/harness/],
+  ["flasher","spin","Flasher & fly / hoochie",/flasher|hoochie/],
+  ["cork","rig","Popping cork / float",/cork|float|bobber/],
+  ["carolina","rig","Carolina rig",/carolina/],
+  ["bottomrig","rig","Bottom rig (hi-lo, pompano, fishfinder)",/hi-lo|double-drop|bottom rig|perch rig|drift rig|fishfinder|surf rig/],
+  ["stinger","rig","Stinger rig",/stinger/],
+  ["hairrig","rig","Hair rig",/hair rig/],
+  ["sabiki","rig","Sabiki / bait rig",/sabiki|shrimp fly rig/],
+  ["slide","rig","Slide-bait rig",/slide-bait/],
+  ["troll","rig","Trolling gear",/troll/],
+  ["spider","rig","Spider-rig rods & jigs",/spider-rig/],
+  ["circle","hook","Circle hooks",/circle/],
+  ["smallhook","hook","Small hooks (#4–#2)",/small hooks/],
+  ["jhook","hook","J / Kahle / live-bait hooks",/j[- ]hook|kahle|live[- ]bait hook|octopus hook/],
+  ["treble","hook","Treble hooks",/treble/],
+  ["egg","weight","Egg sinkers",/egg sinker/],
+  ["pyramid","weight","Pyramid sinkers",/pyramid/],
+  ["splitshot","weight","Split shot",/split ?shot/],
+  ["bank","weight","Bank / bell sinkers",/bank sinker|bell sinker/],
+  ["fluoro","line","Fluorocarbon leader",/fluoro/],
+  ["wire","line","Wire leader",/wire/],
+  ["mainline","line","Main line (braid / mono)",/braid|mono|main line/],
+  ["swivel","term","Swivels",/swivel/],
+  ["snap","term","Snaps / clips",/snap|clip/],
+  ["fly","fly","Fly",/\bfly\b|flies/],
+  ["scented","scent","Fishbites / PowerBait / dough",/fishbites|powerbait|dough|boilies|sweet corn|corn/],
+  ["frozen","scent","Frozen bait (squid, ballyhoo, clams)",/frozen/],
+  ["pliers","tool","Pliers / hook remover",/plier|hook remover|dehook/],
+  ["castnet","tool","Cast net",/cast net/],
+  ["net","tool","Landing net",/landing net/],
+  ["grips","tool","Fish grips",/grip/],
+  ["cutter","tool","Line cutter / knife",/cutter|nipper|knife|scissors/],
+  ["bucket","tool","Bait bucket / aerator",/bucket|aerator/],
+  ["other","other","Other",/$^/]];
+const KIND = Object.fromEntries(KINDS.map(k=>[k[0],{id:k[0],cat:k[1],name:k[2],re:k[3]}]));
+const NATURAL = /(live|fresh|cut |cut$|dead|shiner|minnows?\b|worms?\b|nightcrawler|crawler(?! harness)|crawfish|crayfish|crickets?|mullet|menhaden|pogy|pogies|pinfish|fiddler|sand fleas?|sand crabs?|squid|clams?|chicken liver|crabs?\b|shrimp\b|ballyhoo|bunker|eels?\b|herring|anchovy|sardine|pilchard|skein|eggs|wax worm|red wigglers|octopus|bait\b|shad\b(?! dart)|mackerel|rockfish|oysters|barnacles|grass shrimp)/i;
+const ARTIFICIAL = /(imitation|twitch|jig|plastic|spoon|plug|lure|spinner|gulp|fishbites|powerbait|swimbait|crankbait|jerkbait|stickbait|topwater|popper|frog|fly\b|flies|harness|sabiki|rig\b|hoochie|flasher|iron|grub|tube|blade|dart|metal)/i;
+
+function guessKind(text){
+  const t = String(text||"").toLowerCase();
+  for (const k of KINDS) if (k[3].test(t)) return k[0];
+  return "other";
+}
+function kindsFor(text){
+  const t = String(text||"").toLowerCase(), out=[];
+  for (const k of KINDS) if (k[3].test(t)) out.push(k[0]);
+  return out;
+}
+
+/* ---------- lure colors (same tables and rule of thumb as Fish Bite Forecast) ----------
+   clear water + bright light → natural, translucent; stained → bright or metallic (gold, chartreuse);
+   muddy or dark → solid dark silhouettes (black, purple) or loud colors with vibration; night → black. */
+const BAIT_FIRST = { catfish: 1, sheepshead: 1, blackdrum: 1, reef: 1, tautog: 1, scup: 1, carp: 1, whiting: 1, pachalibut: 1, lingcod: 0, surfperch: 1 };
+const COLOR_SALT = {
+  'clear-bright': { pick: ['Clear/silver flake', 'Pearl/white', 'Natural shrimp (tan or pink)'], fly: ['Tan or white shrimp (EP, Gotcha)', 'Tan/white Clouser', 'Olive over white baitfish'] },
+  'clear-low': { pick: ['Pearl/chartreuse', 'Silver/blue back', 'White with a glow tail'], fly: ['White/chartreuse Clouser', 'Pearl Gummy minnow', 'Tan shrimp'] },
+  'stained-bright': { pick: ['Gold or copper ("new penny")', 'Root beer/gold flake', 'Chartreuse tail'], fly: ['Copper or gold flash shrimp', 'Root beer Clouser', 'Chartreuse/white Clouser'] },
+  'stained-low': { pick: ['Chartreuse', 'Pink/chartreuse ("electric chicken")', 'Gold spoon'], fly: ['Chartreuse/white Clouser', 'Pink/white shrimp', 'Black/gold Kwan'] },
+  'muddy-bright': { pick: ['Black/chartreuse', 'Purple/chartreuse', 'Root beer/chartreuse with a rattle'], fly: ['Black/chartreuse', 'Purple/black with flash', 'Chartreuse with a rattle'] },
+  'muddy-low': { pick: ['Black or dark purple', 'Black/chartreuse with a rattle', 'Gold spoon (flash)'], fly: ['Black/purple', 'Black/chartreuse', 'Dark crab'] },
+  night: { pick: ['Black or dark purple (silhouette)', 'White or glow under dock lights', 'Noisy topwater, dark'], fly: ['Black or purple', 'White under lights', 'Dark crab or shrimp'] },
+};
+const COLOR_FRESH = {
+  'clear-bright': { pick: ['Green pumpkin', 'Watermelon', 'Natural shad (white/silver)'], fly: ['Olive or brown nymph/streamer', 'Tan crayfish', 'White/silver baitfish'] },
+  'clear-low': { pick: ['White or pearl', 'Black/blue', 'Shad with a chartreuse tail'], fly: ['White streamer', 'Black/olive Woolly Bugger', 'Popper (yellow or white)'] },
+  'stained-bright': { pick: ['Chartreuse/white', 'Firetiger', 'Junebug or red craw'], fly: ['Chartreuse/white Clouser', 'Olive/yellow Woolly Bugger', 'Orange craw'] },
+  'stained-low': { pick: ['Black/blue', 'Chartreuse with a dark back', 'Gold blade'], fly: ['Black/chartreuse', 'Black Woolly Bugger', 'Yellow popper'] },
+  'muddy-bright': { pick: ['Black/blue', 'Bright chartreuse or orange with a rattle', 'Colorado-blade spinnerbait'], fly: ['Black with flash', 'Chartreuse', 'Big black popper'] },
+  'muddy-low': { pick: ['Black/blue or black/red', 'Loud chartreuse crankbait', 'Big Colorado blade'], fly: ['Black/purple', 'Black Woolly Bugger', 'Black popper'] },
+  night: { pick: ['Black or black/blue', 'Dark purple', 'Black buzzbait or jitterbug'], fly: ['Black popper or slider', 'Black/purple bugger', 'Black mouse'] },
+};
+const SPECIES_COLOR = {
+  redfish: 'Gold and copper spoons are a redfish classic in any water.', trout: 'Seatrout love pink, white and chartreuse soft plastics.',
+  flounder: 'Flounder respond to chartreuse and pink (and scented baits) worked slowly on the bottom.', snook: 'Snook: white, pearl and silver at night under lights.',
+  tarpon: 'Tarpon: purple/black in dirty water, natural or white in clear.', bass: 'Bass: match the main forage — shad colors near open water, craw colors around rock and wood.',
+  crappie: 'Crappie: chartreuse, pink/white and blue/white tubes or jigs.', bream: 'Bream: small crickets, worms, or black and chartreuse micro-jigs.',
+  pompano: 'Pompano: pink or chartreuse jigs and teasers, or sand fleas.', spanish: 'Spanish mackerel: silver spoons and gold or silver jigs, worked fast.',
+  bluefish: 'Bluefish: silver spoons and white bucktails; use wire.', cobia: 'Cobia: big bucktails or eels in white, chartreuse or pink.',
+  walleye: 'Walleye: chartreuse/orange or firetiger in stained water; natural perch in clear.', smallmouth: 'Smallmouth: green pumpkin and natural goby/craw colors.',
+  rainbow: 'Trout: natural olive/brown flies; brighter (pink, egg) in high or stained water.', brown: 'Brown trout: dark streamers at low light; natural colors in clear water.',
+  pike: 'Pike: bright spoons and big flashy baits.', musky: 'Musky: black in low light, natural perch/sucker in clear water.',
+  striper: 'Stripers: white/pearl or bone, darker at night.', albie: 'False albacore: small, slim and silver/green — match the bait.', bonefish: 'Bonefish: tan and pink over sand, olive over grass.',
+};
+const FRESH_GROUPS = ["Freshwater","Panfish"];
+const COLOR_WORDS = ["gold","copper","penny","root beer","pearl","white","bone","silver","chrome","clear","chartreuse","pink","black","purple","blue","green pumpkin","watermelon","junebug","red","orange","firetiger","shad","tan","glow","olive","brown","yellow","natural","craw","perch","sardine","mullet"];
+const SAME = { penny:"copper", bone:"white", pearl:"white", chrome:"silver", natural:"natural", watermelon:"green pumpkin" };
+function colorTokens(str){ const t=String(str||"").toLowerCase(), out=new Set(); COLOR_WORDS.forEach(w=>{ if(t.includes(w)) out.add(SAME[w]||w); }); if(/natural|shad|silver flake|sardine|mullet/.test(t)) out.add("natural"); return out; }
+function colorMatch(itemColor, pick){ const a=colorTokens(itemColor), b=colorTokens(pick); if(!a.size||!b.size) return false; for(const x of a) if(b.has(x)) return true; return false; }
+const SWATCH = c => /chartreuse/i.test(c)?"#c7e83a":/firetiger/i.test(c)?"#e8a23a":/black|dark|junebug/i.test(c)?"#2b2140":/gold|copper|penny|root beer/i.test(c)?"#c9873a":/pink/i.test(c)?"#f08fb0":/purple/i.test(c)?"#6a3fa0":/blue/i.test(c)?"#3a64c9":/green pumpkin|watermelon|olive/i.test(c)?"#5c6b2e":/red|craw|orange/i.test(c)?"#c9503a":/glow/i.test(c)?"#d9f7c0":/tan|natural|brown|bone/i.test(c)?"#c9b08a":/white|pearl|silver|clear|chrome/i.test(c)?"#eef0f0":"#93a9bb";
+const dot = c => `<i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${SWATCH(c)};margin-right:5px;vertical-align:0;border:1px solid rgba(255,255,255,.25)"></i>`;
+
+/* ---------- common tackle: [name, type, suggested colors (first = most useful)] ---------- */
+const COMMON = [
+  ["Gold spoon, weedless ½ oz","spoon",["Gold","Copper","Silver"]],["Silver spoon 1 oz","spoon",["Silver","Gold"]],["Kastmaster ⅜ oz","spoon",["Chrome","Gold","Chrome/blue"]],
+  ["Bucktail jig ¼ oz","bucktail",["White","Chartreuse","Pink"]],["Bucktail jig 1 oz","bucktail",["White","Chartreuse","Pink"]],["Jig heads ¼ oz","jighead",["Unpainted","Red","Chartreuse"]],["Jig heads ⅛ oz","jighead",["Unpainted","Red","Chartreuse"]],
+  ["Gulp! 3\" Shrimp","gulp",["New penny","Pearl white","Chartreuse","Natural"]],["Gulp! 4\" Swimming Mullet","gulp",["Chartreuse","Pearl white","Pink"]],["D.O.A. Shrimp 3\"","shrimpi",["Glow","Rootbeer gold","Clear/gold flake","Pink"]],
+  ["Paddle-tail 4\"","paddle",["Pearl/white","Chartreuse","Rootbeer/gold","Electric chicken (pink/chartreuse)"]],
+  ["MirrOlure MirrOdine","twitch",["Green back/silver","Pink/silver","Gold"]],["Rapala X-Rap","twitch",["Silver","Gold","Clown"]],["Zara Spook","walker",["Bone","Chrome/blue","Black"]],["Popping plug","popper",["Bone","Chartreuse","Black"]],
+  ["Popping cork (oval)","cork",[]],["Carolina rig kit","carolina",[]],["Fishfinder / bottom rigs","bottomrig",[]],["Double-drop pompano rig","bottomrig",["Pink beads","Chartreuse beads"]],["Sabiki rig","sabiki",[]],
+  ["Pompano jig ¼ oz","pompjig",["Pink","Chartreuse","Yellow"]],["Gotcha plug","gotcha",["White/red head","Chartreuse","Pink"]],["Diamond jig 2 oz","diamond",["Silver"]],
+  ["Senko 5\"","worm",["Green pumpkin","Watermelon","Black/blue"]],["Texas-rig plastic worm","worm",["Junebug","Green pumpkin","Black/blue"]],["Ned rig baits","worm",["Green pumpkin","Coppertreuse","Black"]],["Frog (hollow body)","frog",["Black","White","Green"]],["Spinnerbait ⅜ oz","spinnerbait",["White/chartreuse","White","Black/blue"]],
+  ["Crankbait (shallow)","crank",["Shad","Firetiger","Red craw"]],["Beetle Spin","beetle",["Chartreuse","Black/yellow","White"]],["Rooster Tail inline spinner","inline",["White","Gold","Black"]],["Crappie jigs 1/16 oz","smalljig",["Chartreuse/white","Pink/white","Blue/white","Black/chartreuse"]],["Tube baits","tube",["Chartreuse","Pink/white","Green pumpkin"]],
+  ["Circle hooks 3/0","circle",[]],["Circle hooks 5/0","circle",[]],["Kahle hooks 2/0","jhook",[]],["Small hooks #4","smallhook",[]],["Treble hooks #4","treble",[]],
+  ["Egg sinkers ½ oz","egg",[]],["Pyramid sinkers 3 oz","pyramid",[]],["Split shot assortment","splitshot",[]],
+  ["Fluorocarbon leader 20 lb","fluoro",[]],["Fluorocarbon leader 40 lb","fluoro",[]],["Wire leader","wire",[]],["Braid 15 lb","mainline",[]],
+  ["Swivels #7","swivel",[]],["Snap swivels","snap",[]],
+  ["Fishbites","scented",["Shrimp","Crab","Sand flea"]],["PowerBait","scented",["Chartreuse","Rainbow"]],
+  ["Pliers","pliers",[]],["Cast net 6 ft","castnet",[]],["Landing net","net",[]],["Fish grips","grips",[]],["Line cutters","cutter",[]],["Bait bucket & aerator","bucket",[]]];
+const COMMON_BY = Object.fromEntries(COMMON.map(c=>[c[0],c]));
+/* Starter kits. Each lure lists the colors ticked by default: together they cover clear, stained and muddy water and low light. */
+const KITS = [
+  { name:"Inshore saltwater", sub:"Redfish, trout, flounder, snook",
+    plan:"Gold and copper for stained water, pearl and natural for clear water, chartreuse and pink for low light or murky water, and a dark topwater for night.",
+    items:[["Gold spoon, weedless ½ oz",["Gold"]],["Bucktail jig ¼ oz",["White","Chartreuse"]],["Gulp! 3\" Shrimp",["New penny","Pearl white"]],["D.O.A. Shrimp 3\"",["Glow","Rootbeer gold"]],["Paddle-tail 4\"",["Pearl/white","Electric chicken (pink/chartreuse)"]],["Jig heads ¼ oz",["Unpainted"]],["MirrOlure MirrOdine",["Green back/silver"]],["Zara Spook",["Bone","Black"]],["Popping cork (oval)",[]],["Carolina rig kit",[]],["Circle hooks 3/0",[]],["Egg sinkers ½ oz",[]],["Fluorocarbon leader 20 lb",[]],["Swivels #7",[]],["Pliers",[]],["Cast net 6 ft",[]]] },
+  { name:"Surf & pier", sub:"Pompano, whiting, bluefish, Spanish",
+    plan:"Pink and chartreuse for pompano and whiting in the surf, silver and white for Spanish and bluefish chasing bait.",
+    items:[["Double-drop pompano rig",["Pink beads"]],["Fishfinder / bottom rigs",[]],["Pompano jig ¼ oz",["Pink","Chartreuse"]],["Gotcha plug",["White/red head"]],["Silver spoon 1 oz",["Silver"]],["Sabiki rig",[]],["Pyramid sinkers 3 oz",[]],["Circle hooks 3/0",[]],["Fishbites",["Shrimp","Sand flea"]],["Fluorocarbon leader 40 lb",[]],["Snap swivels",[]],["Pliers",[]]] },
+  { name:"Freshwater bass", sub:"Largemouth & smallmouth",
+    plan:"Green pumpkin and watermelon for clear water, chartreuse/white and firetiger for stained, black/blue for muddy water and night.",
+    items:[["Senko 5\"",["Green pumpkin","Black/blue"]],["Texas-rig plastic worm",["Junebug"]],["Ned rig baits",["Green pumpkin"]],["Frog (hollow body)",["Black","White"]],["Spinnerbait ⅜ oz",["White/chartreuse"]],["Crankbait (shallow)",["Shad","Firetiger"]],["Zara Spook",["Bone"]],["Jig heads ⅛ oz",["Unpainted"]],["Kahle hooks 2/0",[]],["Split shot assortment",[]],["Braid 15 lb",[]],["Pliers",[]]] },
+  { name:"Panfish & crappie", sub:"Bream, crappie, perch",
+    plan:"Chartreuse/white and pink/white for crappie, black/chartreuse for bream, blue/white in clear water.",
+    items:[["Crappie jigs 1/16 oz",["Chartreuse/white","Pink/white","Black/chartreuse"]],["Beetle Spin",["Chartreuse","Black/yellow"]],["Rooster Tail inline spinner",["White"]],["Small hooks #4",[]],["Split shot assortment",[]],["Popping cork (oval)",[]],["Tube baits",["Chartreuse"]]] },
+  { name:"Nearshore & offshore", sub:"Kings, cobia, snapper",
+    plan:"White and chartreuse bucktails for cobia, silver metal for kings and Spanish, and pink as a backup in dirty water.",
+    items:[["Bucktail jig 1 oz",["White","Chartreuse","Pink"]],["Diamond jig 2 oz",["Silver"]],["Circle hooks 5/0",[]],["Wire leader",[]],["Fluorocarbon leader 40 lb",[]],["Sabiki rig",[]],["Swivels #7",[]],["Fish grips",[]]] }];
+const ESSENTIALS = ["Fishing license","Pliers & line cutters","Spare leader & hooks","Weights","Sunscreen, hat & sunglasses","Water & snacks","Cooler with ice","Phone charged","Check the forecast & tides"];
+
+/* ---------- storage ---------- */
+const KEY = "tacklebox.v1";
+let S = load();
+(()=>{ const f=fbfShop(); if(f && !S.settings.shopName){ S.settings.shopName=f.name; S.settings.shopPhone=f.phone||""; } })();
+function fbfShop(){ try{ const st=JSON.parse(localStorage.getItem("jaxbite.settings")||"{}"); return st.myShop&&st.myShop.name?st.myShop:null; }catch(e){ return null; } }
+function load(){ try{ const s=JSON.parse(localStorage.getItem(KEY)); if(s&&s.items) return Object.assign({items:[],shop:[],packChecks:{},packSel:[],packFly:false,settings:{}},s);}catch(e){} return {items:[],shop:[],packChecks:{},packSel:[],packFly:false,settings:{}}; }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} updateBadge(); }
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+
+/* ---------- helpers ---------- */
+const $ = (s,el=document)=>el.querySelector(s), $$=(s,el=document)=>[...el.querySelectorAll(s)];
+const esc = s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function toast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2600); }
+const shopUrl = q => "https://www.google.com/search?tbm=shop&q="+encodeURIComponent(q+" fishing");
+const itemCat = it => (KIND[it.kind]||KIND.other).cat;
+const isLow = it => it.low>0 ? it.qty<=it.low : it.qty<=0;
+function sheet(html){ const s=document.createElement("div"); s.className="sheet"; s.innerHTML=`<div>${html}</div>`; s.addEventListener("click",e=>{ if(e.target===s) s.remove(); }); document.body.appendChild(s); $$(".x",s).forEach(b=>b.onclick=()=>s.remove()); return s; }
+function kindOptions(sel){ return CATS.map(c=>`<optgroup label="${esc(c[1])}">${KINDS.filter(k=>k[1]===c[0]).map(k=>`<option value="${k[0]}" ${k[0]===sel?"selected":""}>${esc(k[2])}</option>`).join("")}</optgroup>`).join(""); }
+
+/* ---------- tabs ---------- */
+let TAB = "tackle", FILTER = "all", QUERY = "";
+$$("#nav button").forEach(b=>b.onclick=()=>show(b.dataset.tab));
+$("#fab").onclick=()=>addSheet();
+function show(tab){ TAB=tab; $$("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.tab===tab)); $("#fab").classList.toggle("hidden",tab!=="tackle"); render(); window.scrollTo(0,0); }
+function render(){ ({tackle:renderTackle,pack:renderPack,shop:renderShop,settings:renderSettings})[TAB](); drawFlySeg(); updateBadge(); }
+function updateBadge(){ const n=shopList().filter(x=>!x.done).length, b=$("#shopBadge"); b.textContent=n; b.classList.toggle("hidden",!n); }
+
+/* ---------- My tackle ---------- */
+function renderTackle(){
+  const m=$("#main");
+  if(!S.items.length){
+    m.innerHTML=`<div class="card empty"><div class="big">🧰</div><h2>Your tackle box is empty</h2><p class="muted">Add what you own so Tackle Box can tell you what to pack for the fish you're after, and what to pick up before the trip.</p>
+    <div class="row" style="margin-top:12px"><button class="btn pri" id="eKit">Start with a kit</button><button class="btn" id="eScan">📷 Scan a barcode</button></div></div>
+    <div class="card"><h2>How it works</h2><p class="small muted" style="margin:0">1. Add your lures, hooks, weights and gear: scan the barcode, tap from a list, or type it.<br>2. Open <b>Pack</b>, pick the fish you're targeting, and see what's in your box and what's missing.<br>3. Anything running low or missing goes on your <b>Shopping</b> list, with links to buy it.</p></div>`;
+    $("#eKit").onclick=kitSheet; $("#eScan").onclick=()=>openScanner(); return;
+  }
+  const cats = CATS.filter(c=>S.items.some(it=>itemCat(it)===c[0]));
+  const q=QUERY.toLowerCase();
+  const list=S.items.filter(it=>(FILTER==="all"||(FILTER==="low"?isLow(it):itemCat(it)===FILTER)) && (!q || [it.name,it.brand,it.color,it.size,(KIND[it.kind]||{}).name,it.notes].join(" ").toLowerCase().includes(q)))
+    .sort((a,b)=>CATS.findIndex(c=>c[0]===itemCat(a))-CATS.findIndex(c=>c[0]===itemCat(b)) || a.name.localeCompare(b.name));
+  const low=S.items.filter(isLow).length, total=S.items.reduce((n,it)=>n+(+it.qty||0),0);
+  m.innerHTML=`<div class="search"><input id="q" placeholder="Search your tackle" value="${esc(QUERY)}"></div>
+  <div class="chips"><button class="chip ${FILTER==="all"?"on":""}" data-f="all">All ${S.items.length}</button>${low?`<button class="chip ${FILTER==="low"?"on":""}" data-f="low">⚠️ Low ${low}</button>`:""}${cats.map(c=>`<button class="chip ${FILTER===c[0]?"on":""}" data-f="${c[0]}">${c[2]} ${esc(c[1])}</button>`).join("")}</div>
+  <div class="card" id="list">${list.length?list.map(itemRow).join(""):`<p class="muted small" style="margin:4px 0">Nothing matches.</p>`}</div>
+  <p class="small muted" style="text-align:center">${S.items.length} kinds of tackle · ${total} pieces${low?` · <a href="#" id="toShop">${low} running low</a>`:""}</p>`;
+  $("#q").oninput=e=>{ QUERY=e.target.value; const pos=e.target.selectionStart; renderTackle(); const i=$("#q"); i.focus(); i.setSelectionRange(pos,pos); };
+  $$(".chips .chip",m).forEach(c=>c.onclick=()=>{ FILTER=c.dataset.f; renderTackle(); });
+  $$("[data-dec],[data-inc]",m).forEach(b=>b.onclick=()=>{ const it=S.items.find(x=>x.id===(b.dataset.dec||b.dataset.inc)); it.qty=Math.max(0,(+it.qty||0)+(b.dataset.inc?1:-1)); save(); renderTackle(); });
+  $$("[data-edit]",m).forEach(b=>b.onclick=()=>itemSheet(S.items.find(x=>x.id===b.dataset.edit)));
+  const ts=$("#toShop"); if(ts) ts.onclick=e=>{e.preventDefault(); show("shop");};
+}
+function itemRow(it){
+  const k=KIND[it.kind]||KIND.other, sub=[it.color?dot(it.color)+esc(it.color):"",esc(k.name),esc(it.brand),esc(it.size)].filter(Boolean).join(" · ");
+  return `<div class="item"><div class="ic">${CAT[k.cat].ic}</div><div class="nm" data-edit="${it.id}"><b>${esc(it.name)}</b><span>${isLow(it)?`<span class="pill low" style="margin:0 6px 0 0">${it.qty>0?"Low":"Out"}</span>`:""}${sub}</span></div>
+  <div class="qty"><button data-dec="${it.id}" aria-label="One less">−</button><b>${it.qty}</b><button data-inc="${it.id}" aria-label="One more">+</button></div></div>`;
+}
+
+/* ---------- add / edit ---------- */
+function newItem(name, kind, color){ return {id:uid(),name,kind,color:color||"",brand:"",size:"",qty:1,low:0,notes:""}; }
+function findItem(name, color){ return S.items.find(it=>it.name===name && (it.color||"").toLowerCase()===(color||"").toLowerCase()); }
+function colorChips(colors, on){ return colors.map(c=>`<button class="chip ${on.includes(c)?"on":""}" data-col="${esc(c)}">${dot(c)}${esc(c)}</button>`).join(""); }
+function addSheet(){
+  const s=sheet(`<div class="top"><h2>Add tackle</h2><button class="x">✕</button></div>
+  <div class="grid2" style="margin:8px 0 4px"><button class="btn pri" id="aScan">📷 Scan barcode</button><button class="btn" id="aType">✏️ Type it in</button></div>
+  <div class="grid2" style="margin-top:8px"><button class="btn" id="aKit">🧰 Starter kit</button><button class="btn" id="aBrand">🏷️ Lure makers</button></div>
+  <h3>Or tap common tackle</h3><div class="search"><input id="cq" placeholder="Filter (spoon, hooks, leader…)"></div><div id="clist"></div>`);
+  const draw=()=>{ const q=$("#cq",s).value.toLowerCase();
+    $("#clist",s).innerHTML=COMMON.filter(c=>!q||(c[0]+" "+KIND[c[1]].name+" "+c[2].join(" ")).toLowerCase().includes(q)).map(c=>{ const have=S.items.filter(it=>it.name===c[0]);
+      return `<div class="item"><div class="ic">${CAT[KIND[c[1]].cat].ic}</div><div class="nm"><b>${esc(c[0])}</b><span>${c[2].length?`Colors: ${c[2].map(x=>dot(x)+esc(x)).join(", ")}`:esc(KIND[c[1]].name)}${have.length?` · you have ${have.reduce((n,h)=>n+(+h.qty||0),0)}`:""}</span></div><button class="btn sm ${have.length?"":"pri"}" data-c="${esc(c[0])}">${have.length&&!c[2].length?"+1":"Add"}</button></div>`; }).join("");
+    $$("[data-c]",s).forEach(b=>b.onclick=()=>{ const c=COMMON_BY[b.dataset.c];
+      if(!c[2].length){ const have=findItem(c[0],""); if(have) have.qty++; else S.items.push(newItem(c[0],c[1],"")); save(); toast(`${c[0]} added`); draw(); if(TAB==="tackle") renderTackle(); return; }
+      colorPickSheet(c, ()=>{ draw(); if(TAB==="tackle") renderTackle(); }); }); };
+  $("#cq",s).oninput=draw; draw();
+  $("#aScan",s).onclick=()=>{ s.remove(); openScanner(); };
+  $("#aType",s).onclick=()=>{ s.remove(); itemSheet(null); };
+  $("#aKit",s).onclick=()=>{ s.remove(); kitSheet(); };
+  $("#aBrand",s).onclick=()=>{ s.remove(); brandsSheet(); };
+}
+/* ---------- lure makers ---------- */
+const WATER_TXT={s:"Saltwater",f:"Freshwater",b:"Fresh & salt"};
+function brandsSheet(){
+  const s=sheet(`<div class="top"><h2>Lure makers</h2><button class="x">✕</button></div><p class="small muted" style="margin-top:0">${BRANDS.length} makers and their best-known lures, with sizes and popular colors. Tap a maker to add their lures.</p><div class="search"><input id="bq" placeholder="Search makers or lures (spoon, Senko, shrimp…)"></div><div id="blist"></div>`);
+  const draw=()=>{ const q=$("#bq",s).value.toLowerCase();
+    const list=BRANDS.filter(b=>!q||[b.n,b.parent,b.note,...b.p.map(p=>p[0]+" "+KIND[p[1]].name)].join(" ").toLowerCase().includes(q));
+    const groups={}; list.forEach(b=>{ const g=b.parent&&!/^independent/i.test(b.parent)&&BRANDS.filter(x=>x.parent===b.parent).length>1?b.parent:"Independent makers"; (groups[g]=groups[g]||[]).push(b); });
+    $("#blist",s).innerHTML=Object.keys(groups).sort((a,b)=>(a==="Independent makers")-(b==="Independent makers")||a.localeCompare(b)).map(g=>`<h3>${esc(g)}</h3>`+groups[g].map(b=>`<div class="item" data-b="${b.id}" style="cursor:pointer"><div class="ic">🏷️</div><div class="nm"><b>${esc(b.n)}</b><span>${esc(b.note)}</span></div><span class="small muted" style="flex:0 0 auto">${b.p.length} ›</span></div>`).join("")).join("")||`<p class="small muted">No maker matches.</p>`;
+    $$("[data-b]",s).forEach(d=>d.onclick=()=>brandSheet(BRAND[d.dataset.b])); };
+  $("#bq",s).oninput=draw; draw();
+}
+function brandSheet(b){
+  const s=sheet(`<div class="top"><h2>${esc(b.n)}</h2><button class="x">✕</button></div>
+  <p class="small" style="margin:0 0 4px">${esc(b.note)}</p>
+  <p class="small muted" style="margin:0">${[b.parent?"Owned by "+esc(b.parent):"",b.home?esc(b.home):""].filter(Boolean).join(" · ")}${b.web?` · <a href="https://${esc(b.web)}" target="_blank" rel="noopener">${esc(b.web)}</a>`:""}</p>
+  <div>${b.p.map((p,i)=>{ const have=S.items.filter(it=>it.brand===b.n && it.name===p[0]); return `<div style="padding:12px 0;border-top:1px solid var(--line);margin-top:10px">
+    <div class="row" style="align-items:flex-start"><div style="flex:1"><b>${CAT[KIND[p[1]].cat].ic} ${esc(p[0])}</b><div class="small muted">${esc(KIND[p[1]].name)} · ${WATER_TXT[p[4]]}${have.length?` · you have ${have.reduce((n,h)=>n+(+h.qty||0),0)}`:""}</div></div><button class="btn sm pri" data-pi="${i}" style="flex:0 0 auto">Add</button></div>
+    <div class="small" style="margin-top:4px">Sizes: ${p[2].map(esc).join(" · ")}</div>
+    <div class="small" style="margin-top:2px">Colors: ${p[3].map(c=>dot(c)+esc(c)).join(", ")}</div>${p[5]?`<div class="small muted" style="margin-top:2px">${esc(p[5])}</div>`:""}</div>`; }).join("")}</div>
+  <a class="btn" style="width:100%;margin-top:12px" href="${shopUrl(b.n+" lures")}" target="_blank" rel="noopener">Shop ${esc(b.n)}</a>`);
+  s.style.zIndex=22;
+  $$("[data-pi]",s).forEach(btn=>btn.onclick=()=>productSheet(b,b.p[+btn.dataset.pi],()=>{ s.remove(); brandSheet(b); }));
+}
+function productSheet(b,p,done){
+  let size=p[2][0], on=[p[3][0]];
+  const s=sheet(`<div class="top"><h2>${esc(b.n)} ${esc(p[0])}</h2><button class="x">✕</button></div>
+  <label style="margin-top:0">Size</label><div class="chips wrap" id="ps"></div>
+  <label>Colors you have</label><div class="chips wrap" id="pc"></div>
+  <label>Or another color</label><input id="pOther" placeholder="Type a color">
+  <label>How many of each</label><input id="pQty" type="number" min="1" inputmode="numeric" value="1">
+  <button class="btn pri" id="pAdd" style="width:100%;margin-top:12px">Add to my box</button>`);
+  s.style.zIndex=26;
+  const draw=()=>{ $("#ps",s).innerHTML=p[2].map(z=>`<button class="chip ${z===size?"on":""}" data-z="${esc(z)}">${esc(z)}</button>`).join(""); $("#pc",s).innerHTML=colorChips(p[3],on);
+    $$("[data-z]",s).forEach(x=>x.onclick=()=>{ size=x.dataset.z; draw(); });
+    $$("[data-col]",s).forEach(x=>x.onclick=()=>{ const c=x.dataset.col; on=on.includes(c)?on.filter(y=>y!==c):[...on,c]; draw(); }); }; draw();
+  $("#pAdd",s).onclick=()=>{ const other=$("#pOther",s).value.trim(), cols=[...on,...(other?[other]:[])], n=Math.max(1,parseInt($("#pQty",s).value)||1); if(!cols.length) return toast("Pick a color");
+    cols.forEach(col=>{ const have=S.items.find(it=>it.brand===b.n&&it.name===p[0]&&it.size===size&&(it.color||"").toLowerCase()===col.toLowerCase()); if(have) have.qty+=n; else S.items.push({id:uid(),name:p[0],brand:b.n,kind:p[1],size,color:col,qty:n,low:0,notes:""}); });
+    save(); s.remove(); toast(`${b.n} ${p[0]} added`); done&&done(); if(TAB==="tackle") renderTackle(); };
+}
+function examplesFor(kinds, salt){
+  const want=kinds.filter(k=>k!=="jighead"), out=[];
+  const fits=p=>(want.includes(p[1]) || (want.includes("softgen") && KIND[p[1]].cat==="soft")) && (p[4]==="b"||p[4]===(salt?"s":"f"));
+  BRANDS.forEach(b=>b.p.forEach((p,i)=>{ if(fits(p)) out.push({b,p,i}); }));
+  if(!out.length) BRANDS.forEach(b=>b.p.forEach((p,i)=>{ if(kinds.includes(p[1]) && (p[4]==="b"||p[4]===(salt?"s":"f"))) out.push({b,p,i}); }));
+  return out.slice(0,3);
+}
+function colorPickSheet(c, done){
+  let on=[c[2][0]];
+  const s=sheet(`<div class="top"><h2>${esc(c[0])}</h2><button class="x">✕</button></div><p class="small muted" style="margin-top:0">Which colors do you have? Each color is kept as its own item so Pack can match the right one.</p>
+  <div class="chips wrap" id="cc"></div><label>Or another color</label><input id="cOther" placeholder="e.g. Root beer"><button class="btn pri" id="cAdd" style="width:100%;margin-top:12px">Add to my box</button>`);
+  s.style.zIndex=25;
+  const draw=()=>{ $("#cc",s).innerHTML=colorChips(c[2],on); $$("[data-col]",s).forEach(b=>b.onclick=()=>{ const x=b.dataset.col; on=on.includes(x)?on.filter(y=>y!==x):[...on,x]; draw(); }); }; draw();
+  $("#cAdd",s).onclick=()=>{ const other=$("#cOther",s).value.trim(); const cols=[...on,...(other?[other]:[])]; if(!cols.length) return toast("Pick a color");
+    cols.forEach(col=>{ const have=findItem(c[0],col); if(have) have.qty++; else S.items.push(newItem(c[0],c[1],col)); }); save(); s.remove(); toast(`${c[0]}: ${cols.join(", ")} added`); done&&done(); };
+}
+function kitSheet(){
+  const s=sheet(`<div class="top"><h2>Starter kits</h2><button class="x">✕</button></div><p class="small muted" style="margin-top:0">Pick the kind of fishing you do. Each kit suggests lures in colors that cover clear, stained and muddy water.</p><div id="kits">${KITS.map((k,i)=>`<div class="kit" data-k="${i}"><b>${esc(k.name)}</b><span class="small muted">${esc(k.sub)} · ${k.items.length} items</span></div>`).join("")}</div>`);
+  $$("[data-k]",s).forEach(d=>d.onclick=()=>{ const k=KITS[+d.dataset.k];
+    const sel={}; k.items.forEach(([n,cols])=>{ const c=COMMON_BY[n]; sel[n]={take:!(!cols.length && findItem(n,"")), cols:cols.filter(col=>!findItem(n,col))}; });
+    const draw=()=>{ s.firstElementChild.innerHTML=`<div class="top"><h2>${esc(k.name)}</h2><button class="x">✕</button></div>
+      <p class="small" style="margin:0 0 4px">🎨 ${esc(k.plan)}</p><p class="small muted" style="margin:0">Tick what you own and tap colors to add or remove them.</p>
+      <div>${k.items.map(([n,cols])=>{ const c=COMMON_BY[n], st=sel[n];
+        if(!c[2].length){ const have=findItem(n,""); return `<label class="chk ${have?"done":""}" style="margin:0"><input type="checkbox" data-take="${esc(n)}" ${have?"checked disabled":st.take?"checked":""}><span>${CAT[KIND[c[1]].cat].ic} ${esc(n)}${have?" (already in your box)":""}</span></label>`; }
+        return `<div style="padding:8px 0;border-top:1px solid var(--line)"><div>${CAT[KIND[c[1]].cat].ic} <b>${esc(n)}</b></div><div class="chips wrap" style="margin-top:6px">${c[2].map(col=>{ const have=findItem(n,col); return `<button class="chip ${have||st.cols.includes(col)?"on":""}" data-n="${esc(n)}" data-col="${esc(col)}" ${have?"disabled title='Already in your box'":""}>${dot(col)}${esc(col)}${have?" ✓":""}</button>`; }).join("")}</div></div>`; }).join("")}</div>
+      <button class="btn pri" id="kAdd" style="width:100%;margin-top:12px">Add to my tackle box</button>`;
+      $$(".x",s).forEach(b=>b.onclick=()=>s.remove());
+      $$("[data-take]",s).forEach(i=>i.onchange=()=>{ sel[i.dataset.take].take=i.checked; });
+      $$("[data-n]",s).forEach(b=>b.onclick=()=>{ const st=sel[b.dataset.n], col=b.dataset.col; st.cols=st.cols.includes(col)?st.cols.filter(x=>x!==col):[...st.cols,col]; draw(); });
+      $("#kAdd",s).onclick=()=>{ let n=0; k.items.forEach(([name])=>{ const c=COMMON_BY[name], st=sel[name];
+          if(!c[2].length){ if(st.take && !findItem(name,"")){ S.items.push(newItem(name,c[1],"")); n++; } }
+          else st.cols.forEach(col=>{ if(!findItem(name,col)){ S.items.push(newItem(name,c[1],col)); n++; } }); });
+        save(); s.remove(); toast(`${n} items added`); show("tackle"); };
+    };
+    draw();
+  });
+}
+function itemSheet(it, prefill){
+  const isNew=!it; it = it || Object.assign({id:uid(),name:"",kind:"other",brand:"",color:"",size:"",qty:1,low:0,notes:"",barcode:""}, prefill||{});
+  if(isNew && prefill && prefill.name && (!prefill.kind || prefill.kind==="other")) it.kind=guessKind(prefill.name);
+  const s=sheet(`<div class="top"><h2>${isNew?"New tackle":"Edit tackle"}</h2><button class="x">✕</button></div>
+  ${it.barcode?`<p class="small muted" style="margin:0">Barcode ${esc(it.barcode)}</p>`:""}
+  <label>Name</label><input id="fName" value="${esc(it.name)}" placeholder="e.g. Gold spoon ½ oz">
+  <label>Type</label><select id="fKind">${kindOptions(it.kind)}</select>
+  <div class="row"><div><label>Brand</label><input id="fBrand" list="brandList" value="${esc(it.brand)}"><datalist id="brandList">${BRANDS.map(b=>`<option value="${esc(b.n)}">`).join("")}</datalist></div><div><label>Color</label><input id="fColor" value="${esc(it.color)}"></div></div>
+  <div class="row"><div><label>Size / weight</label><input id="fSize" value="${esc(it.size)}" placeholder="½ oz, 3/0, 20 lb"></div><div><label>How many</label><input id="fQty" type="number" min="0" inputmode="numeric" value="${it.qty}"></div></div>
+  <label>Warn me when I'm down to</label><input id="fLow" type="number" min="0" inputmode="numeric" value="${it.low}">
+  <label>Notes</label><textarea id="fNotes" placeholder="Where it works, what it caught">${esc(it.notes)}</textarea>
+  <div class="row" style="margin-top:14px">${isNew?"":`<button class="btn bad" id="fDel">Delete</button>`}<button class="btn pri" id="fSave">${isNew?"Add to my box":"Save"}</button></div>`);
+  let kindTouched=!isNew;
+  $("#fKind",s).onchange=()=>kindTouched=true;
+  $("#fName",s).oninput=e=>{ if(!kindTouched){ const g=guessKind(e.target.value); if(g!=="other") $("#fKind",s).value=g; } };
+  $("#fSave",s).onclick=()=>{ const name=$("#fName",s).value.trim(); if(!name) return toast("Give it a name");
+    Object.assign(it,{name,kind:$("#fKind",s).value,brand:$("#fBrand",s).value.trim(),color:$("#fColor",s).value.trim(),size:$("#fSize",s).value.trim(),qty:Math.max(0,parseInt($("#fQty",s).value)||0),low:Math.max(0,parseInt($("#fLow",s).value)||0),notes:$("#fNotes",s).value.trim()});
+    if(isNew) S.items.push(it); save(); s.remove(); toast(isNew?`${name} added`:"Saved"); if(prefill && prefill._done) prefill._done(it); render(); };
+  const d=$("#fDel",s); if(d) d.onclick=()=>{ if(!confirmInline(d)) return; S.items=S.items.filter(x=>x.id!==it.id); save(); s.remove(); toast("Deleted"); render(); };
+  if(isNew) setTimeout(()=>$("#fName",s).focus(),50);
+  return s;
+}
+function confirmInline(btn){ if(btn.dataset.sure) return true; btn.dataset.sure=1; btn.textContent="Tap again to delete"; setTimeout(()=>{ if(btn.isConnected){ delete btn.dataset.sure; btn.textContent="Delete"; } },3000); return false; }
+
+/* ---------- barcode scanner ---------- */
+async function lookupUPC(code){
+  try{
+    const ctl=new AbortController(); setTimeout(()=>ctl.abort(),9000);
+    const r=await fetch(SB_URL+"/functions/v1/tackle-lookup",{method:"POST",signal:ctl.signal,headers:{"Content-Type":"application/json",apikey:SB_KEY},body:JSON.stringify({barcode:code})});
+    if(!r.ok) return null; const j=await r.json(); return j&&j.found?j:null;
+  }catch(e){ return null; }
+}
+/* share a product someone named with everyone (shared catalog, by barcode) */
+function shareBarcode(it){
+  if(!it||!it.barcode||!/^\d{6,14}$/.test(it.barcode)) return;
+  fetch(SB_URL+"/functions/v1/tackle-lookup",{method:"POST",headers:{"Content-Type":"application/json",apikey:SB_KEY},body:JSON.stringify({barcode:it.barcode,save:{name:it.name,brand:it.brand,kind:it.kind,color:it.color,size:it.size}})}).catch(()=>{});
+}
+let scan=null;
+async function openScanner(){
+  const el=document.createElement("div"); el.id="scanner";
+  el.innerHTML=`<video playsinline muted autoplay></video><div class="frame"></div>
+  <div class="bar"><div class="row" style="align-items:center"><div class="seg" id="sMode"><button class="on" data-m="add">Bought (+1)</button><button data-m="use">Used (−1)</button></div><button class="btn sm" id="sClose" style="flex:0 0 auto">Done</button></div>
+  <div id="sMsg" class="small" style="margin-top:10px">Point the camera at the barcode on the package.</div>
+  <div class="row" style="margin-top:10px"><label class="btn sm" style="margin:0">🖼️ Photo of barcode<input type="file" accept="image/*" capture="environment" id="sFile" hidden></label><button class="btn sm" id="sType">⌨️ Type the number</button></div></div>`;
+  document.body.appendChild(el);
+  let mode="add"; $$("#sMode button",el).forEach(b=>b.onclick=()=>{ mode=b.dataset.m; $$("#sMode button",el).forEach(x=>x.classList.toggle("on",x===b)); });
+  const msg=t=>$("#sMsg",el).innerHTML=t;
+  let stop=null, busy=false, stream=null;
+  const close=()=>{ try{stop&&stop();}catch(e){} if(stream) stream.getTracks().forEach(t=>t.stop()); el.remove(); scan=null; render(); };
+  $("#sClose",el).onclick=close;
+  async function onCode(raw){
+    if(busy) return; const code=FBScan.normalize(raw); busy=true;
+    if(navigator.vibrate) navigator.vibrate(60);
+    const it=S.items.find(x=>x.barcode===code);
+    if(it){ it.qty=Math.max(0,(+it.qty||0)+(mode==="use"?-1:1)); save(); msg(`✓ <b>${esc(it.name)}</b>: now ${it.qty}`); setTimeout(()=>busy=false,1400); return; }
+    msg(`Read ${esc(code)}. Looking it up…`);
+    const L=await lookupUPC(code);
+    const s=itemSheet(null,{barcode:code,name:L?L.name||"":"",brand:L?L.brand||"":"",color:L?L.color||"":"",size:L?L.size||"":"",kind:L?(L.kind||guessKind([L.name,L.title].join(" "))):"other",qty:1,_done:it=>{ shareBarcode(it); msg("Saved. Scan the next one."); }});
+    s.style.zIndex=40;
+    msg(L?`Found <b>${esc(L.name||code)}</b>${L.source==="catalog"?" in the Tackle Box catalog":""}. Check the details and save.`:`New barcode ${esc(code)}. Fill in what it is, and it's shared so the next person's scan fills in by itself.`);
+    const obs=new MutationObserver(()=>{ if(!s.isConnected){ obs.disconnect(); busy=false; if(el.isConnected) msg("Point the camera at the next barcode."); } }); obs.observe(document.body,{childList:true});
+  }
+  $("#sFile",el).onchange=async e=>{ const f=e.target.files[0]; if(!f) return; msg("Reading the photo…"); try{ const c=await FBScan.decodeImage(f); if(c) onCode(c); else msg("Couldn't find a barcode in that photo. Try closer, with the lines sharp."); }catch(err){ msg(esc(err.message||"Couldn't read that photo.")); } };
+  $("#sType",el).onclick=()=>{ const v=prompt("Barcode number (UPC / EAN)"); if(v&&/^\d{6,14}$/.test(v.trim())) onCode(v.trim()); };
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},audio:false});
+    const v=$("video",el); v.srcObject=stream; await v.play().catch(()=>{});
+    stop=await FBScan.start(v,onCode);
+  }catch(e){ msg("The camera isn't available here. Use <b>Photo of barcode</b> or <b>Type the number</b> instead."); $(".frame",el).classList.add("hidden"); }
+}
+
+/* ---------- Pack ---------- */
+const GROUPS=["Inshore","Surf","Nearshore","Offshore","Freshwater","Panfish"];
+function recsFor(sp, fly){
+  const list = fly ? sp.f : sp.b, lures=[], bait=[];
+  list.forEach(txt=>{
+    if(fly){ lures.push({txt, kinds:["fly"], fly:true}); return; }
+    const art = ARTIFICIAL.test(txt);
+    if(NATURAL.test(txt) && !art){ bait.push(txt);
+      const gear=kindsFor(txt).filter(k=>["rig","hook","weight"].includes(KIND[k].cat));
+      if(gear.length) lures.push({txt:gear.map(k=>KIND[k].name).join(" or ")+" (for "+txt.toLowerCase().replace(/\s*(under|on|with)\s.*$/,"")+")", kinds:gear});
+      return; }
+    const kinds=kindsFor(txt).filter(k=>k!=="fly");
+    lures.push({txt, kinds: kinds.length?kinds:["other"]});
+  });
+  return {lures, bait};
+}
+function haveFor(rec){
+  const words=rec.txt.toLowerCase().replace(/\(.*?\)/g,"").split(/[^a-z0-9]+/).filter(w=>w.length>3 && !/with|tipped|rigged|small|large|under|live/.test(w));
+  return S.items.filter(it=>it.qty>0 && (rec.fly ? itemCat(it)==="fly" && (it.name.toLowerCase().includes(rec.txt.toLowerCase().replace(/\s*\(.*$/,"")) || words.some(w=>it.name.toLowerCase().includes(w)))
+    : (rec.kinds.includes(it.kind) || (rec.kinds.includes("softgen") && itemCat(it)==="soft") || (rec.kinds[0]==="other" && words.some(w=>it.name.toLowerCase().includes(w))))));
+}
+const WATER=[["clear","Clear"],["stained","Stained"],["muddy","Muddy"]], LIGHT=[["bright","Bright sun"],["low","Low light"],["night","Night"]];
+function colorSet(sp, fly){ const c=S.cond||{water:"stained",light:"bright"}, table=FRESH_GROUPS.includes(sp.g)?COLOR_FRESH:COLOR_SALT, key=c.light==="night"?"night":`${c.water}-${c.light}`, set=table[key]||table["stained-bright"]; return fly?set.fly:set.pick; }
+function condWhy(){ const c=S.cond||{water:"stained",light:"bright"}; return c.light==="night"?"at night":`${c.water} water, ${c.light==="low"?"low light":"bright sun"}`; }
+function renderPack(){
+  const m=$("#main"), fly=!!S.packFly, q=(S.packQ||"").toLowerCase(); S.cond=S.cond||{water:"stained",light:"bright"};
+  const chosen=S.packSel.map(id=>SPECIES.find(s=>s.id===id)).filter(Boolean);
+  const open = !chosen.length || S.pickOpen;
+  let html = open ? `<div class="card"><div class="row" style="align-items:center"><h2 style="margin:0">What are you fishing for?</h2>${chosen.length?`<button class="btn sm pri" id="pDone" style="flex:0 0 auto">Done</button>`:""}</div>
+  <p class="small muted" style="margin:6px 0 10px">${fly?"Showing flies (switch to Conventional at the top for lures and bait). ":""}Pick one or more fish. Not sure? <a href="https://fishforecast.net" target="_blank" rel="noopener">Fish Bite Forecast</a> shows what's biting at your spot today.</p>
+  <div class="search" style="margin-bottom:4px"><input id="pq" placeholder="Find a fish" value="${esc(S.packQ||"")}"></div>
+  ${GROUPS.map(g=>{ const sp=SPECIES.filter(s=>s.g===g && (!q||s.n.toLowerCase().includes(q))); return sp.length?`<h3>${g}</h3><div class="chips wrap">${sp.map(s=>`<button class="chip ${S.packSel.includes(s.id)?"on":""}" data-sp="${s.id}">${esc(s.n)}</button>`).join("")}</div>`:""; }).join("")}
+  ${chosen.length?`<button class="btn pri" id="pDone2" style="width:100%;margin-top:14px">Show what to pack (${chosen.length})</button>`:""}
+  </div>` : `<div class="card"><h2>Packing for</h2><div class="chips wrap">${chosen.map(s=>`<button class="chip on" data-sp="${s.id}">${esc(s.n)} ✕</button>`).join("")}<button class="chip" id="pMore">＋ Add or change fish</button></div>${fly?`<p class="small muted" style="margin:2px 0 0">Showing flies. Switch to Conventional at the top for lures and bait.</p>`:""}</div>`;
+  if(chosen.length && !open){
+    html+=`<div class="card"><h2>Today's conditions</h2><p class="small muted" style="margin:-2px 0 8px">Colors change with the water and the light. <a href="https://fishforecast.net" target="_blank" rel="noopener">Fish Bite Forecast</a> estimates both for your spot.</p>
+    <label style="margin-top:0">Water</label><div class="seg">${WATER.map(([k,l])=>`<button class="${S.cond.water===k?"on":""}" data-water="${k}" ${S.cond.light==="night"?"disabled":""}>${l}</button>`).join("")}</div>
+    <label>Light</label><div class="seg">${LIGHT.map(([k,l])=>`<button class="${S.cond.light===k?"on":""}" data-light="${k}">${l}</button>`).join("")}</div></div>`;
+  }
+  if(chosen.length && !open){
+    const toBuy=[];
+    chosen.forEach(sp=>{
+      const r=recsFor(sp,fly);
+      const picks=colorSet(sp,fly), lureItems=S.items.filter(it=>it.qty>0 && !["hook","weight","line","term","tool","rig"].includes(itemCat(it)));
+      html+=`<div class="card"><h2>${esc(sp.n)}</h2>
+      <div class="small" style="margin:-2px 0 4px"><b>🎨 Best ${fly?"fly":"lure"} colors</b> <span class="muted">(${condWhy()})</span></div>
+      <div class="chips wrap">${picks.map(c=>{ const got=lureItems.some(it=>colorMatch(it.color,c)); return `<span class="chip" style="cursor:default${got?";border-color:var(--good)":""}">${dot(c)}${esc(c)}${got?" ✓":""}</span>`; }).join("")}</div>
+      ${!fly&&BAIT_FIRST[sp.id]?`<p class="small muted" style="margin:2px 0 0">${esc(sp.n)} are mostly caught on natural bait. Colors matter less than fresh bait on the bottom.</p>`:""}${SPECIES_COLOR[sp.id]?`<p class="small muted" style="margin:4px 0 0">${esc(SPECIES_COLOR[sp.id])}</p>`:""}`;
+      if(!r.lures.length && !r.bait.length) html+=`<p class="small muted">${fly?"Not a common fly-rod fish.":"No tackle list for this fish yet."}</p>`;
+      if(r.lures.length){ html+=`<h3>${fly?"Flies":"Lures & rigs"}</h3>`+r.lures.map(rec=>{ const have=haveFor(rec); if(!have.length) toBuy.push(rec);
+        const slug=rec.fly&&FLYSLUG[rec.txt], gear=["rig","hook","weight","line","term","tool"].includes((KIND[rec.kinds[0]]||KIND.other).cat);
+        const judged=have.filter(h=>h.color && !["jighead","cork","carolina","bottomrig","sabiki"].includes(h.kind) && !["rig","hook","weight","line","term","tool"].includes(itemCat(h)));
+        const right=judged.filter(h=>picks.some(c=>colorMatch(h.color,c))), colored=judged.length>0;
+        const pill=!have.length?`<span class="pill miss">Missing</span>`:(!gear&&colored&&!right.length)?`<span class="pill miss">Not in today's colors</span>`:`<span class="pill ok">✓ In your box</span>`;
+        const show=(right.length?right:have).slice(0,3).map(h=>`${h.color?dot(h.color):""}${esc(h.name)}${h.color?" ("+esc(h.color)+")":""} ×${h.qty}`).join(", ");
+        const want=gear?"":` in ${picks[0].replace(/\s*\(.*\)$/,"")}`;
+        const ex=(!have.length||(colored&&!right.length))&&!rec.fly?examplesFor(rec.kinds,!FRESH_GROUPS.includes(sp.g)):[];
+        const exHtml=ex.length?`<span>e.g. ${ex.map(e=>`<a href="#" data-ex="${e.b.id}|${e.i}">${esc(e.b.n)} ${esc(e.p[0])}</a>`).join(" · ")}</span>`:"";
+        return `<div class="rec"><div class="ic">${CAT[(KIND[rec.kinds[0]]||KIND.other).cat].ic}</div><div class="nm"><b>${esc(rec.txt)}</b><span>${pill}</span>${exHtml}<span>${have.length?show:esc(rec.fly?"Tie it or buy it":(rec.kinds.map(k=>KIND[k].name).join(" or ")))}${!gear&&(!have.length||(colored&&!right.length))?` · try ${esc(picks.slice(0,2).join(" or "))}`:""}${slug?` · <a href="https://app.flytyingrecipes.org/fly/${slug}/" target="_blank" rel="noopener">Recipe in Fly Bench</a>`:""}</span></div>${have.length&&(right.length||!colored||gear)?"":`<button class="btn sm" data-buy="${esc(rec.txt+want)}">＋ List</button>`}</div>`; }).join(""); }
+      if(r.bait.length){ html+=`<h3>Bait to pick up</h3><p class="small" style="margin:0">${r.bait.map(esc).join(" · ")}</p>${S.settings.shopName?`<p class="small muted" style="margin:6px 0 0">Ask ${esc(S.settings.shopName)}${S.settings.shopPhone?` · <a href="tel:${esc(S.settings.shopPhone)}">Call</a>`:""}</p>`:""}`; }
+      html+=`</div>`;
+    });
+    html+=`<div class="card"><div class="row" style="align-items:center"><h2 style="margin:0">Don't forget</h2><button class="btn sm" id="pReset" style="flex:0 0 auto">Reset</button></div>${ESSENTIALS.map((e,i)=>`<label class="chk ${S.packChecks[i]?"done":""}"><input type="checkbox" data-ess="${i}" ${S.packChecks[i]?"checked":""}><span>${esc(e)}</span></label>`).join("")}</div>`;
+    if(toBuy.length) html+=`<button class="btn pri" id="pAll" style="width:100%;margin-bottom:12px">Add all ${toBuy.length} missing to my shopping list</button>`;
+    m.innerHTML=html;
+    const pa=$("#pAll"); if(pa) pa.onclick=()=>{ let n=0; toBuy.forEach(r=>{ if(addShop(r.txt,"Pack")) n++; }); toast(n?`${n} added to your shopping list`:"Already on your list"); renderPack(); };
+  } else { if(!chosen.length) html+=`<div class="card empty"><div class="big">🎒</div><p class="muted" style="margin:0">Pick a fish above to see what to pack.</p></div>`; m.innerHTML=html; }
+  $$("[data-sp]",m).forEach(b=>b.onclick=()=>{ if(open) S.pickOpen=true; const id=b.dataset.sp; S.packSel=S.packSel.includes(id)?S.packSel.filter(x=>x!==id):[...S.packSel,id]; save(); renderPack(); });
+  const pm=$("#pMore"); if(pm) pm.onclick=()=>{ S.pickOpen=true; save(); renderPack(); };
+  $$("#pDone,#pDone2").forEach(b=>b.onclick=()=>{ S.pickOpen=false; save(); renderPack(); window.scrollTo(0,0); });
+  const pd=null; if(pd) pd.onclick=()=>{ S.pickOpen=false; save(); renderPack(); window.scrollTo(0,0); };
+  if($("#pq")) $("#pq").oninput=e=>{ S.packQ=e.target.value; const pos=e.target.selectionStart; renderPack(); const i=$("#pq"); i.focus(); i.setSelectionRange(pos,pos); };
+  $$("[data-ex]",m).forEach(a=>a.onclick=e=>{ e.preventDefault(); const [bid,i]=a.dataset.ex.split("|"); const b=BRAND[bid]; productSheet(b,b.p[+i],()=>renderPack()); });
+  $$("[data-water]",m).forEach(b=>b.onclick=()=>{ S.cond.water=b.dataset.water; save(); renderPack(); });
+  $$("[data-light]",m).forEach(b=>b.onclick=()=>{ S.cond.light=b.dataset.light; save(); renderPack(); });
+  $$("[data-buy]",m).forEach(b=>b.onclick=()=>{ toast(addShop(b.dataset.buy,"Pack")?"Added to your shopping list":"Already on your list"); renderPack(); });
+  $$("[data-ess]",m).forEach(c=>c.onchange=()=>{ S.packChecks[c.dataset.ess]=c.checked; save(); c.closest(".chk").classList.toggle("done",c.checked); });
+  const pr=$("#pReset"); if(pr) pr.onclick=()=>{ S.packChecks={}; save(); renderPack(); };
+}
+
+/* ---------- Shopping ---------- */
+function addShop(name, from){ if(S.shop.some(x=>!x.done && x.name.toLowerCase()===name.toLowerCase())) return false; S.shop.push({id:uid(),name,from:from||"",done:false}); save(); return true; }
+function shopList(){
+  const low=S.items.filter(isLow).map(it=>({id:"low:"+it.id,name:it.name,low:it,done:false}));
+  return [...low,...S.shop];
+}
+function renderShop(){
+  const m=$("#main"), list=shopList(), todo=list.filter(x=>!x.done), done=S.shop.filter(x=>x.done);
+  const row=x=>`<div class="item"><div class="ic">${x.low?"⚠️":"🛒"}</div><div class="nm"><b>${esc(x.name)}</b><span>${x.low?`${x.low.qty>0?`Down to ${x.low.qty}`:"Out"} · from your box`:x.from==="Pack"?"Missing for your trip":"Added by you"}</span></div>
+    <a class="btn sm" href="${shopUrl(x.name)}" target="_blank" rel="noopener">Shop</a><button class="btn sm pri" data-got="${x.id}">Got it</button></div>`;
+  m.innerHTML=`<div class="card"><h2>Shopping list</h2>${todo.length?todo.map(row).join(""):`<p class="muted small" style="margin:0">Nothing to buy. Items you run low on, and anything missing for a trip, show up here.</p>`}
+  <div class="row" style="margin-top:12px"><input id="sAdd" placeholder="Add something (e.g. 30 lb leader)"><button class="btn" id="sAddB" style="flex:0 0 auto">Add</button></div></div>
+  <div class="card"><h2>My tackle shop</h2><p class="small muted" style="margin-top:0">So you can call ahead for live bait or anything you're missing.</p>
+  <div class="row"><div><label>Shop name</label><input id="shN" value="${esc(S.settings.shopName||"")}" placeholder="e.g. Strike Zone Fishing"></div><div><label>Phone</label><input id="shP" type="tel" value="${esc(S.settings.shopPhone||"")}"></div></div>
+  ${S.settings.shopPhone?`<a class="btn" style="margin-top:10px;width:100%" href="tel:${esc(S.settings.shopPhone)}">📞 Call ${esc(S.settings.shopName||"my shop")}</a>`:""}</div>
+  ${done.length?`<div class="card"><div class="row" style="align-items:center"><h2 style="margin:0">Bought</h2><button class="btn sm" id="sClear" style="flex:0 0 auto">Clear</button></div>${done.map(x=>`<div class="item"><div class="ic">✅</div><div class="nm"><b style="color:var(--muted)">${esc(x.name)}</b></div></div>`).join("")}</div>`:""}`;
+  $$("[data-got]",m).forEach(b=>b.onclick=()=>gotIt(b.dataset.got));
+  const add=()=>{ const v=$("#sAdd").value.trim(); if(!v) return; addShop(v,"me"); renderShop(); };
+  $("#sAddB").onclick=add; $("#sAdd").onkeydown=e=>{ if(e.key==="Enter") add(); };
+  $("#shN").onchange=e=>{ S.settings.shopName=e.target.value.trim(); save(); renderShop(); };
+  $("#shP").onchange=e=>{ S.settings.shopPhone=e.target.value.trim(); save(); renderShop(); };
+  const c=$("#sClear"); if(c) c.onclick=()=>{ S.shop=S.shop.filter(x=>!x.done); save(); renderShop(); };
+}
+function gotIt(id){
+  if(id.startsWith("low:")){ const it=S.items.find(x=>x.id===id.slice(4)); const s=sheet(`<div class="top"><h2>Restock ${esc(it.name)}</h2><button class="x">✕</button></div><label>How many did you buy?</label><input id="gN" type="number" min="1" inputmode="numeric" value="${Math.max(1,(it.low||1)*2)}"><button class="btn pri" id="gOk" style="width:100%;margin-top:12px">Add to my box</button>`);
+    $("#gOk",s).onclick=()=>{ it.qty=(+it.qty||0)+Math.max(1,parseInt($("#gN",s).value)||1); save(); s.remove(); toast(`${it.name}: now ${it.qty}`); renderShop(); }; return; }
+  const x=S.shop.find(y=>y.id===id); x.done=true; save(); renderShop();
+  const s=sheet(`<div class="top"><h2>Add it to your box?</h2><button class="x">✕</button></div><p class="muted" style="margin-top:0">${esc(x.name)}</p><div class="row"><button class="btn" id="gNo">Not now</button><button class="btn pri" id="gYes">Add to my box</button></div>`);
+  $("#gNo",s).onclick=()=>s.remove();
+  $("#gYes",s).onclick=()=>{ s.remove(); itemSheet(null,{name:x.name,kind:guessKind(x.name)}); };
+}
+
+/* ---------- More ---------- */
+function drawFlySeg(){ $$("#flyseg button").forEach(b=>{ b.classList.toggle("on",(b.dataset.fly==="1")===!!S.packFly); b.onclick=()=>{ S.packFly=b.dataset.fly==="1"; save(); render(); }; }); }
+function renderSettings(){
+  const m=$("#main");
+  m.innerHTML=`<div class="card"><h2>Tie &amp; Tide apps</h2>
+  <a class="linkcard" href="https://fishforecast.net" target="_blank" rel="noopener"><div class="appic" style="background:#0f3b3a">🐟</div><div class="nm"><b>Fish Bite Forecast</b><span>Know when they're biting: bite scores, tides and the best lure for today</span></div></a>
+  <a class="linkcard" href="https://app.flytyingrecipes.org" target="_blank" rel="noopener"><div class="appic" style="background:#26305a">🪰</div><div class="nm"><b>Fly Bench</b><span>Tie it. Fish it. Log it. 1,200+ fly recipes sorted by fish</span></div></a></div>
+  <div class="card"><h2>Lure makers</h2><p class="small muted" style="margin-top:0">${BRANDS.length} makers, who owns them, and their best-known lures with sizes and popular colors.</p><button class="btn" id="mBrands" style="width:100%">🏷️ Browse lure makers</button></div>
+  <div class="card"><h2>Back up your tackle</h2><p class="small muted" style="margin-top:0">Your tackle is saved on this phone. Download a backup, or a spreadsheet of everything you own.</p>
+  <div class="grid2"><button class="btn" id="mJson">⬇️ Backup file</button><button class="btn" id="mCsv">📄 Spreadsheet (CSV)</button></div>
+  <label class="btn" style="width:100%;margin-top:8px">⬆️ Restore a backup<input type="file" accept="application/json,.json" id="mRestore" hidden></label></div>
+  <div class="card"><h2>About</h2><p class="small muted" style="margin:0">Tackle Box by Tie &amp; Tide. Lure suggestions come from Fish Bite Forecast's species guides. Always check your state's fishing rules before you keep a fish.</p>
+  <button class="btn bad" id="mWipe" style="margin-top:12px;width:100%">Delete everything on this phone</button></div>`;
+  $("#mBrands").onclick=brandsSheet;
+  const dl=(name,type,text)=>{ const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500); };
+  $("#mJson").onclick=()=>dl("tackle-box-backup.json","application/json",JSON.stringify(S,null,1));
+  $("#mCsv").onclick=()=>{ const q=v=>`"${String(v==null?"":v).replace(/"/g,'""')}"`; dl("my-tackle.csv","text/csv",["Name,Type,Category,Brand,Color,Size,Qty,Warn at,Barcode,Notes",...S.items.map(it=>[it.name,(KIND[it.kind]||KIND.other).name,CAT[itemCat(it)].name,it.brand,it.color,it.size,it.qty,it.low,it.barcode||"",it.notes].map(q).join(","))].join("\n")); };
+  $("#mRestore").onchange=async e=>{ const f=e.target.files[0]; if(!f) return; try{ const j=JSON.parse(await f.text()); if(!j.items) throw 0; S=Object.assign(load(),j); save(); toast("Backup restored"); show("tackle"); }catch(err){ toast("That isn't a Tackle Box backup file"); } };
+  $("#mWipe").onclick=e=>{ const b=e.target; if(!b.dataset.sure){ b.dataset.sure=1; b.textContent="Tap again to delete all your tackle"; return; } S={items:[],shop:[],packChecks:{},packSel:[],packFly:false,settings:{}}; save(); toast("Deleted"); show("tackle"); };
+}
+
+render();
+if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
